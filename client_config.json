@@ -1,0 +1,13 @@
+{
+  "nodes": [],
+  "udp_port": 12346,
+  "window_geometry": {
+    "x": 809,
+    "y": 243,
+    "w": 1000,
+    "h": 700
+  },
+  "log_level": "INFO",
+  "gui_refresh_interval": 1.0,
+  "last_selected_node": "localhost"
+}

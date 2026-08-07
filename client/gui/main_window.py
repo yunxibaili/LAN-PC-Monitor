@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMessageBox,
                              QSplitter, QVBoxLayout, QWidget)
 
 from common.quality import QualityScorer
-from common.utils import make_host_id
+from common.utils import get_lan_ip, make_host_id
 from client import config as client_config
 from client.connection import NodeConnection
 from client.discovery import DiscoveryListener
@@ -116,9 +116,11 @@ class ClientMainWindow(QMainWindow):
 
         self.statuses[LOCAL_NODE_ID] = "在线"
         self.rtts[LOCAL_NODE_ID] = 0.0
+        # 本机节点真实局域网 IP（而非硬编码 localhost）
+        local_ip = get_lan_ip(self.cfg.get("preferred_iface", ""))
         self.node_manager.add_node(LOCAL_NODE_ID, "本机 (localhost)",
-                                   "localhost", is_local=True)
-        log.info("本机节点已初始化（置顶 [本机]）")
+                                   local_ip, is_local=True)
+        log.info("本机节点已初始化（置顶 [本机]，IP=%s）", local_ip)
 
     # ---------- 远程节点管理 ----------
 
@@ -163,19 +165,33 @@ class ClientMainWindow(QMainWindow):
     # ---------- 添加/扫描/右键 ----------
 
     def _on_add_node(self) -> None:
-        from PyQt5.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLineEdit
+        from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QFormLayout,
+                                     QLabel, QLineEdit)
 
         dialog = QDialog(self)
         dialog.setWindowTitle("手动添加节点")
         form = QFormLayout(dialog)
+
+        # 提示：告诉用户各字段填什么
+        hint = QLabel(
+            "填被监控电脑（采集节点）的信息：\n"
+            "· IP：该电脑的局域网 IP（如 192.168.1.100）\n"
+            "· 端口：采集节点 TCP 端口，默认 12345\n"
+            "· Token：采集节点 node_config.json 中的 token\n"
+            "· 别名：任意名称，便于识别"
+        )
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: #808080;")
+        form.addRow(hint)
+
         ip_edit = QLineEdit()
         port_edit = QLineEdit("12345")
         token_edit = QLineEdit()
         alias_edit = QLineEdit()
-        form.addRow("IP:", ip_edit)
-        form.addRow("端口:", port_edit)
-        form.addRow("Token:", token_edit)
-        form.addRow("别名:", alias_edit)
+        form.addRow("IP *", ip_edit)
+        form.addRow("端口", port_edit)
+        form.addRow("Token *", token_edit)
+        form.addRow("别名", alias_edit)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
@@ -185,6 +201,7 @@ class ClientMainWindow(QMainWindow):
             return
         ip = ip_edit.text().strip()
         if not ip:
+            self.statusBar().showMessage("IP 不能为空", 3000)
             return
         try:
             port = int(port_edit.text().strip() or "12345")
