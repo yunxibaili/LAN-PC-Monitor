@@ -24,9 +24,10 @@ log = logging.getLogger("client.gui.node_manager")
 class NodeManager(QWidget):
     """副机端节点管理器（本机仪表盘右侧的摘要列表）。"""
 
-    # 信号：add_clicked / scan_clicked / context_action(action, node_id)
+    # 信号：add_clicked / scan_clicked / add_local_clicked / context_action(action, node_id)
     add_clicked = pyqtSignal()
     scan_clicked = pyqtSignal()
+    add_local_clicked = pyqtSignal()
     context_action = pyqtSignal(str, str)
 
     def __init__(self, parent=None):
@@ -46,16 +47,48 @@ class NodeManager(QWidget):
         btn_add = QPushButton("添加节点")
         btn_add.clicked.connect(self.add_clicked.emit)
         btns.addWidget(btn_add)
+        btn_local = QPushButton("添加本机节点")
+        btn_local.setToolTip("一键接入本机采集节点（读取 node_config.json 自动填入）")
+        btn_local.clicked.connect(self.add_local_clicked.emit)
+        btns.addWidget(btn_local)
         btn_scan = QPushButton("扫描")
         btn_scan.clicked.connect(self.scan_clicked.emit)
         btns.addWidget(btn_scan)
         btns.addStretch(1)
         root.addLayout(btns)
 
+        # 删除按钮：选中远程节点后可显式删除（替代仅右键菜单）
+        del_row = QHBoxLayout()
+        self.btn_delete = QPushButton("删除选中节点")
+        self.btn_delete.setEnabled(False)
+        self.btn_delete.clicked.connect(self._on_delete_clicked)
+        del_row.addWidget(self.btn_delete)
+        del_row.addStretch(1)
+        root.addLayout(del_row)
+
         # 节点列表（复用主机端 NodeListWidget）
         self.node_list = NodeListWidget()
+        self.node_list.currentItemChanged.connect(self._on_selection_changed)
         self.node_list.context_action.connect(self.context_action.emit)
         root.addWidget(self.node_list, 1)
+
+    def _on_selection_changed(self, current, _previous) -> None:
+        """选中项变化：远程节点可删除，本机节点/无选中禁用。"""
+        if current is None:
+            self.btn_delete.setEnabled(False)
+            return
+        node_id = current.data(Qt.UserRole)
+        self.btn_delete.setEnabled(node_id != LOCAL_NODE_ID)
+
+    def _on_delete_clicked(self) -> None:
+        """删除按钮 → 发 context_action('remove', node_id)。"""
+        item = self.node_list.currentItem()
+        if item is None:
+            return
+        node_id = item.data(Qt.UserRole)
+        if node_id == LOCAL_NODE_ID:
+            return  # 本机节点不可删
+        self.context_action.emit("remove", node_id)
 
     # ---------- 转发方法 ----------
 

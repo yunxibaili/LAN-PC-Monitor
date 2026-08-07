@@ -107,6 +107,31 @@ def generate_token() -> str:
     return uuid.uuid4().hex[:12]
 
 
+def get_local_node_info() -> dict:
+    """
+    读取本机采集节点配置（node_config.json），返回连接所需信息。
+
+    用于副机端/主机端"一键添加本机节点"，省去手动填 IP/端口/token。
+    :return: {"ip":..., "port":..., "token":..., "alias":...}；
+             文件不存在或解析失败返回空 dict。
+    """
+    import json
+    import os
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cfg_file = os.path.join(root, "node_config.json")
+    try:
+        with open(cfg_file, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        return {
+            "ip": get_lan_ip(cfg.get("preferred_iface", "")),
+            "port": cfg.get("tcp_port", 12345),
+            "token": cfg.get("token", ""),
+            "alias": socket.gethostname(),
+        }
+    except Exception:
+        return {}
+
+
 def get_default_gateway() -> str:
     """
     获取默认网关 IP（用于网关延迟测量，见《技术文档.md》§8.6）。

@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMessageBox,
                              QSplitter, QVBoxLayout, QWidget)
 
 from common.quality import QualityScorer
-from common.utils import get_lan_ip, make_host_id
+from common.utils import get_lan_ip, get_local_node_info, make_host_id
 from client import config as client_config
 from client.connection import NodeConnection
 from client.discovery import DiscoveryListener
@@ -94,6 +94,7 @@ class ClientMainWindow(QMainWindow):
 
         self.node_manager = NodeManager()
         self.node_manager.add_clicked.connect(self._on_add_node)
+        self.node_manager.add_local_clicked.connect(self._on_add_local_node)
         self.node_manager.scan_clicked.connect(self._on_scan_nodes)
         self.node_manager.context_action.connect(self._on_context_action)
         self.splitter.addWidget(self.node_manager)
@@ -219,8 +220,29 @@ class ClientMainWindow(QMainWindow):
     def _on_scan_nodes(self) -> None:
         existing = set(self.nodes.keys())
         dialog = DiscoveryDialog(self.listener, existing,
-                                 on_add=self._on_discovery_add, parent=self)
+                                 on_add=self._on_discovery_add,
+                                 on_add_local=self._on_add_local_node,
+                                 parent=self)
         dialog.exec_()
+
+    def _on_add_local_node(self) -> None:
+        """一键接入本机采集节点（读取 node_config.json 自动填入）。"""
+        info = get_local_node_info()
+        if not info or not info.get("token"):
+            QMessageBox.warning(
+                self, "未找到本机节点",
+                "未找到 node_config.json 或未配置 token。\n"
+                "请先在被监控电脑上启动采集节点（python -m node）生成配置。")
+            return
+        node_id = make_host_id(info["ip"], info["port"])
+        if node_id in self.nodes:
+            self.statusBar().showMessage("本机节点已在列表中", 3000)
+            return
+        client_config.upsert_node(self.cfg, node_id, info["ip"], info["port"],
+                                  info["token"], info["alias"])
+        self._add_node(node_id, info["ip"], info["port"],
+                       info["token"], info["alias"])
+        self.statusBar().showMessage(f"已接入本机节点 {info['ip']}", 3000)
 
     def _on_discovery_add(self, ip, port, token, alias) -> None:
         node_id = make_host_id(ip, port)

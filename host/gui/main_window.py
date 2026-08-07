@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMessageBox,
                              QVBoxLayout, QWidget)
 
 from common.quality import QualityScorer
-from common.utils import get_lan_ip, make_host_id
+from common.utils import get_lan_ip, get_local_node_info, make_host_id
 from host import config as host_config
 from host.connection import NodeConnection
 from node.discovery import DiscoveryListener
@@ -117,10 +117,23 @@ class HostMainWindow(QMainWindow):
         detail_layout.setContentsMargins(0, 0, 0, 0)
 
         self.splitter = QSplitter(Qt.Horizontal)
+
+        # 左侧节点列表 + 删除按钮
+        left_panel = QWidget()
+        left_layout = QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(4)
         self.node_list = NodeListWidget()
         self.node_list.currentItemChanged.connect(self._on_node_selected)
         self.node_list.context_action.connect(self._on_context_action)
-        self.splitter.addWidget(self.node_list)
+        left_layout.addWidget(self.node_list, 1)
+        # 显式删除按钮（替代仅右键菜单）
+        self.btn_delete = QPushButton("删除选中节点")
+        self.btn_delete.setEnabled(False)
+        self.btn_delete.clicked.connect(self._on_delete_clicked)
+        self.node_list.currentItemChanged.connect(self._on_delete_selection)
+        left_layout.addWidget(self.btn_delete)
+        self.splitter.addWidget(left_panel)
 
         self.detail_panel = DetailPanel()
         self.splitter.addWidget(self.detail_panel)
@@ -314,8 +327,29 @@ class HostMainWindow(QMainWindow):
     def _on_scan_nodes(self) -> None:
         existing = set(self.nodes.keys())
         dialog = DiscoveryDialog(self.listener, existing,
-                                 on_add=self._on_discovery_add, parent=self)
+                                 on_add=self._on_discovery_add,
+                                 on_add_local=self._on_add_local_node,
+                                 parent=self)
         dialog.exec_()
+
+    def _on_add_local_node(self) -> None:
+        """一键接入本机采集节点（读取 node_config.json 自动填入）。"""
+        info = get_local_node_info()
+        if not info or not info.get("token"):
+            QMessageBox.warning(
+                self, "未找到本机节点",
+                "未找到 node_config.json 或未配置 token。\n"
+                "请先在被监控电脑上启动采集节点（python -m node）生成配置。")
+            return
+        node_id = make_host_id(info["ip"], info["port"])
+        if node_id in self.nodes:
+            self.statusBar().showMessage("本机节点已在列表中", 3000)
+            return
+        host_config.upsert_host(self.cfg, node_id, info["ip"], info["port"],
+                                info["token"], info["alias"])
+        self._add_node(node_id, info["ip"], info["port"],
+                       info["token"], info["alias"])
+        self.statusBar().showMessage(f"已接入本机节点 {info['ip']}", 3000)
 
     def _on_discovery_add(self, ip, port, token, alias) -> None:
         node_id = make_host_id(ip, port)
@@ -380,6 +414,23 @@ class HostMainWindow(QMainWindow):
         self.current_node = current.data(Qt.UserRole)
         if self.current_node in self.frames:
             self.detail_panel.update_all(self.frames[self.current_node])
+
+    def _on_delete_selection(self, current, _previous) -> None:
+        """删除按钮可用性：选中远程节点可删，本机节点/无选中禁用。"""
+        if current is None:
+            self.btn_delete.setEnabled(False)
+            return
+        self.btn_delete.setEnabled(current.data(Qt.UserRole) != LOCAL_NODE_ID)
+
+    def _on_delete_clicked(self) -> None:
+        """删除按钮 → 复用右键删除流程。"""
+        item = self.node_list.currentItem()
+        if item is None:
+            return
+        node_id = item.data(Qt.UserRole)
+        if node_id == LOCAL_NODE_ID:
+            return
+        self._on_context_action("remove", node_id)
 
     def _on_data(self, frame: dict, node_id: str) -> None:
         """接收 monitor_data：注入本地测量的网络质量 + 更新显示。"""

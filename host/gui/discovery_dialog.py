@@ -28,11 +28,13 @@ class DiscoveryDialog(QDialog):
     :param on_add:    回调 fn(ip, port, token, alias) 添加节点
     """
 
-    def __init__(self, listener, existing: set, on_add=None, parent=None):
+    def __init__(self, listener, existing: set, on_add=None, on_add_local=None,
+                 parent=None):
         super().__init__(parent)
         self.listener = listener
         self.existing = existing
         self.on_add = on_add
+        self.on_add_local = on_add_local
         self.setWindowTitle("自动扫描节点")
         self.resize(480, 420)
         self._build_ui()
@@ -50,6 +52,15 @@ class DiscoveryDialog(QDialog):
         self.list_widget.setSelectionMode(QListWidget.MultiSelection)
         root.addWidget(self.list_widget, 1)
 
+        # 便捷入口：一键添加本机节点
+        local_row = QHBoxLayout()
+        self.btn_local = QPushButton("一键添加本机节点")
+        self.btn_local.setToolTip("读取本机 node_config.json 自动填入 IP/端口/token")
+        self.btn_local.clicked.connect(self._on_add_local)
+        local_row.addWidget(self.btn_local)
+        local_row.addStretch(1)
+        root.addLayout(local_row)
+
         bottom = QHBoxLayout()
         refresh_btn = QPushButton("刷新")
         refresh_btn.clicked.connect(self._refresh)
@@ -61,12 +72,19 @@ class DiscoveryDialog(QDialog):
         bottom.addWidget(buttons, 0, Qt.AlignRight)
         root.addLayout(bottom)
 
+    def _on_add_local(self) -> None:
+        """一键添加本机节点（复用回调）。"""
+        if self.on_add_local:
+            self.on_add_local()
+            self.accept()
+
     def _refresh(self) -> None:
         """刷新在线节点列表。"""
         self.list_widget.clear()
         hosts = self.listener.get_hosts()
         if not hosts:
-            self.list_widget.addItem("（未发现节点，请确认节点端已启动并放行 UDP 12346）")
+            self.list_widget.addItem("（未发现局域网节点，请确认被监控电脑已启动采集节点\n"
+                                     " 且 UDP 12346 已在防火墙放行；也可点下方按钮一键添加本机节点）")
             return
         for ip, info in sorted(hosts.items()):
             hostname = info.get("hostname", ip)
