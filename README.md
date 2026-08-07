@@ -20,7 +20,7 @@
 |------|------|
 | **P0 骨架** | common/protocol 帧协议、node TCP Server（鉴权+去重）、node 聚合器、host 连接骨架、本机节点置顶 |
 | **P1 基础采集** | CPU/内存/磁盘/网络/进程/uptime 采集器 + host 集中 GUI 分区 + 阈值变色 |
-| **P2 多节点管理** | host 多节点连接（独立重连）、自适应三模式、自动发现弹窗、持久化、右键菜单 |
+| **P2 多节点管理** | host 多节点连接（独立重连）、自适应三模式、自动发现弹窗、持久化、右键菜单；**副机端实现**（本机仪表盘 + 节点管理器） |
 | **P3 进阶采集** | GPU(pynvml 全指标，含 usedGpuMemory 判空；热点温度 NVML getattr fallback → LHM 补读 → N/A；AMD pyadl getName 防御)、温度(LibreHardwareMonitor 共享 common/lhm.py)、网络质量评分（滑动平均，系数 *5）、磁盘盘符 WMI 映射 + 队列深度(raw string)、丢包测量 |
 
 ## 快速开始
@@ -100,8 +100,8 @@ python test_p0.py --demo
 ├── node/                        # 采集节点
 │   ├── config.py / tcp_server.py / discovery.py / aggregator.py / fake_data.py
 │   └── collectors/              # base/cpu/ram/gpu/disk/net/net_quality/proc/sys/fps
-├── client/                      # 副机端（待实现）
-│   ├── config.py / connection.py / discovery.py / local_node.py
+├── client/                      # 副机端（已实现：本机仪表盘 + 节点管理）
+│   ├── config.py / connection.py / discovery.py / local_node.py / main.py
 │   └── gui/                     # main_window/local_panel/node_manager/discovery_dialog
 ├── host/                        # 监控主机
 │   ├── config.py / connection.py / discovery.py / local_node.py / self_monitor.py
@@ -111,6 +111,6 @@ python test_p0.py --demo
 
 ## 下一步（P4）
 
-帧率(PresentMon CLI 主 + DXGI 降级 + 前台窗口动态绑定) + 单实例互斥 + 开机自启(node schtasks / client+host 注册表) + 性能兜底 + 实现副机端 client。
+帧率(PresentMon CLI 主 + DXGI 降级 + 前台窗口动态绑定 + 降级日志提示) + 性能兜底 + 帧率采集器统一降级日志。
 
 详见《技术文档.md》§21 实现优先级。

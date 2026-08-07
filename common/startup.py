@@ -15,6 +15,7 @@ log = logging.getLogger("common.startup")
 
 # 任务/注册表名称
 NODE_TASK_NAME = "PC_Monitor_Node"
+CLIENT_RUN_NAME = "PC_Monitor_Client"
 HOST_RUN_NAME = "PC_Monitor_Host"
 
 # 注册表 Run 键路径
@@ -62,6 +63,44 @@ def remove_node_startup() -> bool:
         return True
     except subprocess.CalledProcessError as e:
         log.error("卸载节点自启失败: %s", e.stderr.strip())
+        return False
+
+
+def install_client_startup() -> bool:
+    """安装副机端开机自启（注册表 HKCU Run，无需管理员，§14.3）。"""
+    if sys.platform != "win32":
+        log.warning("非 Windows 平台，跳过开机自启安装")
+        return False
+    try:
+        import winreg
+        exe = _pythonw_path()
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0,
+                            winreg.KEY_SET_VALUE) as k:
+            winreg.SetValueEx(k, CLIENT_RUN_NAME, 0, winreg.REG_SZ,
+                              f'{exe} -m client')
+        log.info("副机端开机自启已安装")
+        return True
+    except Exception as e:
+        log.error("安装副机端自启失败: %s", e)
+        return False
+
+
+def remove_client_startup() -> bool:
+    """卸载副机端开机自启。"""
+    if sys.platform != "win32":
+        return False
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0,
+                            winreg.KEY_SET_VALUE) as k:
+            winreg.DeleteValue(k, CLIENT_RUN_NAME)
+        log.info("副机端开机自启已卸载")
+        return True
+    except FileNotFoundError:
+        log.info("副机端开机自启不存在")
+        return True
+    except Exception as e:
+        log.error("卸载副机端自启失败: %s", e)
         return False
 
 

@@ -311,6 +311,35 @@ def test_client_config():
     check("移除节点", len(cfg2["hosts"]) == 1)
 
 
+def test_client_config_v4():
+    """测试副机端 client 配置持久化（v4.0 §13.2）。"""
+    print("\n--- 6b. 副机端配置持久化 ---")
+    import tempfile
+    tmp = tempfile.mkdtemp()
+    import client.config as ccfg
+    ccfg.CONFIG_FILE = os.path.join(tmp, "client_config.json")
+
+    cfg = ccfg.load_config()
+    from common.utils import make_host_id
+    ccfg.upsert_node(cfg, make_host_id("192.168.1.100", 12345),
+                     "192.168.1.100", 12345, "tok", "游戏节点")
+    ccfg.upsert_node(cfg, make_host_id("192.168.1.101", 12345),
+                     "192.168.1.101", 12345, "tok2", "直播节点")
+    check("添加两台节点", len(cfg["nodes"]) == 2)
+
+    ccfg.upsert_node(cfg, make_host_id("192.168.1.100", 12345),
+                     "192.168.1.100", 12345, "tok3", "改名")
+    check("同 IP+端口 去重更新", len(cfg["nodes"]) == 2
+          and cfg["nodes"][0]["alias"] == "改名")
+
+    cfg2 = ccfg.load_config()
+    check("持久化后重新加载", len(cfg2["nodes"]) == 2)
+
+    node_id = cfg2["nodes"][0]["node_id"]
+    ccfg.remove_node(cfg2, node_id)
+    check("移除节点", len(cfg2["nodes"]) == 1)
+
+
 def test_collectors():
     """
     测试真实采集器：各采集器 collect() 返回字段完整且可 JSON 序列化。
@@ -471,17 +500,18 @@ def test_discovery():
 
 def run_demo():
     """
-    演示模式：启动采集节点后台 + 监控主机 GUI（需 Windows + PyQt5）。
+    演示模式：启动采集节点后台 + 副机端 + 监控主机（需 Windows + PyQt5）。
 
     用法：python test_p0.py --demo
     - 采集节点后台启动（真实采集器，建议管理员运行以显示温度/GPU）
-    - 监控主机主窗口（含本机节点 + 自动连接 host_config.json 中的节点）
+    - 副机端主窗口（本机仪表盘 + 节点管理器）
+    - 监控主机主窗口（集中监控大屏）
 
     注意：所有 QWidget/QObject 均在主线程创建（Qt 线程铁律），
     采集/推送服务内部使用 daemon 线程，启动后自行运行。
     """
     print("=" * 60)
-    print("演示模式：启动采集节点 + 监控主机")
+    print("演示模式：启动采集节点 + 副机端 + 监控主机")
     print("=" * 60)
     if not HAS_QT:
         print("[错误] 需要 PyQt5。请先: pip install -r requirements.txt")
@@ -498,6 +528,8 @@ def run_demo():
     from node.tcp_server import MonitorTCPServer
     from host import config as host_config
     from host.gui.main_window import HostMainWindow
+    from client import config as client_config
+    from client.gui.main_window import ClientMainWindow
 
     app = QApplication(sys.argv)
     app.setStyleSheet(DARK_QSS)
@@ -517,6 +549,12 @@ def run_demo():
     start_all(collectors)
     agg = DataAggregator(server=server, collectors=collectors)
     agg.start()
+
+    # ---- 副机端主窗口（本机仪表盘 + 节点管理）----
+    setup_logger("client")
+    client_cfg = client_config.load_config()
+    client_window = ClientMainWindow(client_cfg)
+    client_window.show()
 
     # ---- 监控主机主窗口（本机节点 + 自动连接已保存节点）----
     setup_logger("host")
@@ -542,6 +580,7 @@ def main():
         test_connection()
         test_graceful_shutdown()
         test_client_config()
+        test_client_config_v4()
         test_collectors()
         test_discovery()
         test_quality_scorer()
