@@ -14,6 +14,7 @@ import logging
 
 import psutil
 
+from common.lhm import get_lhm
 from node.collectors.base import BaseCollector
 
 log = logging.getLogger("node.collectors.gpu")
@@ -210,23 +211,47 @@ class GpuCollector(BaseCollector):
 
     @staticmethod
     def _mem_temp(handle):
-        """显存温度（部分卡支持）。"""
+        """
+        显存温度（部分卡支持，§9.3.1）。
+        用 getattr 判断 NVML_TEMPERATURE_MEMORY 枚举是否存在，避免
+        旧版 nvidia-ml-py 属性缺失导致采集失败。
+        """
+        ntype = getattr(pynvml, "NVML_TEMPERATURE_MEMORY", None)
+        if ntype is None:
+            return "N/A"
         try:
-            t = pynvml.nvmlDeviceGetTemperature(
-                handle, pynvml.NVML_TEMPERATURE_MEMORY)
+            t = pynvml.nvmlDeviceGetTemperature(handle, ntype)
             return round(t, 1)
         except Exception:
             return "N/A"
 
-    @staticmethod
-    def _hotspot_temp(handle):
-        """热点温度（部分卡支持）。"""
+    def _hotspot_temp(self, handle):
+        """
+        热点温度（§9.3.1 回退链路）：
+        1. 优先 NVML NVML_TEMPERATURE_GPU_HOTSPOT（getattr 判断枚举存在性）
+        2. 不可用 → 回退 LibreHardwareMonitor WMI 补读（需管理员）
+        3. 再不可用 → "N/A"
+        """
+        ntype = getattr(pynvml, "NVML_TEMPERATURE_GPU_HOTSPOT", None)
+        if ntype is not None:
+            try:
+                t = pynvml.nvmlDeviceGetTemperature(handle, ntype)
+                return round(t, 1)
+            except Exception:
+                pass  # API 存在但调用失败，继续走 LHM 回退
+        # 回退：LHM WMI 读取 GPU 热点温度（需管理员）
         try:
-            t = pynvml.nvmlDeviceGetTemperature(
-                handle, pynvml.NVML_TEMPERATURE_GPU_HOTSPOT)
-            return round(t, 1)
-        except Exception:
-            return "N/A"
+            lhm = get_lhm()
+            if lhm.available():
+                for s in lhm.get_sensors():
+                    if str(s.SensorType) == "Temperature" and \
+                            "gpu" in str(s.Name).lower() and \
+                            ("hotspot" in str(s.Name).lower() or
+                             "junction" in str(s.Name).lower()):
+                        return round(float(s.Value), 1)
+        except Exception as e:
+            log.debug("LHM 补读 GPU 热点温度失败: %s", e)
+        return "N/A"
 
     @staticmethod
     def _top_vram_processes(handle) -> list:
@@ -259,20 +284,42 @@ class GpuCollector(BaseCollector):
     # ---------- ADL 采集（AMD 后备） ----------
 
     def _collect_adl(self) -> dict:
-        """AMD pyadl 有限指标采集（§8.3.2：仅使用率/温度/频率真实）。"""
+        """
+        AMD pyadl 有限指标采集（§9.3.2：仅使用率/温度/频率真实，其余 N/A）。
+        pyadl 多年未更新，API 可能随驱动失效；用 getattr 防御各字段。
+        """
         try:
             dev = ADLManager.getInstance().getDevices()[0]
+            name = getattr(dev, "getName", None)
+            name = name() if name else "AMD GPU"
+            # usage / temp / 频率均可能缺失，逐字段防御
+            try:
+                usage = round(dev.getCurrentUsage(), 1)
+            except Exception:
+                usage = "N/A"
+            try:
+                temp = dev.getCurrentTemperature()
+            except Exception:
+                temp = "N/A"
+            try:
+                core_freq = dev.getCurrentEngineClock()
+            except Exception:
+                core_freq = "N/A"
+            try:
+                mem_freq = dev.getCurrentMemoryClock()
+            except Exception:
+                mem_freq = "N/A"
             return {
-                "name": dev.adapterName or "AMD GPU",
-                "usage_percent": round(dev.getCurrentUsage(), 1),
+                "name": name,
+                "usage_percent": usage,
                 "vram_used_mb": "N/A",
                 "vram_total_mb": "N/A",
                 "vram_usage_percent": "N/A",
-                "core_temp_c": dev.getCurrentTemperature(),
+                "core_temp_c": temp,
                 "mem_temp_c": "N/A",
                 "hotspot_temp_c": "N/A",
-                "core_freq_mhz": dev.getCurrentEngineClock(),
-                "mem_freq_mhz": dev.getCurrentMemoryClock(),
+                "core_freq_mhz": core_freq,
+                "mem_freq_mhz": mem_freq,
                 "power_w": "N/A",
                 "power_limit_w": "N/A",
                 "engine_usage": "N/A",

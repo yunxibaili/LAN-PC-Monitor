@@ -377,29 +377,29 @@ def test_collectors():
 
 def test_quality_scorer():
     """
-    测试 QualityScorer 评分（§9）。
+    测试 QualityScorer 评分（§10，v4.0 系数 *5）。
 
     各等级档位用独立评分器验证瞬时映射，避免滑动窗口把前值混入平均。
     """
     print("\n--- 9. 网络质量评分器 ---")
     from common.quality import QualityScorer
 
-    # 优秀：低延迟低丢包（0% 丢包下 5ms 内满 100）
+    # 优秀：低延迟低丢包（1ms → 100）
     s = QualityScorer(window=10)
     score, grade = s.update(1.0, 0.0)
     check("低延迟丢包 → 优秀", score >= 90 and grade == "优秀")
 
-    # 良好：中延迟（15ms → 85）
+    # 优秀：中延迟（15ms → 95，v4.0 系数 5）
     s = QualityScorer(window=10)
     score, grade = s.update(15.0, 0.0)
-    check("中延迟 → 70~89", 70 <= score <= 89 and grade == "良好")
+    check("中延迟 15ms → 优秀", score >= 90 and grade == "优秀")
 
-    # 一般：较高延迟（30ms → 63）
+    # 良好：较高延迟（30ms + 1% 丢包 → 78）
     s = QualityScorer(window=10)
     score, grade = s.update(30.0, 1.0)
-    check("较高延迟 → 一般", 50 <= score <= 69 and grade == "一般")
+    check("较高延迟 → 良好", 70 <= score <= 89 and grade == "良好")
 
-    # 较差：高丢包（8% 丢包 → 20）
+    # 较差：高丢包（5ms + 8% 丢包 → 20）
     s = QualityScorer(window=10)
     score, grade = s.update(5.0, 8.0)
     check("高丢包 → 较差", score < 50 and grade == "较差")
