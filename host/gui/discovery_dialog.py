@@ -10,7 +10,8 @@ import logging
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel,
-                             QListWidget, QListWidgetItem, QVBoxLayout)
+                             QListWidget, QListWidgetItem, QPushButton,
+                             QVBoxLayout)
 
 from common.theme import COLOR_NA
 from common.utils import make_host_id
@@ -50,8 +51,8 @@ class DiscoveryDialog(QDialog):
         root.addWidget(self.list_widget, 1)
 
         bottom = QHBoxLayout()
-        refresh_btn = QDialogButtonBox(QDialogButtonBox.Refresh)
-        refresh_btn.button(QDialogButtonBox.Refresh).clicked.connect(self._refresh)
+        refresh_btn = QPushButton("刷新")
+        refresh_btn.clicked.connect(self._refresh)
         bottom.addWidget(refresh_btn, 0, Qt.AlignLeft)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
