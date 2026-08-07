@@ -1,0 +1,23 @@
+# -*- coding: utf-8 -*-
+"""
+v3.0 依赖清单（见《技术文档.md》§15.1）。
+"""
+# 核心采集
+psutil>=5.9.0
+py-cpuinfo>=9.0.0
+nvidia-ml-py>=11.5.0   # GPU（import pynvml；NVML 随 NVIDIA 驱动自带，无需 CUDA）
+wmi>=1.5.1
+pywin32>=305
+
+# GUI
+PyQt5>=5.15.0
+
+# 帧率降级（DXGI 截帧；仅 Windows，P4 用）
+dxcam>=0.0.5
+numpy>=1.24.0
+
+# 网络（多网卡 IP 选取）
+netifaces>=0.11
+
+# 可选（AMD GPU）
+pyadl>=0.1
