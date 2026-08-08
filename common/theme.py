@@ -105,3 +105,31 @@ def rtt_color(rtt_ms):
 def apply_color(label: QLabel, color: str) -> None:
     """动态设置 QLabel 文字颜色（保留字体设置）。"""
     label.setStyleSheet(f"color: {color}; background: transparent;")
+
+
+# 问号帮助按钮标志（Qt.WindowContextHelpButtonHint = 0x00000400）
+_WINDOW_CONTEXT_HELP_HINT = 0x00000400
+
+
+def remove_help_button(widget) -> None:
+    """
+    移除窗口标题栏的问号帮助按钮（Windows 上 QDialog 默认带）。
+
+    Windows 下 QDialog 标题栏自带 "?" 图标，点击进入 What's This 模式，
+    在某些场景下可能引发异常/闪退（§6 反馈）。统一移除该按钮，
+    保留最小化/最大化/关闭等常规按钮。
+    """
+    flags = int(widget.windowFlags())
+    if flags & _WINDOW_CONTEXT_HELP_HINT:
+        widget.setWindowFlags(widget.windowFlags() & ~_WINDOW_CONTEXT_HELP_HINT)
+
+
+def setup_dialog(dialog) -> None:
+    """
+    统一初始化对话框：应用深色主题 + 移除问号帮助按钮。
+    所有 QDialog 创建后调用，保证行为一致。
+    """
+    from PyQt5.QtWidgets import QApplication
+    remove_help_button(dialog)
+    if QApplication.instance():
+        dialog.setStyleSheet(DARK_QSS)

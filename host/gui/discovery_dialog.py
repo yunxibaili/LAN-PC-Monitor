@@ -35,6 +35,8 @@ class DiscoveryDialog(QDialog):
         self.existing = existing
         self.on_add = on_add
         self.on_add_local = on_add_local
+        from common.theme import remove_help_button
+        remove_help_button(self)   # 移除 Windows 标题栏问号按钮，防闪退
         self.setWindowTitle("自动扫描节点")
         self.resize(480, 420)
         self._build_ui()

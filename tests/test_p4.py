@@ -27,7 +27,7 @@ import sys
 import threading
 import time
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
@@ -388,11 +388,18 @@ def test_self_monitor():
     fps = FakeFps()
     sm = SelfMonitor(agg, {"fps": fps}, interval=0.05)
     sm.proc.cpu_percent = lambda interval=1.0: 8.0
-    sm.check()
-    check("CPU>5% → 采集频率降为 2s", agg.interval == 2.0,
+    sm.check()   # 预热：首次采样丢弃（psutil 首次返回平均值虚高，§16 健壮性）
+    check("首次采样预热丢弃（不误降级）",
+          agg.interval == 1.0 and not fps.stopped)
+    sm.check()   # streak=1：单次超阈值不降级（防抖动）
+    check("单次超阈值不降级（防抖动）",
+          agg.interval == 1.0 and not fps.stopped)
+    sm.check()   # streak=2：连续两次超阈值 → 降级
+    check("CPU 连续 2 次>5% → 采集频率降为 2s", agg.interval == 2.0,
           f"interval={agg.interval}")
     check("CPU>5% → 帧率采集器已关闭", fps.stopped)
     sm.proc.cpu_percent = lambda interval=1.0: 1.0
+    sm.check()
     sm.check()
     check("CPU<3% → 采集频率恢复 1s", agg.interval == 1.0,
           f"interval={agg.interval}")

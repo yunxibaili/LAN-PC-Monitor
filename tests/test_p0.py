@@ -27,7 +27,7 @@ import threading
 import time
 
 # 将项目根目录加入 sys.path，保证可以直接运行
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 

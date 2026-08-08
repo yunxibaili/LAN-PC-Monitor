@@ -26,9 +26,10 @@ def create_collectors(cfg: dict) -> dict:
     按配置创建全部采集器实例。
 
     :param cfg: 采集节点配置字典（node_config.json）
-    :return: {"cpu":..., "ram":..., "disk":..., "net":..., "proc":...,
+    :return: {"cpu":..., "ram":..., "disk":..., "net":..., "processes":...,
               "system":..., "gpu":..., "net_quality":..., "fps":...}
-    注意：系统信息采集器 key 为 "system"（与 §7 Schema / 聚合器 section 一致）。
+    注意：进程采集器 key 为 "processes"、系统信息采集器 key 为 "system"
+    （与 §7 Schema / 聚合器 section 一致）。
     """
     preferred = cfg.get("preferred_iface", "")
     collectors_cfg = cfg.get("collectors", {})
@@ -44,7 +45,7 @@ def create_collectors(cfg: dict) -> dict:
         "ram": RamCollector(),
         "disk": DiskCollector(),
         "net": NetCollector(preferred_iface=preferred),
-        "proc": ProcCollector(),
+        "processes": ProcCollector(),
         "system": SysCollector(preferred_iface=preferred),
         "gpu": GpuCollector(gpu_index=gpu_index),
         "net_quality": NetQualityCollector(),

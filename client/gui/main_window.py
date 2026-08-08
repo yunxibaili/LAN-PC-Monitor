@@ -180,6 +180,8 @@ class ClientMainWindow(QMainWindow):
 
         dialog = QDialog(self)
         dialog.setWindowTitle("手动添加节点")
+        from common.theme import remove_help_button
+        remove_help_button(dialog)   # 移除 Windows 标题栏问号按钮，防闪退
         form = QFormLayout(dialog)
 
         # 提示：告诉用户各字段填什么
@@ -355,6 +357,8 @@ class ClientMainWindow(QMainWindow):
             return
         dialog = QDialog(self)
         dialog.setWindowTitle("编辑别名")
+        from common.theme import remove_help_button
+        remove_help_button(dialog)   # 移除 Windows 标题栏问号按钮，防闪退
         form = QFormLayout(dialog)
         alias_edit = QLineEdit(conn.alias)
         form.addRow("别名:", alias_edit)

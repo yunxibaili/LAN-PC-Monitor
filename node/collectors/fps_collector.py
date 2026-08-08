@@ -25,6 +25,9 @@ from node.collectors.base import BaseCollector
 
 log = logging.getLogger("node.collectors.fps")
 
+# dxcam 降级警告仅打印一次（进程级）
+_DXCAM_WARNED = [False]
+
 # PresentMon 工具路径（相对项目根）
 PRESENTMON_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -149,7 +152,11 @@ class DxFpsEstimator:
             import dxcam
             self.camera = dxcam.create(output_color="GRAY")
         except Exception as e:
-            log.warning("dxcam 初始化失败（帧率降级为 N/A）: %s", e)
+            # 仅警告一次，避免 node/副机/主机多处创建时重复刷屏
+            if not _DXCAM_WARNED[0]:
+                _DXCAM_WARNED[0] = True
+                log.warning("dxcam 初始化失败（帧率降级为 N/A，安装 "
+                            "`pip install dxcam` 可启用）: %s", e)
             self.camera = None
 
     def sample(self) -> None:

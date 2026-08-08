@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel,
 from common import theme
 from common.connect_code import (parse_connect_uri, resolve_connect_code,
                                  make_connect_code)
+from common.theme import remove_help_button
 from common.utils import make_host_id
 
 log = logging.getLogger("common.connect_dialog")
@@ -40,6 +41,7 @@ class ConnectCodeDialog(QDialog):
         super().__init__(parent)
         self.candidates = candidates
         self.on_add = on_add
+        remove_help_button(self)   # 移除 Windows 标题栏问号按钮，防闪退
         self.setWindowTitle("连接码接入")
         self.resize(380, 160)
         self._build_ui()
@@ -89,6 +91,7 @@ class ClipboardDialog(QDialog):
     def __init__(self, on_add=None, parent=None):
         super().__init__(parent)
         self.on_add = on_add
+        remove_help_button(self)   # 移除 Windows 标题栏问号按钮，防闪退
         self.setWindowTitle("从剪贴板添加")
         self.resize(400, 150)
         self._build_ui()
@@ -141,6 +144,7 @@ class OnboardingDialog(QDialog):
         self.merged_hosts = merged_hosts
         self.local_ip = local_ip
         self.on_add_all = on_add_all
+        remove_help_button(self)   # 移除 Windows 标题栏问号按钮，防闪退
         self.setWindowTitle("欢迎使用 · 节点引导")
         self.resize(460, 380)
         self._build_ui()
