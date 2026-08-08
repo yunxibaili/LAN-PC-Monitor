@@ -28,6 +28,10 @@ class NodeManager(QWidget):
     add_clicked = pyqtSignal()
     scan_clicked = pyqtSignal()
     add_local_clicked = pyqtSignal()
+    connect_code_clicked = pyqtSignal()
+    clipboard_clicked = pyqtSignal()
+    import_clicked = pyqtSignal()
+    export_clicked = pyqtSignal()
     context_action = pyqtSignal(str, str)
 
     def __init__(self, parent=None):
@@ -57,38 +61,31 @@ class NodeManager(QWidget):
         btns.addStretch(1)
         root.addLayout(btns)
 
-        # 删除按钮：选中远程节点后可显式删除（替代仅右键菜单）
-        del_row = QHBoxLayout()
-        self.btn_delete = QPushButton("删除选中节点")
-        self.btn_delete.setEnabled(False)
-        self.btn_delete.clicked.connect(self._on_delete_clicked)
-        del_row.addWidget(self.btn_delete)
-        del_row.addStretch(1)
-        root.addLayout(del_row)
+        # 便捷连接入口（§2.5）：连接码 / 剪贴板 / 导入 / 导出
+        quick = QHBoxLayout()
+        btn_code = QPushButton("连接码")
+        btn_code.setToolTip("输入节点端显示的连接码快速接入（§23.2）")
+        btn_code.clicked.connect(self.connect_code_clicked.emit)
+        quick.addWidget(btn_code)
+        btn_clip = QPushButton("剪贴板")
+        btn_clip.setToolTip("粘贴节点端复制的连接串（pcmonitor://）接入（§23.3）")
+        btn_clip.clicked.connect(self.clipboard_clicked.emit)
+        quick.addWidget(btn_clip)
+        btn_imp = QPushButton("导入")
+        btn_imp.setToolTip("导入 .pcm 配置文件批量添加（§23.4）")
+        btn_imp.clicked.connect(self.import_clicked.emit)
+        quick.addWidget(btn_imp)
+        btn_exp = QPushButton("导出")
+        btn_exp.setToolTip("导出当前节点列表为 .pcm 配置（§23.4）")
+        btn_exp.clicked.connect(self.export_clicked.emit)
+        quick.addWidget(btn_exp)
+        quick.addStretch(1)
+        root.addLayout(quick)
 
-        # 节点列表（复用主机端 NodeListWidget）
+        # 节点列表（复用主机端 NodeListWidget）；删除仅通过右键菜单（§6.3）
         self.node_list = NodeListWidget()
-        self.node_list.currentItemChanged.connect(self._on_selection_changed)
         self.node_list.context_action.connect(self.context_action.emit)
         root.addWidget(self.node_list, 1)
-
-    def _on_selection_changed(self, current, _previous) -> None:
-        """选中项变化：远程节点可删除，本机节点/无选中禁用。"""
-        if current is None:
-            self.btn_delete.setEnabled(False)
-            return
-        node_id = current.data(Qt.UserRole)
-        self.btn_delete.setEnabled(node_id != LOCAL_NODE_ID)
-
-    def _on_delete_clicked(self) -> None:
-        """删除按钮 → 发 context_action('remove', node_id)。"""
-        item = self.node_list.currentItem()
-        if item is None:
-            return
-        node_id = item.data(Qt.UserRole)
-        if node_id == LOCAL_NODE_ID:
-            return  # 本机节点不可删
-        self.context_action.emit("remove", node_id)
 
     # ---------- 转发方法 ----------
 

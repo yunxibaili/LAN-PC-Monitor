@@ -33,6 +33,11 @@ def create_collectors(cfg: dict) -> dict:
     collectors_cfg = cfg.get("collectors", {})
     gpu_index = cfg.get("gpu_index", 0)
 
+    # 帧率模式：collectors.fps = "presentmon"(默认) | "dxgi" | false（§11.8）
+    fps_mode = collectors_cfg.get("fps", "presentmon")
+    if fps_mode is False:
+        fps_mode = "none"
+
     collectors = {
         "cpu": CpuCollector(),
         "ram": RamCollector(),
@@ -42,7 +47,7 @@ def create_collectors(cfg: dict) -> dict:
         "sys": SysCollector(preferred_iface=preferred),
         "gpu": GpuCollector(gpu_index=gpu_index),
         "net_quality": NetQualityCollector(),
-        "fps": FpsCollector(),
+        "fps": FpsCollector(mode=fps_mode),
     }
     # 采集项开关（§13 增强点 #30）：关闭的采集器不启动
     if collectors_cfg.get("gpu") is False:

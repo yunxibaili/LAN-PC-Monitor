@@ -16,8 +16,10 @@ PyQt5>=5.15.0
 dxcam>=0.0.5
 numpy>=1.24.0
 
-# 网络（多网卡 IP 选取）
+# 网络（多网卡 IP 选取 + mDNS 零配置发现）
 netifaces>=0.11
+zeroconf>=0.132.0      # mDNS/Bonjour 自动发现（§2.5.1）；未安装时自动降级仅 UDP 广播
+qrcode>=7.4.2          # 连接码二维码生成（§2.5.2，可选）
 
 # 可选（AMD GPU）
 pyadl>=0.1

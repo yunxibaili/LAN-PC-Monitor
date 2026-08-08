@@ -450,6 +450,70 @@ def test_quality_scorer():
     check("滑动平均：优秀值后不虚高", score_after_good < 50)
 
 
+def test_fps_stats():
+    """测试帧率统计 FrameStats（§11.6，P4）。"""
+    print("\n--- 9b. 帧率统计 ---")
+    from node.collectors.fps_collector import FrameStats, FpsCollector
+
+    s = FrameStats()
+    check("空帧 → fps N/A", s.fps() == "N/A")
+    for _ in range(10):
+        s.push(10.0)   # 每帧 10ms → 100 FPS
+    check("10ms 帧 → 100 FPS", s.fps() == 100.0)
+    check("1% Low 计算", s.low_1() == 100.0)
+
+    # FpsCollector: mode=none → N/A，source=none
+    c = FpsCollector(mode="none")
+    d = c.collect()
+    check("fps none 模式", d["fps"] == "N/A" and d["source"] == "none")
+    c.stop()
+
+    # mode=dxgi（无 dxcam 时降级，不崩溃）
+    c2 = FpsCollector(mode="dxgi")
+    check("fps dxgi 模式 source", c2.collect()["source"] in ("dxgi", "none"))
+    c2.stop()
+
+
+def test_connect_code():
+    """测试便捷连接工具（§23.2-23.4，P5）。"""
+    print("\n--- 10. 便捷连接工具 ---")
+    from common.connect_code import (make_connect_code, resolve_connect_code,
+                                     parse_connect_uri, make_connect_uri,
+                                     export_config, import_config)
+    import tempfile
+    import os
+
+    # 连接码生成与反查
+    code = make_connect_code("192.168.1.100", 12345, "abc123")
+    check("连接码格式 PCM-XXXX-XXXX", code.startswith("PCM-") and len(code) == 13)
+    candidates = {"192.168.1.100": {"port": 12345, "token": "abc123"}}
+    r = resolve_connect_code(code, candidates)
+    check("连接码反查匹配", r and r["ip"] == "192.168.1.100")
+    check("错误码不匹配", resolve_connect_code("PCM-XXXX-XXXX", candidates) is None)
+
+    # 剪贴板连接串
+    uri = make_connect_uri("192.168.1.100", 12345, "abc123", "游戏主机")
+    p = parse_connect_uri(uri)
+    check("连接串解析", p and p["ip"] == "192.168.1.100"
+          and p["port"] == 12345 and p["token"] == "abc123"
+          and p["alias"] == "游戏主机")
+    check("非 pcmonitor:// 拒绝", parse_connect_uri("http://x.com") is None)
+
+    # .pcm 导入导出
+    nodes = [{"ip": "192.168.1.100", "port": 12345, "token": "abc123",
+              "alias": "游戏主机"}]
+    path = os.path.join(tempfile.mkdtemp(), "n.pcm")
+    check("导出 .pcm", export_config(nodes, path))
+    imported = import_config(path)
+    check("导入 .pcm 还原 token",
+          imported and imported[0]["token"] == "abc123"
+          and imported[0]["ip"] == "192.168.1.100")
+    # 文件内容不含明文 token（已混淆）
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+    check("token 已混淆非明文", "abc123" not in content)
+
+
 def test_discovery():
     """测试监控主机 UDP 心跳监听（node_heartbeat 自动发现）。"""
     print("\n--- 8. 监控主机 UDP 自动发现 ---")
@@ -584,6 +648,8 @@ def main():
         test_collectors()
         test_discovery()
         test_quality_scorer()
+        test_fps_stats()
+        test_connect_code()
     except Exception:
         import traceback
         traceback.print_exc()

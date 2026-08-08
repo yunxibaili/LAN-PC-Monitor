@@ -107,6 +107,27 @@ def generate_token() -> str:
     return uuid.uuid4().hex[:12]
 
 
+def check_port_in_use(port: int, proto: str = "tcp") -> bool:
+    """
+    检测端口是否被占用（§5.1 步骤 5：端口占用检测）。
+
+    :param port:  端口号
+    :param proto: "tcp" 或 "udp"
+    :return: 被占用返回 True
+    """
+    try:
+        if proto == "udp":
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        else:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(("0.0.0.0", port))
+        s.close()
+        return False
+    except OSError:
+        return True
+
+
 def get_local_node_info() -> dict:
     """
     读取本机采集节点配置（node_config.json），返回连接所需信息。

@@ -25,7 +25,7 @@ from common.quality import QualityScorer
 from common.utils import get_lan_ip, get_local_node_info, make_host_id
 from client import config as client_config
 from client.connection import NodeConnection
-from client.discovery import DiscoveryListener
+from client.discovery import DiscoveryListener, MdnsDiscovery
 from client.gui.discovery_dialog import DiscoveryDialog
 from client.gui.local_panel import LocalPanel
 from client.gui.node_manager import NodeManager
@@ -52,10 +52,15 @@ class ClientMainWindow(QMainWindow):
         self._init_local_node()    # 本机节点置顶
         self._load_saved_nodes()   # 远程节点
 
-        # UDP 心跳监听（自动发现）
+        # 节点发现：UDP 广播心跳 + mDNS 零配置，并行互为备份（§2.5.1）
         self.listener = DiscoveryListener(udp_port=self.cfg.get("udp_port", 12346))
         self.listener.start()
+        self.mdns = MdnsDiscovery()
+        self.mdns.start()
         log.info("副机端主窗口已创建")
+
+        # 首屏引导（§23.5）：首次运行弹出，一键接入发现的节点
+        self._maybe_show_onboarding()
 
     # ---------- 几何 ----------
 
@@ -96,6 +101,10 @@ class ClientMainWindow(QMainWindow):
         self.node_manager.add_clicked.connect(self._on_add_node)
         self.node_manager.add_local_clicked.connect(self._on_add_local_node)
         self.node_manager.scan_clicked.connect(self._on_scan_nodes)
+        self.node_manager.connect_code_clicked.connect(self._on_connect_code)
+        self.node_manager.clipboard_clicked.connect(self._on_clipboard)
+        self.node_manager.import_clicked.connect(self._on_import)
+        self.node_manager.export_clicked.connect(self._on_export)
         self.node_manager.context_action.connect(self._on_context_action)
         self.splitter.addWidget(self.node_manager)
 
@@ -219,11 +228,37 @@ class ClientMainWindow(QMainWindow):
 
     def _on_scan_nodes(self) -> None:
         existing = set(self.nodes.keys())
-        dialog = DiscoveryDialog(self.listener, existing,
+        dialog = DiscoveryDialog(self.merged_hosts, existing,
                                  on_add=self._on_discovery_add,
                                  on_add_local=self._on_add_local_node,
                                  parent=self)
         dialog.exec_()
+
+    def _maybe_show_onboarding(self) -> None:
+        """首屏引导（§23.5）：仅首次运行（无 onboarded 标记）弹出。"""
+        if self.cfg.get("onboarded"):
+            return
+        from common.connect_dialog import OnboardingDialog
+        from common.utils import get_lan_ip
+        local_ip = get_lan_ip(self.cfg.get("preferred_iface", ""))
+        dialog = OnboardingDialog(
+            self.merged_hosts, local_ip=local_ip,
+            on_add_all=self._on_discovery_add, parent=self)
+        dialog.exec_()
+        # 记录已引导
+        self.cfg["onboarded"] = True
+        client_config.save_config(self.cfg)
+
+    @property
+    def merged_hosts(self):
+        """合并 UDP 广播 + mDNS 发现的节点（按 ip 去重，mDNS 优先保留）。"""
+        hosts = dict(self.listener.get_hosts())
+        for ip, info in self.mdns.get_hosts().items():
+            if ip in hosts:
+                hosts[ip].update(info)
+            else:
+                hosts[ip] = info
+        return hosts
 
     def _on_add_local_node(self) -> None:
         """一键接入本机采集节点（读取 node_config.json 自动填入）。"""
@@ -243,6 +278,51 @@ class ClientMainWindow(QMainWindow):
         self._add_node(node_id, info["ip"], info["port"],
                        info["token"], info["alias"])
         self.statusBar().showMessage(f"已接入本机节点 {info['ip']}", 3000)
+
+    def _on_connect_code(self) -> None:
+        """连接码接入（§23.2）。"""
+        from common.connect_dialog import ConnectCodeDialog
+        dialog = ConnectCodeDialog(self.merged_hosts,
+                                   on_add=self._on_discovery_add, parent=self)
+        dialog.exec_()
+
+    def _on_clipboard(self) -> None:
+        """从剪贴板连接串添加（§23.3）。"""
+        from common.connect_dialog import ClipboardDialog
+        dialog = ClipboardDialog(on_add=self._on_discovery_add, parent=self)
+        dialog.exec_()
+
+    def _on_import(self) -> None:
+        """导入 .pcm 配置文件（§23.4）。"""
+        from PyQt5.QtWidgets import QFileDialog
+        from common.connect_code import import_config
+        path, _ = QFileDialog.getOpenFileName(
+            self, "导入节点配置", "", "监控配置 (*.pcm);;所有文件 (*)")
+        if not path:
+            return
+        nodes = import_config(path)
+        if nodes is None:
+            QMessageBox.warning(self, "导入失败", "配置文件格式不正确")
+            return
+        for n in nodes:
+            node_id = make_host_id(n["ip"], n["port"])
+            client_config.upsert_node(self.cfg, node_id, n["ip"], n["port"],
+                                      n["token"], n["alias"])
+            self._add_node(node_id, n["ip"], n["port"], n["token"], n["alias"])
+        self.statusBar().showMessage(f"已导入 {len(nodes)} 台节点", 3000)
+
+    def _on_export(self) -> None:
+        """导出当前节点列表为 .pcm 配置（§23.4）。"""
+        from PyQt5.QtWidgets import QFileDialog
+        from common.connect_code import export_config
+        nodes = [self.cfg["nodes"][i] for i in range(len(self.cfg.get("nodes", [])))]
+        path, _ = QFileDialog.getSaveFileName(
+            self, "导出节点配置", "pcmonitor_nodes.pcm", "监控配置 (*.pcm)")
+        if not path:
+            return
+        ok = export_config(nodes, path)
+        self.statusBar().showMessage(
+            "导出成功" if ok else "导出失败", 3000)
 
     def _on_discovery_add(self, ip, port, token, alias) -> None:
         node_id = make_host_id(ip, port)
@@ -365,6 +445,7 @@ class ClientMainWindow(QMainWindow):
             if self.local_pack:
                 self.local_pack.stop()
             self.listener.stop()
+            self.mdns.stop()
             self._save_geometry()
             event.accept()
         else:

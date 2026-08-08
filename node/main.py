@@ -18,16 +18,19 @@
 import argparse
 import logging
 import signal
+import socket
 import sys
 import threading
 
 from common.logger import setup_logger
 from common.single_instance import ensure_single_instance, release_single_instance
 from common.startup import install_node_startup, remove_node_startup
+from common.utils import get_lan_ip
 from node import config as node_config
 from node.aggregator import DataAggregator
 from node.collectors import create_collectors, start_all, stop_all
-from node.discovery import DiscoveryBroadcaster
+from node.discovery import (DiscoveryBroadcaster, register_mdns,
+                            unregister_mdns)
 from node.tcp_server import MonitorTCPServer
 
 # 全局退出事件
@@ -72,6 +75,15 @@ def main() -> int:
     cfg = node_config.load_config()
     log.info("TCP 端口 %d, UDP 端口 %d", cfg["tcp_port"], cfg["udp_port"])
 
+    # 端口占用检测（§5.1 步骤 5）
+    from common.utils import check_port_in_use
+    if check_port_in_use(cfg["tcp_port"], "tcp"):
+        print(f"错误: TCP 端口 {cfg['tcp_port']} 已被占用，请检查是否已有节点实例运行。")
+        return 1
+    if check_port_in_use(cfg["udp_port"], "udp"):
+        print(f"错误: UDP 端口 {cfg['udp_port']} 已被占用，请检查是否已有节点实例运行。")
+        return 1
+
     # 注册退出信号
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
@@ -87,6 +99,21 @@ def main() -> int:
         preferred_iface=cfg.get("preferred_iface", ""))
     broadcaster.start()
 
+    # mDNS 零配置注册（§5.6 / §23.1），zeroconf 不可用时自动降级
+    lan_ip = get_lan_ip(cfg.get("preferred_iface", ""))
+    mdns_zc = register_mdns(lan_ip, cfg["tcp_port"], socket.gethostname(),
+                            cfg["token"])
+
+    # 打印连接码（§23.2），便于用户在其他电脑输入接入
+    try:
+        from common.connect_code import make_connect_code
+        code = make_connect_code(lan_ip, cfg["tcp_port"], cfg["token"])
+        print(f"\n  本机节点连接码: {code}   (在副机/主机端\"连接码接入\"输入)")
+        print(f"  连接串: pcmonitor://{lan_ip}:{cfg['tcp_port']}?token={cfg['token']}\n")
+        log.info("本机连接码: %s", code)
+    except Exception:
+        pass
+
     # 采集器
     collectors = create_collectors(cfg)
     start_all(collectors)
@@ -94,6 +121,11 @@ def main() -> int:
     # 聚合器
     aggregator = DataAggregator(server=server, collectors=collectors)
     aggregator.start()
+
+    # 性能兜底（§16）：CPU 超限自动降级
+    from host.self_monitor import SelfMonitor
+    self_monitor = SelfMonitor(aggregator, collectors)
+    self_monitor.start()
 
     log.info("采集节点运行中（无界面后台）。Ctrl+C 退出。")
     try:
@@ -104,11 +136,13 @@ def main() -> int:
         pass
     finally:
         # 退出清理
+        self_monitor.stop()
         log.info("====== 采集节点退出中 ======")
         aggregator.stop()
         stop_all(collectors)
         server.stop()
         broadcaster.stop()
+        unregister_mdns(mdns_zc)
         release_single_instance(mutex)
         log.info("====== 采集节点退出 ======")
     return 0

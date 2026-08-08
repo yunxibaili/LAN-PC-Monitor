@@ -3,7 +3,9 @@
 采集节点 UDP 广播器 —— 每 2 秒广播 node_heartbeat 心跳（见《技术文档.md》§4.6 / §5.5）。
 
 心跳类型 v3.0 从 host_heartbeat 改名为 node_heartbeat（§4.2）。
+另含 mDNS 零配置发现注册（§5.6 / §23.1），与 UDP 广播并行、互为备份。
 """
+import hashlib
 import json
 import logging
 import socket
@@ -13,6 +15,56 @@ import time
 from common.utils import get_lan_ip
 
 log = logging.getLogger("node.discovery")
+
+# zeroconf 惰性导入；未安装时 mDNS 自动降级（仅 UDP 广播）
+try:
+    from zeroconf import ServiceInfo, Zeroconf
+    _HAS_ZEROCONF = True
+except ImportError:
+    _HAS_ZEROCONF = False
+
+# mDNS 服务类型（§23.1）
+MDNS_SERVICE_TYPE = "_pcmonitor._tcp.local."
+
+
+def register_mdns(ip: str, port: int, hostname: str, token: str):
+    """
+    注册 mDNS 服务（§5.6 / §23.1），供副机/主机零配置自动发现。
+
+    返回 Zeroconf 实例（调用方须保持引用）；zeroconf 不可用时返回 None。
+    退出时调用 zc.unregister_service() + zc.close()。
+    """
+    if not _HAS_ZEROCONF:
+        log.info("zeroconf 未安装，mDNS 注册跳过（仅保留 UDP 广播）")
+        return None
+    try:
+        service_info = ServiceInfo(
+            MDNS_SERVICE_TYPE,
+            f"{hostname}.{MDNS_SERVICE_TYPE}",
+            addresses=[socket.inet_aton(ip)],
+            port=port,
+            properties={
+                "hostname": hostname,
+                "token_hash": hashlib.sha256(token.encode()).hexdigest()[:8],
+            },
+        )
+        zc = Zeroconf()
+        zc.register_service(service_info)
+        log.info("mDNS 服务已注册: %s.%s (%s:%d)", hostname, MDNS_SERVICE_TYPE, ip, port)
+        return zc
+    except Exception as e:
+        log.warning("mDNS 注册失败（自动降级仅 UDP 广播）: %s", e)
+        return None
+
+
+def unregister_mdns(zc) -> None:
+    """注销 mDNS 服务并关闭 Zeroconf。"""
+    if zc is None:
+        return
+    try:
+        zc.close()
+    except Exception:
+        pass
 
 
 class DiscoveryBroadcaster:
@@ -146,3 +198,98 @@ class DiscoveryListener:
                      if now - info["last_seen"] > self.timeout]
             for ip in stale:
                 del self._hosts[ip]
+
+
+class MdnsDiscovery:
+    """
+    mDNS 零配置发现监听（§23.1）—— 副机/主机端复用。
+
+    启动后自动监听 _pcmonitor._tcp.local. 服务，发现节点写入 _hosts。
+    与 UDP 广播心跳并行运行、互为备份；按 ip:port 去重。
+    依赖 zeroconf，未安装时自动降级（get_hosts 始终返回空）。
+
+    使用方式（与 DiscoveryListener 一致）：
+        mdns = MdnsDiscovery()
+        mdns.start()
+        nodes = mdns.get_hosts()   # {ip: {"hostname","tcp_port","token","mdns":True}}
+        mdns.stop()
+    """
+
+    def __init__(self):
+        self._hosts = {}
+        self._lock = threading.Lock()
+        self._zc = None
+        self._listener = None
+        self._running = False
+
+    def start(self) -> None:
+        """启动 mDNS 监听（zeroconf 不可用时静默降级）。"""
+        if not _HAS_ZEROCONF:
+            log.info("zeroconf 未安装，mDNS 监听跳过（仅保留 UDP 广播）")
+            return
+        try:
+            from zeroconf import ServiceListener, ServiceBrowser
+
+            class _Listener(ServiceListener):
+                def __init__(self, owner):
+                    self.owner = owner
+
+                def add_service(self, zc, type_, name):
+                    self.owner._on_service(zc, type_, name)
+
+                def remove_service(self, zc, type_, name):
+                    self.owner._on_remove(zc, type_, name)
+
+                def update_service(self, zc, type_, name):
+                    self.owner._on_service(zc, type_, name)
+
+            self._zc = Zeroconf()
+            self._listener = _Listener(self)
+            ServiceBrowser(self._zc, MDNS_SERVICE_TYPE, self._listener)
+            self._running = True
+            log.info("mDNS 监听已启动（%s）", MDNS_SERVICE_TYPE)
+        except Exception as e:
+            log.warning("mDNS 监听启动失败（自动降级仅 UDP 广播）: %s", e)
+            self._zc = None
+
+    def stop(self) -> None:
+        """停止 mDNS 监听。"""
+        self._running = False
+        if self._zc:
+            try:
+                self._zc.close()
+            except Exception:
+                pass
+            self._zc = None
+
+    def get_hosts(self) -> dict:
+        """返回 mDNS 发现的节点（线程安全）。"""
+        with self._lock:
+            return dict(self._hosts)
+
+    def _on_service(self, zc, type_, name) -> None:
+        """发现/更新服务。"""
+        try:
+            info = zc.get_service_info(type_, name)
+            if not info or not info.addresses:
+                return
+            ip = socket.inet_ntoa(info.addresses[0])
+            port = info.port
+            hostname = b""
+            if info.properties:
+                hostname = info.properties.get(b"hostname", b"")
+            if isinstance(hostname, bytes):
+                hostname = hostname.decode("utf-8", errors="replace")
+            with self._lock:
+                self._hosts[ip] = {
+                    "hostname": hostname,
+                    "tcp_port": port,
+                    "token": "",   # mDNS 只广播 token 摘要，完整 token 需接入时确认
+                    "mdns": True,
+                }
+        except Exception as e:
+            log.debug("mDNS 服务解析失败: %s", e)
+
+    def _on_remove(self, zc, type_, name) -> None:
+        """服务下线：标记离线（不从此处移除，由上层按 §20.9 处理）。"""
+        log.debug("mDNS 服务下线: %s", name)

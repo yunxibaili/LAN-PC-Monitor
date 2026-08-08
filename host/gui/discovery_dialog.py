@@ -81,7 +81,11 @@ class DiscoveryDialog(QDialog):
     def _refresh(self) -> None:
         """刷新在线节点列表。"""
         self.list_widget.clear()
-        hosts = self.listener.get_hosts()
+        # 兼容：listener 可以是对象（有 get_hosts()）或直接传 dict（合并后的节点）
+        if hasattr(self.listener, "get_hosts"):
+            hosts = self.listener.get_hosts()
+        else:
+            hosts = self.listener or {}
         if not hosts:
             self.list_widget.addItem("（未发现局域网节点，请确认被监控电脑已启动采集节点\n"
                                      " 且 UDP 12346 已在防火墙放行；也可点下方按钮一键添加本机节点）")

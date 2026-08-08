@@ -41,17 +41,27 @@ class LocalCollectorPack(QObject):
         self.interval = interval
         self.collectors = create_collectors(cfg)
         self._stop_event = threading.Event()
+        self._self_monitor = None
 
     def start(self) -> None:
         """启动采集器与聚合线程。"""
         start_all(self.collectors)
         threading.Thread(target=self._loop, daemon=True,
                          name="local-node-aggregator").start()
+        # 性能兜底（§16）：本机节点 CPU 超限自动降级
+        try:
+            from host.self_monitor import SelfMonitor
+            self._self_monitor = SelfMonitor(self, self.collectors)
+            self._self_monitor.start()
+        except Exception as e:
+            log.debug("本机节点自监控启动失败: %s", e)
         log.info("本机节点已启动")
 
     def stop(self) -> None:
         """停止本机节点采集。"""
         self._stop_event.set()
+        if self._self_monitor:
+            self._self_monitor.stop()
         stop_all(self.collectors)
 
     def _build_frame(self) -> dict:
