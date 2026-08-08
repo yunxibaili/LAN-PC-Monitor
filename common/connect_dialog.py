@@ -28,7 +28,7 @@ class ConnectCodeDialog(QDialog):
     """
     连接码接入弹窗（§23.2）。
 
-    用户在节点端看到连接码（PCM-XXXX-XXXX），在此输入；
+    用户在节点端看到纯数字连接码（6 位数字），在此输入；
     结合本地发现的候选节点（mDNS/UDP）做摘要匹配，自动解析接入。
     """
 
@@ -46,14 +46,14 @@ class ConnectCodeDialog(QDialog):
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
-        hint = QLabel("请输入采集节点端显示的连接码（如 PCM-8A3B-9F2C）：")
+        hint = QLabel("请输入采集节点端显示的连接码（6 位数字，如 482913）：")
         hint.setWordWrap(True)
         hint.setStyleSheet(f"color: {theme.COLOR_NA};")
         root.addWidget(hint)
 
         row = QHBoxLayout()
         self.code_edit = QLineEdit()
-        self.code_edit.setPlaceholderText("PCM-XXXX-XXXX")
+        self.code_edit.setPlaceholderText("6 位数字连接码")
         row.addWidget(self.code_edit, 1)
         root.addLayout(row)
 

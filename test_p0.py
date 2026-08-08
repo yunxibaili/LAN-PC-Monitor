@@ -388,7 +388,7 @@ def test_collectors():
         check(f"磁盘采集器异常: {e}", False)
 
     # 关键字段存在性（§7 Schema 字段），直接校验 collect() 返回值
-    for name in ("cpu", "ram", "net", "sys"):
+    for name in ("cpu", "ram", "net", "system"):
         try:
             data = collectors[name].collect()
         except Exception as e:
@@ -400,7 +400,7 @@ def test_collectors():
             check("RAM 含 usage_percent", "usage_percent" in data)
         elif name == "net":
             check("NET 含 upload_mb_s", "upload_mb_s" in data)
-        elif name == "sys":
+        elif name == "system":
             check("SYS 含 uptime_seconds", "uptime_seconds" in data)
 
 
@@ -485,11 +485,11 @@ def test_connect_code():
 
     # 连接码生成与反查
     code = make_connect_code("192.168.1.100", 12345, "abc123")
-    check("连接码格式 PCM-XXXX-XXXX", code.startswith("PCM-") and len(code) == 13)
+    check("连接码为 6 位纯数字", code.isdigit() and len(code) == 6)
     candidates = {"192.168.1.100": {"port": 12345, "token": "abc123"}}
     r = resolve_connect_code(code, candidates)
     check("连接码反查匹配", r and r["ip"] == "192.168.1.100")
-    check("错误码不匹配", resolve_connect_code("PCM-XXXX-XXXX", candidates) is None)
+    check("错误码不匹配", resolve_connect_code("000000", candidates) is None)
 
     # 剪贴板连接串
     uri = make_connect_uri("192.168.1.100", 12345, "abc123", "游戏主机")

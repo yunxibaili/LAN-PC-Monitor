@@ -3,7 +3,7 @@
 便捷连接工具（见《技术文档.md》§23.2-23.4）。
 
 提供：
-- make_connect_code / resolve_connect_code：连接码（PCM-XXXX-XXXX）生成与反查
+- make_connect_code / resolve_connect_code：纯数字连接码生成与反查（§23.2）
 - parse_connect_uri：剪贴板连接串（pcmonitor://）解析
 - export_config / import_config：.pcm 配置文件导入导出（token Base64+XOR 混淆）
 
@@ -22,24 +22,28 @@ from urllib.parse import urlparse, parse_qs
 
 def make_connect_code(ip: str, port: int, token: str) -> str:
     """
-    生成连接码：PCM-XXXX-XXXX。
-    编码 ip:port:token 的 SHA-256 前 8 位，不含明文地址。
+    生成纯数字连接码（6 位数字，便于输入）。
+
+    编码 ip:port:token 的 SHA-256 摘要取数字部分前 6 位，不含明文地址。
+    例：482913
     """
     raw = f"{ip}:{port}:{token}"
-    digest = hashlib.sha256(raw.encode()).hexdigest().upper()
-    return f"PCM-{digest[:4]}-{digest[4:8]}"
+    digest = hashlib.sha256(raw.encode()).hexdigest()
+    # 取摘要中的数字字符，凑够 6 位
+    digits = "".join(c for c in digest if c.isdigit())
+    return (digits or "000000")[:6]
 
 
 def resolve_connect_code(code: str, candidates: dict) -> dict | None:
     """
     在本地发现候选节点中反查匹配项（§23.2）。
 
-    :param code:        用户输入的连接码（如 PCM-8A3B-9F2C）
+    :param code:        用户输入的纯数字连接码（如 482913）
     :param candidates:  本地 mDNS/UDP 发现的候选节点
                         {ip: {"port":..., "token":..., "hostname":..., ...}}
     :return: {"ip":..., **info} 匹配项；无匹配返回 None
     """
-    code = code.strip().upper()
+    code = code.strip()
     for ip, info in candidates.items():
         port = info.get("port") or info.get("tcp_port")
         token = info.get("token", "")

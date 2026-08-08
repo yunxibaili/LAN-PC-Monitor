@@ -36,6 +36,11 @@ logs/*.log
 logs/*.png
 *.log
 
+# 运行时配置文件（含 token/窗口状态，不提交）
+node_config.json
+client_config.json
+host_config.json
+
 # OS
 .DS_Store
 Thumbs.db

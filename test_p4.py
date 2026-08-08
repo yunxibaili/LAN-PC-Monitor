@@ -92,6 +92,13 @@ def node_log_tail(size: int = 8192) -> str:
         return ""
 
 
+def _extract_connect_code(text: str):
+    """从节点启动输出中提取 6 位数字连接码。"""
+    import re
+    m = re.search(r"本机节点连接码:\s*(\d{6})", text)
+    return m.group(1) if m else None
+
+
 class NodeProc:
     """采集节点子进程封装（读线程收集输出）。"""
 
@@ -185,8 +192,11 @@ def test_node_process():
         p2.kill()
 
     # 等启动输出（连接码）与日志文件（mDNS 注册，logger 只写文件）
-    ok = wait_until(lambda: "连接码: PCM-" in np.output(), timeout=15)
-    check("启动打印连接码 (PCM-XXXX-XXXX)", ok, np.output()[-300:])
+    ok = wait_until(lambda: "本机节点连接码: " in np.output(), timeout=15)
+    code = _extract_connect_code(np.output())
+    check("启动打印 6 位数字连接码",
+          ok and code is not None and code.isdigit() and len(code) == 6,
+          np.output()[-300:])
     ok = wait_until(lambda: "mDNS 服务已注册" in node_log_tail(), timeout=15)
     check("mDNS 服务已注册（zeroconf）", ok, node_log_tail()[-300:])
 
