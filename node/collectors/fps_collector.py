@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-帧率采集器 —— PresentMon CLI 主方案 + DXGI 截帧降级（见《技术文档.md》§11）。
+帧率采集器 —— PresentMon CLI 主方案 + DXGI 截帧降级（见《README.md》§11）。
 
 方案选择（§11.1）：
 1. collectors.fps == "presentmon"（默认）：检测 tools/PresentMon.exe 存在且管理员 → PresentMon
@@ -152,11 +152,10 @@ class DxFpsEstimator:
             import dxcam
             self.camera = dxcam.create(output_color="GRAY")
         except Exception as e:
-            # 仅警告一次，避免 node/副机/主机多处创建时重复刷屏
+            # 预期降级：dxcam 未安装属正常环境差异，用 INFO 一次性提示（不刷屏）
             if not _DXCAM_WARNED[0]:
                 _DXCAM_WARNED[0] = True
-                log.warning("dxcam 初始化失败（帧率降级为 N/A，安装 "
-                            "`pip install dxcam` 可启用）: %s", e)
+                log.info("dxcam 未安装，帧率降级为 N/A（可 `pip install dxcam` 启用）: %s", e)
             self.camera = None
 
     def sample(self) -> None:

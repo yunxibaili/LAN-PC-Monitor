@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-单实例检测 —— Windows 命名互斥体（见《技术文档.md》§12.1）。
+单实例检测 —— Windows 命名互斥体（见《README.md》§12.1）。
 
 - 采集节点：name="Global\\PC_Monitor_Node"
 - 监控主机：name="Global\\PC_Monitor_Host"
@@ -20,7 +20,7 @@ def ensure_single_instance(name: str = "Global\\PC_Monitor_Node") -> object:
     尝试获取命名互斥体；已有实例则返回 None。
 
     :param name: 互斥体名称（建议 Global\\ 前缀跨会话生效）
-    :return: 互斥体对象（需保持引用）；已有实例返回 None
+    :return: 互斥体对象（需保持引用）或锁文件句柄；已有实例返回 None
     """
     if sys.platform == "win32":
         try:
@@ -42,7 +42,8 @@ def ensure_single_instance(name: str = "Global\\PC_Monitor_Node") -> object:
     lock_path = os.path.join(tempfile.gettempdir(), lock_name)
     try:
         fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
-        return fd
+        # 返回 (fd, lock_path) 元组，释放时一并删除锁文件
+        return (fd, lock_path)
     except FileExistsError:
         log.warning("已有实例运行（锁文件 %s）", lock_path)
         return None
@@ -55,9 +56,14 @@ def release_single_instance(handle) -> None:
     """释放单实例锁（程序退出时调用）。"""
     if handle is None:
         return
-    if isinstance(handle, int):  # fd
+    if isinstance(handle, tuple):  # 锁文件方案：(fd, lock_path)
+        fd, lock_path = handle
         try:
-            os.close(handle)
+            os.close(fd)
         except Exception:
+            pass
+        try:
+            os.remove(lock_path)
+        except OSError:
             pass
     # win32 mutex 随进程退出自动释放，无需显式关闭

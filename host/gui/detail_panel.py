@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-监控主机详情面板 —— 单个节点的完整指标展示（见《技术文档.md》§6.3 / §18.3）。
+监控主机详情面板 —— 单个节点的完整指标展示（见《README.md》§6.3 / §18.3）。
 
 - 分区展示：系统/CPU/内存/GPU/磁盘/网络/网络质量/帧率/进程。
 - 阈值变色：使用率/温度/评分/RTT 按 §14.1 变色，N/A 灰色。
@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (QGroupBox, QHBoxLayout, QLabel, QScrollArea,
                              QVBoxLayout, QWidget)
 
 from common import theme
+from common.i18n import tr
 from common.theme import apply_color
 from common.utils import format_uptime
 
@@ -47,53 +48,53 @@ class DetailPanel(QScrollArea):
         self.setWidget(container)
 
     _PANEL_FIELDS = [
-        ("CPU", [
-            ("型号", "name"), ("总使用率", "total_usage"),
-            ("物理核心", "physical_cores"), ("逻辑核心", "logical_cores"),
-            ("频率", "core_freq_mhz"), ("温度", "package_temp_c"),
-            ("功耗", "power_w"),
+        ("cpu.group", [
+            ("f.name", "name"), ("f.total_usage", "total_usage"),
+            ("f.phys_cores", "physical_cores"), ("f.log_cores", "logical_cores"),
+            ("f.freq", "core_freq_mhz"), ("f.temp", "package_temp_c"),
+            ("f.power", "power_w"),
         ]),
-        ("内存", [
-            ("总容量", "total_gb"), ("已用", "used_gb"),
-            ("可用", "available_gb"), ("使用率", "usage_percent"),
+        ("ram.group", [
+            ("f.total", "total_gb"), ("f.used", "used_gb"),
+            ("f.available", "available_gb"), ("f.usage", "usage_percent"),
             ("Swap", "swap_used_mb"),
         ]),
-        ("GPU", [
-            ("型号", "name"), ("使用率", "usage_percent"),
-            ("显存已用", "vram_used_mb"), ("显存总量", "vram_total_mb"),
-            ("核心温度", "core_temp_c"), ("热点温度", "hotspot_temp_c"),
-            ("核心频率", "core_freq_mhz"), ("功耗", "power_w"),
+        ("gpu.group", [
+            ("f.name", "name"), ("f.usage", "usage_percent"),
+            ("f.vram_used", "vram_used_mb"), ("f.vram_total", "vram_total_mb"),
+            ("f.core_temp", "core_temp_c"), ("f.hotspot_temp", "hotspot_temp_c"),
+            ("f.core_freq", "core_freq_mhz"), ("f.power", "power_w"),
         ]),
-        ("磁盘", [
-            ("盘符", "drive"), ("读速", "read_mb_s"), ("写速", "write_mb_s"),
-            ("使用率", "usage_percent"), ("可用空间", "free_gb"),
+        ("disk.group", [
+            ("f.drive", "drive"), ("f.read", "read_mb_s"), ("f.write", "write_mb_s"),
+            ("f.usage", "usage_percent"), ("f.free", "free_gb"),
         ]),
-        ("网络", [
-            ("网卡", "interface"), ("上行", "upload_mb_s"),
-            ("下行", "download_mb_s"), ("链路速率", "link_speed_mbps"),
+        ("net.group", [
+            ("f.iface", "interface"), ("f.up", "upload_mb_s"),
+            ("f.down", "download_mb_s"), ("f.link_speed", "link_speed_mbps"),
         ]),
-        ("网络质量", [
-            ("到本机RTT", "latency_to_client_ms"),
-            ("网关延迟", "latency_to_gateway_ms"),
-            ("丢包率", "packet_loss_percent"),
-            ("评分", "quality_score"), ("等级", "quality_grade"),
+        ("netq.group", [
+            ("f.rtt", "latency_to_client_ms"),
+            ("f.gw_latency", "latency_to_gateway_ms"),
+            ("f.loss", "packet_loss_percent"),
+            ("f.score", "quality_score"), ("f.grade", "quality_grade"),
         ]),
-        ("帧率", [
-            ("窗口", "window_title"), ("FPS", "fps"),
-            ("帧时间", "frame_time_ms"), ("1% Low", "low_1_percent"),
-            ("来源", "source"),
+        ("fps.group", [
+            ("f.window", "window_title"), ("FPS", "fps"),
+            ("f.frame_time", "frame_time_ms"), ("f.low1", "low_1_percent"),
+            ("f.source", "source"),
         ]),
-        ("进程", [("Top CPU/GPU", "proc_summary")]),
+        ("proc.group", [("f.top", "proc_summary")]),
     ]
 
     def _make_group(self, title, fields):
-        box = QGroupBox(title)
+        box = QGroupBox(tr(title))
         v = QVBoxLayout(box)
         v.setSpacing(3)
         labels = {}
         for disp, key in fields:
             row = QHBoxLayout()
-            name_label = QLabel(disp)
+            name_label = QLabel(tr(disp))
             name_label.setFixedWidth(90)
             value_label = QLabel("N/A")
             value_label.setWordWrap(True)
@@ -109,26 +110,26 @@ class DetailPanel(QScrollArea):
         """用一帧 monitor_data 更新整个面板。"""
         try:
             self._update_header(frame)
-            for title, (_box, labels) in self._panels.items():
-                if title == "磁盘":
+            for key, (_box, labels) in self._panels.items():
+                if key == "disk.group":
                     self._update_disk(frame.get("disk", []), labels)
-                elif title == "进程":
+                elif key == "proc.group":
                     self._update_proc(frame.get("processes", {}), labels)
-                elif title == "CPU":
+                elif key == "cpu.group":
                     self._update_group(frame.get("cpu", {}), labels,
                                        use_usage_color=True)
-                elif title == "内存":
+                elif key == "ram.group":
                     self._update_group(frame.get("ram", {}), labels,
                                        ram_mode=True)
-                elif title == "GPU":
+                elif key == "gpu.group":
                     self._update_group(frame.get("gpu", {}), labels,
                                        gpu_mode=True)
-                elif title == "网络":
+                elif key == "net.group":
                     self._update_group(frame.get("net", {}), labels)
-                elif title == "网络质量":
+                elif key == "netq.group":
                     self._update_group(frame.get("net_quality", {}), labels,
                                        quality_mode=True)
-                elif title == "帧率":
+                elif key == "fps.group":
                     self._update_group(frame.get("fps", {}), labels)
         except Exception as e:
             log.warning("详情面板更新失败: %s", e)
@@ -138,7 +139,7 @@ class DetailPanel(QScrollArea):
         uptime = format_uptime(sys_info.get("uptime_seconds", 0))
         self.header_label.setText(
             f"{frame.get('hostname', 'N/A')}  |  "
-            f"{sys_info.get('local_ip', 'N/A')}  |  运行 {uptime}")
+            f"{sys_info.get('local_ip', 'N/A')}  |  {tr('conninfo.header_up', uptime)}")
 
     def _update_group(self, data: dict, labels: dict, **modes) -> None:
         for key, label in labels.items():
@@ -157,7 +158,7 @@ class DetailPanel(QScrollArea):
             label.setText(_fmt(value))
             apply_color(label, _color_for(key, value))
         names = ", ".join(d.get("drive", "?") for d in disks)
-        self._panels["磁盘"][0].setToolTip(f"盘符: {names}")
+        self._panels["disk.group"][0].setToolTip(f"Drives: {names}")
 
     def _update_proc(self, processes: dict, labels: dict) -> None:
         label = labels.get("proc_summary")

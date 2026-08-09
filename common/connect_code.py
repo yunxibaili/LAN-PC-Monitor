@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-便捷连接工具（见《技术文档.md》§23.2-23.4）。
+便捷连接工具（见《README.md》§23.2-23.4）。
 
 提供：
 - make_connect_code / resolve_connect_code：纯数字连接码生成与反查（§23.2）

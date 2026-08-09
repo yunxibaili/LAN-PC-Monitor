@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-采集器工厂（见《技术文档.md》§5.2 / §8）。
+采集器工厂（见《README.md》§5.2 / §8）。
 
 采集节点与监控主机本机节点共用此套采集器（§16：node/collectors/ 复用）。
 create_collectors(cfg) 按配置创建全部采集器实例。

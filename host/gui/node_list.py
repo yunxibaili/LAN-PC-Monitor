@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-监控主机左侧节点列表（见《技术文档.md》§6.4 / §18.1）。
+监控主机左侧节点列表（见《README.md》§6.4 / §18.1）。
 
 列表项布局：
     ┌─────────────────────────────────────────────────────────┐
@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QListWidget,
                              QListWidgetItem, QMenu, QVBoxLayout, QWidget)
 
 from common import theme
+from common.i18n import tr
 
 log = logging.getLogger("host.gui.node_list")
 
@@ -43,7 +44,7 @@ class NodeListItemWidget(QWidget):
         self.alias_label = QLabel(alias)
         self.alias_label.setStyleSheet(
             f"font-weight: bold; font-size: 13px; color: {theme.COLOR_TEXT};")
-        self.sub_label = QLabel(f"{ip}  ● 连接中")
+        self.sub_label = QLabel(f"{ip}  ● {tr('node.connecting')}")
         self.sub_label.setStyleSheet(
             f"font-size: 11px; color: {theme.COLOR_NA};")
         left.addWidget(self.alias_label)
@@ -62,16 +63,22 @@ class NodeListItemWidget(QWidget):
         root.addLayout(right, 0)
 
     def update_status(self, status_text: str) -> None:
-        """更新状态行与状态点颜色。"""
+        """更新状态行与状态点颜色（status_text 为内部状态码）。"""
         if self.is_local:
-            self.sub_label.setText(f"{self.ip}  ● 在线")
+            self.sub_label.setText(f"{self.ip}  ● {tr('node.online')}")
             return
-        color = (theme.COLOR_NORMAL if "已连接" in status_text
-                 else theme.COLOR_WARN if "重连" in status_text or "超时" in status_text
+        color = (theme.COLOR_NORMAL if status_text == "connected"
+                 else theme.COLOR_WARN if status_text in ("reconnecting", "timeout")
                  else theme.COLOR_DANGER)
-        dot = "●" if "已连接" in status_text else "◐"
+        dot = "●" if status_text == "connected" else "◐"
+        # 状态码 → 显示文案
+        disp = {"connected": tr("node.online"),
+                "reconnecting": tr("node.reconnecting"),
+                "timeout": tr("node.reconnecting"),
+                "offline": tr("node.offline"),
+                "auth_failed": tr("node.auth_failed")}.get(status_text, status_text)
         self.sub_label.setText(
-            f"{self.ip}  <span style='color:{color};'>{dot}</span> {status_text}")
+            f"{self.ip}  <span style='color:{color};'>{dot}</span> {disp}")
 
     def update_rtt(self, rtt_ms: float) -> None:
         """更新 RTT 小标签（本机节点固定 0.00ms）。"""
@@ -144,11 +151,11 @@ class NodeListWidget(QListWidget):
             return
         node_id = item.data(Qt.UserRole)
         menu = QMenu(self)
-        act_edit = menu.addAction("编辑别名")
-        act_reconnect = menu.addAction("手动重连")
+        act_edit = menu.addAction(tr("dialog.edit_alias"))
+        act_reconnect = menu.addAction(tr("dialog.reconnect"))
         if node_id != LOCAL_NODE_ID:
             menu.addSeparator()
-            act_remove = menu.addAction("移除节点")
+            act_remove = menu.addAction(tr("dialog.remove_node"))
         action = menu.exec_(self.mapToGlobal(pos))
         if action is None:
             return

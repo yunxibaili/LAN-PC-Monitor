@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-副机端主窗口 —— 本机仪表盘 + 节点管理器（见《技术文档.md》§6 / §20.8）。
+副机端主窗口 —— 本机仪表盘 + 节点管理器（见《README.md》§6 / §20.8）。
 
 布局：
     ┌─────────────────────────────┬─────────────────────────┐
@@ -19,8 +19,9 @@ import logging
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMessageBox,
-                             QSplitter, QVBoxLayout, QWidget)
+                             QPushButton, QSplitter, QVBoxLayout, QWidget)
 
+from common.i18n import tr
 from common.quality import QualityScorer
 from common.utils import get_lan_ip, get_local_node_info, make_host_id
 from client import config as client_config
@@ -79,14 +80,14 @@ class ClientMainWindow(QMainWindow):
     # ---------- UI ----------
 
     def _build_ui(self) -> None:
-        self.setWindowTitle("副机端 — 本机仪表盘")
+        self.setWindowTitle(tr("app.title.client"))
         central = QWidget()
         root = QVBoxLayout(central)
         root.setContentsMargins(8, 8, 8, 8)
 
         # 顶部：已接入远程节点数
         top = QHBoxLayout()
-        self.top_label = QLabel("已接入远程节点: 0")
+        self.top_label = QLabel(tr("topbar.remote_nodes", 0))
         self.top_label.setObjectName("panel_title")
         top.addWidget(self.top_label)
         top.addStretch(1)
@@ -113,7 +114,7 @@ class ClientMainWindow(QMainWindow):
         root.addWidget(self.splitter, 1)
 
         # 底部：提示
-        self.statusBar().showMessage("就绪")
+        self.statusBar().showMessage(tr("topbar.ready"))
         self.setCentralWidget(central)
 
     # ---------- 本机节点 ----------
@@ -124,11 +125,11 @@ class ClientMainWindow(QMainWindow):
         self.local_pack.local_data.connect(self._on_local_data)
         self.local_pack.start()
 
-        self.statuses[LOCAL_NODE_ID] = "在线"
+        self.statuses[LOCAL_NODE_ID] = tr("node.online")
         self.rtts[LOCAL_NODE_ID] = 0.0
         # 本机节点真实局域网 IP（而非硬编码 localhost）
         local_ip = get_lan_ip(self.cfg.get("preferred_iface", ""))
-        self.node_manager.add_node(LOCAL_NODE_ID, "本机 (localhost)",
+        self.node_manager.add_node(LOCAL_NODE_ID, tr("node.local_alias"),
                                    local_ip, is_local=True)
         log.info("本机节点已初始化（置顶 [本机]，IP=%s）", local_ip)
 
@@ -150,7 +151,7 @@ class ClientMainWindow(QMainWindow):
         conn.rtt_updated.connect(self._on_rtt)
         conn.loss_updated.connect(self._on_loss)
         self.nodes[node_id] = conn
-        self.statuses[node_id] = "连接中"
+        self.statuses[node_id] = tr("node.connecting")
         self.scorers[node_id] = QualityScorer()
 
         self.node_manager.add_node(node_id, alias, ip)
@@ -179,19 +180,13 @@ class ClientMainWindow(QMainWindow):
                                      QLabel, QLineEdit)
 
         dialog = QDialog(self)
-        dialog.setWindowTitle("手动添加节点")
+        dialog.setWindowTitle(tr("dialog.add_node"))
         from common.theme import remove_help_button
         remove_help_button(dialog)   # 移除 Windows 标题栏问号按钮，防闪退
         form = QFormLayout(dialog)
 
         # 提示：告诉用户各字段填什么
-        hint = QLabel(
-            "填被监控电脑（采集节点）的信息：\n"
-            "· IP：该电脑的局域网 IP（如 192.168.1.100）\n"
-            "· 端口：采集节点 TCP 端口，默认 12345\n"
-            "· Token：采集节点 node_config.json 中的 token\n"
-            "· 别名：任意名称，便于识别"
-        )
+        hint = QLabel(tr("dialog.add_node_hint"))
         hint.setWordWrap(True)
         hint.setStyleSheet("color: #808080;")
         form.addRow(hint)
@@ -201,9 +196,9 @@ class ClientMainWindow(QMainWindow):
         token_edit = QLineEdit()
         alias_edit = QLineEdit()
         form.addRow("IP *", ip_edit)
-        form.addRow("端口", port_edit)
+        form.addRow(tr("dialog.port"), port_edit)
         form.addRow("Token *", token_edit)
-        form.addRow("别名", alias_edit)
+        form.addRow(tr("dialog.alias"), alias_edit)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
@@ -213,7 +208,7 @@ class ClientMainWindow(QMainWindow):
             return
         ip = ip_edit.text().strip()
         if not ip:
-            self.statusBar().showMessage("IP 不能为空", 3000)
+            self.statusBar().showMessage(tr("dialog.ip_empty"), 3000)
             return
         try:
             port = int(port_edit.text().strip() or "12345")
@@ -221,7 +216,7 @@ class ClientMainWindow(QMainWindow):
             port = 12345
         node_id = make_host_id(ip, port)
         if node_id in self.nodes:
-            self.statusBar().showMessage("该节点已添加", 3000)
+            self.statusBar().showMessage(tr("dialog.already_added"), 3000)
             return
         alias = alias_edit.text().strip() or f"{ip}:{port}"
         token = token_edit.text().strip()
@@ -267,19 +262,18 @@ class ClientMainWindow(QMainWindow):
         info = get_local_node_info()
         if not info or not info.get("token"):
             QMessageBox.warning(
-                self, "未找到本机节点",
-                "未找到 node_config.json 或未配置 token。\n"
-                "请先在被监控电脑上启动采集节点（python -m node）生成配置。")
+                self, tr("local_node.not_found"),
+                tr("local_node.not_found_msg"))
             return
         node_id = make_host_id(info["ip"], info["port"])
         if node_id in self.nodes:
-            self.statusBar().showMessage("本机节点已在列表中", 3000)
+            self.statusBar().showMessage(tr("local_node.already"), 3000)
             return
         client_config.upsert_node(self.cfg, node_id, info["ip"], info["port"],
                                   info["token"], info["alias"])
         self._add_node(node_id, info["ip"], info["port"],
                        info["token"], info["alias"])
-        self.statusBar().showMessage(f"已接入本机节点 {info['ip']}", 3000)
+        self.statusBar().showMessage(tr("local_node.added", info["ip"]), 3000)
 
     def _on_connect_code(self) -> None:
         """连接码接入（§23.2）。"""
@@ -299,19 +293,19 @@ class ClientMainWindow(QMainWindow):
         from PyQt5.QtWidgets import QFileDialog
         from common.connect_code import import_config
         path, _ = QFileDialog.getOpenFileName(
-            self, "导入节点配置", "", "监控配置 (*.pcm);;所有文件 (*)")
+            self, tr("connect.import_title"), "", tr("connect.import_filter"))
         if not path:
             return
         nodes = import_config(path)
         if nodes is None:
-            QMessageBox.warning(self, "导入失败", "配置文件格式不正确")
+            QMessageBox.warning(self, tr("connect.import_fail"), tr("connect.import_fail_msg"))
             return
         for n in nodes:
             node_id = make_host_id(n["ip"], n["port"])
             client_config.upsert_node(self.cfg, node_id, n["ip"], n["port"],
                                       n["token"], n["alias"])
             self._add_node(node_id, n["ip"], n["port"], n["token"], n["alias"])
-        self.statusBar().showMessage(f"已导入 {len(nodes)} 台节点", 3000)
+        self.statusBar().showMessage(tr("connect.imported", len(nodes)), 3000)
 
     def _on_export(self) -> None:
         """导出当前节点列表为 .pcm 配置（§23.4）。"""
@@ -319,12 +313,12 @@ class ClientMainWindow(QMainWindow):
         from common.connect_code import export_config
         nodes = [self.cfg["nodes"][i] for i in range(len(self.cfg.get("nodes", [])))]
         path, _ = QFileDialog.getSaveFileName(
-            self, "导出节点配置", "pcmonitor_nodes.pcm", "监控配置 (*.pcm)")
+            self, tr("connect.export_title"), "pcmonitor_nodes.pcm", tr("connect.export_filter"))
         if not path:
             return
         ok = export_config(nodes, path)
         self.statusBar().showMessage(
-            "导出成功" if ok else "导出失败", 3000)
+            tr("connect.export_ok") if ok else tr("connect.export_fail"), 3000)
 
     def _on_discovery_add(self, ip, port, token, alias) -> None:
         node_id = make_host_id(ip, port)
@@ -337,7 +331,7 @@ class ClientMainWindow(QMainWindow):
         if action == "remove":
             alias = self.nodes[node_id].alias if node_id in self.nodes else node_id
             reply = QMessageBox.question(
-                self, "移除节点", f"确认移除节点「{alias}」？",
+                self, tr("dialog.remove_node"), tr("dialog.confirm_remove", alias),
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self._remove_node(node_id)
@@ -356,12 +350,12 @@ class ClientMainWindow(QMainWindow):
         if conn is None:
             return
         dialog = QDialog(self)
-        dialog.setWindowTitle("编辑别名")
+        dialog.setWindowTitle(tr("dialog.edit_alias"))
         from common.theme import remove_help_button
         remove_help_button(dialog)   # 移除 Windows 标题栏问号按钮，防闪退
         form = QFormLayout(dialog)
         alias_edit = QLineEdit(conn.alias)
-        form.addRow("别名:", alias_edit)
+        form.addRow(tr("dialog.alias_label"), alias_edit)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
@@ -434,14 +428,14 @@ class ClientMainWindow(QMainWindow):
     def _refresh_top(self) -> None:
         # 已接入远程节点数（不含本机）
         remote = sum(1 for nid in self.nodes if nid != LOCAL_NODE_ID)
-        self.top_label.setText(f"已接入远程节点: {remote}")
+        self.top_label.setText(tr("topbar.remote_nodes", remote))
 
     # ---------- 窗口事件 ----------
 
     def closeEvent(self, event) -> None:
         """关闭确认：确定退出副机端监控？取消则不退出。"""
         reply = QMessageBox.question(
-            self, "确认", "确定退出副机端监控？",
+            self, tr("dialog.confirm_title"), tr("dialog.confirm_exit"),
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             for conn in self.nodes.values():

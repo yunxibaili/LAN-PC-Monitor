@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-监控主机概览网格 —— 同屏展示所有节点关键指标卡片（见《技术文档.md》§18.2）。
+监控主机概览网格 —— 同屏展示所有节点关键指标卡片（见《README.md》§18.2）。
 
 单张卡片：3 列 × 2 行，6 项关键指标（CPU/GPU/内存使用率、CPU/GPU 温度、FPS）。
 - QGridLayout，每行最多 max_cards_per_row 张（默认 4）。
@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel,
                              QScrollArea, QVBoxLayout, QWidget)
 
 from common import theme
+from common.i18n import tr
 from common.theme import apply_color
 
 log = logging.getLogger("host.gui.overview_grid")
@@ -52,7 +53,7 @@ class OverviewCard(QFrame):
         head.addWidget(ip_label, 0, Qt.AlignRight)
         root.addLayout(head)
 
-        self.status_label = QLabel("● 连接中")
+        self.status_label = QLabel(f"● {tr('node.connecting')}")
         self.status_label.setStyleSheet(
             f"font-size: 11px; color: {theme.COLOR_WARN};")
         root.addWidget(self.status_label)
@@ -63,9 +64,9 @@ class OverviewCard(QFrame):
         metrics = [
             ("CPU", "cpu_usage", "%", "usage"),
             ("GPU", "gpu_usage", "%", "usage"),
-            ("内存", "ram_usage", "%", "usage"),
-            ("CPU温度", "cpu_temp", "°C", "temp"),
-            ("GPU温度", "gpu_temp", "°C", "temp"),
+            (tr("metric.ram_usage"), "ram_usage", "%", "usage"),
+            (tr("metric.cpu_temp"), "cpu_temp", "°C", "temp"),
+            (tr("metric.gpu_temp"), "gpu_temp", "°C", "temp"),
             ("FPS", "fps", "", "fps"),
         ]
         for i, (disp, key, unit, kind) in enumerate(metrics):
@@ -91,15 +92,19 @@ class OverviewCard(QFrame):
         super().mousePressEvent(event)
 
     def update_data(self, summary: dict, status_text: str = "") -> None:
-        """用关键指标摘要更新卡片。"""
+        """用关键指标摘要更新卡片（status_text 为内部状态码）。"""
         if self.is_local:
             color = theme.COLOR_NORMAL
-            self.status_label.setText("● 在线")
+            self.status_label.setText(f"● {tr('node.online')}")
         else:
-            color = (theme.COLOR_NORMAL if "已连接" in status_text
-                     else theme.COLOR_WARN if "重连" in status_text
+            color = (theme.COLOR_NORMAL if status_text == "connected"
+                     else theme.COLOR_WARN if status_text == "reconnecting"
                      else theme.COLOR_DANGER)
-            self.status_label.setText(f"● {status_text or '连接中'}")
+            disp = {"connected": tr("node.online"),
+                    "reconnecting": tr("node.reconnecting"),
+                    "offline": tr("node.offline"),
+                    "auth_failed": tr("node.auth_failed")}.get(status_text, status_text)
+            self.status_label.setText(f"● {disp}")
         self.status_label.setStyleSheet(f"font-size: 11px; color: {color};")
 
         for key, (label, unit, kind) in self.metric_labels.items():
@@ -176,8 +181,8 @@ class OverviewGrid(QScrollArea):
         visible = list(self._cards.values())[:limit]
 
         self._count_label.setText(
-            f"共 {len(self._cards)} 台，显示前 {len(visible)} 台"
-            if len(self._cards) > limit else f"共 {len(self._cards)} 台")
+            tr("overview.count_limited", len(self._cards), len(visible))
+            if len(self._cards) > limit else tr("overview.count", len(self._cards)))
         self._grid.addWidget(self._count_label, 0, 0, 1, self.max_per_row)
         self._count_label.show()
 

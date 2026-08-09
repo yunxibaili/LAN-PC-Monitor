@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-采集节点配置模块 —— node_config.json 读写（见《技术文档.md》§12.2）。
+采集节点配置模块 —— node_config.json 读写（见《README.md》§12.2）。
 """
 import json
 import os

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-日志模块 —— RotatingFileHandler 轮转日志（见《技术文档.md》§11）。
+日志模块 —— RotatingFileHandler 轮转日志（见《README.md》§11）。
 
 - 单文件最大 10MB，保留 5 份备份。
 - 强制 UTF-8 编码，避免中文日志乱码。

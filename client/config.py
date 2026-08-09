@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-副机端配置模块 —— client_config.json 读写（见《技术文档.md》§13.2）。
+副机端配置模块 —— client_config.json 读写（见《README.md》§13.2）。
 
 副机端仅保存节点列表摘要（IP/端口/别名/token/状态），不存储详细历史数据。
 """

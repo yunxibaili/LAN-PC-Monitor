@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-副机端入口模块 —— 本机仪表盘 + 节点管理（见《技术文档.md》§6）。
+副机端入口模块 —— 本机仪表盘 + 节点管理（见《README.md》§6）。
 
 供 `python -m client` 调用；`client_main.py` 为独立脚本入口的等价实现。
 """
@@ -9,6 +9,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
+from common.i18n import ensure_language
 from common.logger import setup_logger
 from common.single_instance import ensure_single_instance, release_single_instance
 from common.startup import install_client_startup, remove_client_startup
@@ -36,6 +37,9 @@ def main() -> int:
 
     app = QApplication(sys.argv)
     app.setStyleSheet(DARK_QSS)
+
+    # 语言选择：首次启动弹窗，之后读配置
+    ensure_language(cfg, client_config.save_config, parent=app)
 
     window = ClientMainWindow(cfg)
     window.show()

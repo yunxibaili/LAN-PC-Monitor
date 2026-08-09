@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-采集节点 UDP 广播器 —— 每 2 秒广播 node_heartbeat 心跳（见《技术文档.md》§4.6 / §5.5）。
+采集节点 UDP 广播器 —— 每 2 秒广播 node_heartbeat 心跳（见《README.md》§4.6 / §5.5）。
 
 心跳类型 v3.0 从 host_heartbeat 改名为 node_heartbeat（§4.2）。
 另含 mDNS 零配置发现注册（§5.6 / §23.1），与 UDP 广播并行、互为备份。

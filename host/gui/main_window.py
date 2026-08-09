@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-监控主机主窗口 —— 集中显示所有节点 + 本机节点（见《技术文档.md》§6）。
+监控主机主窗口 —— 集中显示所有节点 + 本机节点（见《README.md》§6）。
 
 - 本机节点置顶，始终在线，RTT 0.00ms，不可移除。
 - 远程节点多连接管理（NodeConnection + 独立重连）。
@@ -13,13 +13,16 @@
 import logging
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMessageBox,
                              QPushButton, QSplitter, QStackedWidget,
-                             QVBoxLayout, QWidget)
+                             QSystemTrayIcon, QVBoxLayout, QWidget)
 
+from common.i18n import tr
 from common.quality import QualityScorer
 from common.utils import get_lan_ip, get_local_node_info, make_host_id
 from host import config as host_config
+from host.alerts import AlertEngine
 from host.connection import NodeConnection
 from node.discovery import DiscoveryListener, MdnsDiscovery
 from host.gui.detail_panel import DetailPanel
@@ -51,8 +54,14 @@ class HostMainWindow(QMainWindow):
         self._view_mode = self.cfg.get("view_mode", MODE_AUTO)
         self.local_pack = None
 
+        # 红线告警引擎（第四篇）
+        self.alert_engine = AlertEngine(host_config.load_alerts(self.cfg))
+        self._alert_state = {}   # (node_id, path) → "red"/"warn" 上一状态（弹窗去重）
+        self._tray = None
+
         self._restore_geometry()
         self._build_ui()
+        self._init_tray()          # 系统托盘（告警气泡）
         self._init_local_node()    # 本机节点置顶
         self._load_saved_nodes()   # 远程节点
         self._apply_view_mode()
@@ -89,44 +98,44 @@ class HostMainWindow(QMainWindow):
     # ---------- UI ----------
 
     def _build_ui(self) -> None:
-        self.setWindowTitle("监控主机 — 集中监控")
+        self.setWindowTitle(tr("app.title.host"))
         central = QWidget()
         root = QVBoxLayout(central)
         root.setContentsMargins(8, 8, 8, 8)
 
         # 顶部工具栏
         top = QHBoxLayout()
-        self.top_label = QLabel("已连接 0/0 节点")
+        self.top_label = QLabel(tr("topbar.connected", 0, 0))
         self.top_label.setObjectName("panel_title")
         top.addWidget(self.top_label)
         top.addStretch(1)
 
-        self.btn_overview = QPushButton("概览")
+        self.btn_overview = QPushButton(tr("topbar.overview"))
         self.btn_overview.setCheckable(True)
         self.btn_overview.clicked.connect(self._on_toggle_overview)
         top.addWidget(self.btn_overview)
 
-        btn_add = QPushButton("添加节点")
+        btn_add = QPushButton(tr("topbar.add_node"))
         btn_add.clicked.connect(self._on_add_node)
         top.addWidget(btn_add)
-        btn_scan = QPushButton("扫描")
+        btn_scan = QPushButton(tr("topbar.scan"))
         btn_scan.clicked.connect(self._on_scan_nodes)
         top.addWidget(btn_scan)
         # 便捷连接入口（§2.5）：连接码 / 剪贴板 / 导入 / 导出
-        btn_code = QPushButton("连接码")
-        btn_code.setToolTip("输入节点端显示的连接码快速接入（§23.2）")
+        btn_code = QPushButton(tr("topbar.connect_code"))
+        btn_code.setToolTip(tr("node_mgr.tip_conn_code"))
         btn_code.clicked.connect(self._on_connect_code)
         top.addWidget(btn_code)
-        btn_clip = QPushButton("剪贴板")
-        btn_clip.setToolTip("粘贴节点端复制的连接串（pcmonitor://）接入（§23.3）")
+        btn_clip = QPushButton(tr("topbar.clipboard"))
+        btn_clip.setToolTip(tr("node_mgr.tip_clipboard"))
         btn_clip.clicked.connect(self._on_clipboard)
         top.addWidget(btn_clip)
-        btn_imp = QPushButton("导入")
-        btn_imp.setToolTip("导入 .pcm 配置文件批量添加（§23.4）")
+        btn_imp = QPushButton(tr("topbar.import"))
+        btn_imp.setToolTip(tr("node_mgr.tip_import"))
         btn_imp.clicked.connect(self._on_import)
         top.addWidget(btn_imp)
-        btn_exp = QPushButton("导出")
-        btn_exp.setToolTip("导出当前节点列表为 .pcm 配置（§23.4）")
+        btn_exp = QPushButton(tr("topbar.export"))
+        btn_exp.setToolTip(tr("node_mgr.tip_export"))
         btn_exp.clicked.connect(self._on_export)
         top.addWidget(btn_exp)
         root.addLayout(top)
@@ -162,7 +171,7 @@ class HostMainWindow(QMainWindow):
         root.addWidget(self.detail_stack, stretch=1)
 
         # 底部状态栏
-        self.statusBar().showMessage("就绪")
+        self.statusBar().showMessage(tr("topbar.ready"))
         self.setCentralWidget(central)
 
     # ---------- 本机节点 ----------
@@ -174,14 +183,14 @@ class HostMainWindow(QMainWindow):
         self.local_pack.start()
 
         self.nodes[LOCAL_NODE_ID] = None   # 占位（无 NodeConnection）
-        self.statuses[LOCAL_NODE_ID] = "在线"
+        self.statuses[LOCAL_NODE_ID] = tr("node.online")
         self.rtts[LOCAL_NODE_ID] = 0.0
         # 本机节点真实局域网 IP（而非硬编码 localhost）
         local_ip = get_lan_ip(self.cfg.get("preferred_iface", ""))
         # 列表置顶
-        self.node_list.add_node(LOCAL_NODE_ID, "本机 (localhost)", local_ip,
+        self.node_list.add_node(LOCAL_NODE_ID, tr("node.local_alias"), local_ip,
                                 is_local=True)
-        self.overview.add_card(LOCAL_NODE_ID, "本机 (localhost)", local_ip,
+        self.overview.add_card(LOCAL_NODE_ID, tr("node.local_alias"), local_ip,
                                is_local=True)
         log.info("本机节点已初始化（置顶，IP=%s）", local_ip)
 
@@ -209,7 +218,7 @@ class HostMainWindow(QMainWindow):
         conn.rtt_updated.connect(self._on_rtt)
         conn.loss_updated.connect(self._on_loss)
         self.nodes[node_id] = conn
-        self.statuses[node_id] = "连接中"
+        self.statuses[node_id] = tr("node.connecting")
         self.scorers[node_id] = QualityScorer()
 
         self.node_list.add_node(node_id, alias, ip)
@@ -288,21 +297,15 @@ class HostMainWindow(QMainWindow):
                                      QLabel, QLineEdit)
 
         dialog = QDialog(self)
-        dialog.setWindowTitle("手动添加节点")
+        dialog.setWindowTitle(tr("dialog.add_node"))
         from common.theme import remove_help_button
         remove_help_button(dialog)   # 移除 Windows 标题栏问号按钮，防闪退
         form = QFormLayout(dialog)
 
         # 提示：告诉用户各字段填什么
-        hint = QLabel(
-            "填被监控电脑（采集节点）的信息：\n"
-            "· IP：该电脑的局域网 IP（如 192.168.1.100）\n"
-            "· 端口：采集节点 TCP 端口，默认 12345\n"
-            "· Token：采集节点 node_config.json 中的 token\n"
-            "· 别名：任意名称，便于识别"
-        )
+        hint = QLabel(tr("dialog.add_node_hint"))
         hint.setWordWrap(True)
-        hint.setStyleSheet("color: #808080;")
+        hint.setStyleSheet(f"color: {theme.COLOR_NA};")
         form.addRow(hint)
 
         ip_edit = QLineEdit()
@@ -310,9 +313,9 @@ class HostMainWindow(QMainWindow):
         token_edit = QLineEdit()
         alias_edit = QLineEdit()
         form.addRow("IP *", ip_edit)
-        form.addRow("端口", port_edit)
+        form.addRow(tr("dialog.port"), port_edit)
         form.addRow("Token *", token_edit)
-        form.addRow("别名", alias_edit)
+        form.addRow(tr("dialog.alias"), alias_edit)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
@@ -322,7 +325,7 @@ class HostMainWindow(QMainWindow):
             return
         ip = ip_edit.text().strip()
         if not ip:
-            self.statusBar().showMessage("IP 不能为空", 3000)
+            self.statusBar().showMessage(tr("dialog.ip_empty"), 3000)
             return
         try:
             port = int(port_edit.text().strip() or "12345")
@@ -330,7 +333,7 @@ class HostMainWindow(QMainWindow):
             port = 12345
         node_id = make_host_id(ip, port)
         if node_id in self.nodes:
-            self.statusBar().showMessage("该节点已添加", 3000)
+            self.statusBar().showMessage(tr("dialog.already_added"), 3000)
             return
         alias = alias_edit.text().strip() or f"{ip}:{port}"
         token = token_edit.text().strip()
@@ -363,19 +366,19 @@ class HostMainWindow(QMainWindow):
         from PyQt5.QtWidgets import QFileDialog
         from common.connect_code import import_config
         path, _ = QFileDialog.getOpenFileName(
-            self, "导入节点配置", "", "监控配置 (*.pcm);;所有文件 (*)")
+            self, tr("connect.import_title"), "", tr("connect.import_filter"))
         if not path:
             return
         nodes = import_config(path)
         if nodes is None:
-            QMessageBox.warning(self, "导入失败", "配置文件格式不正确")
+            QMessageBox.warning(self, tr("connect.import_fail"), tr("connect.import_fail_msg"))
             return
         for n in nodes:
             node_id = make_host_id(n["ip"], n["port"])
             host_config.upsert_host(self.cfg, node_id, n["ip"], n["port"],
                                     n["token"], n["alias"])
             self._add_node(node_id, n["ip"], n["port"], n["token"], n["alias"])
-        self.statusBar().showMessage(f"已导入 {len(nodes)} 台节点", 3000)
+        self.statusBar().showMessage(tr("connect.imported", len(nodes)), 3000)
 
     def _on_export(self) -> None:
         """导出当前节点列表为 .pcm 配置（§23.4）。"""
@@ -383,12 +386,12 @@ class HostMainWindow(QMainWindow):
         from common.connect_code import export_config
         nodes = list(self.cfg.get("hosts", []))
         path, _ = QFileDialog.getSaveFileName(
-            self, "导出节点配置", "pcmonitor_nodes.pcm", "监控配置 (*.pcm)")
+            self, tr("connect.export_title"), "pcmonitor_nodes.pcm", tr("connect.export_filter"))
         if not path:
             return
         ok = export_config(nodes, path)
         self.statusBar().showMessage(
-            "导出成功" if ok else "导出失败", 3000)
+            tr("connect.export_ok") if ok else tr("connect.export_fail"), 3000)
 
     def _maybe_show_onboarding(self) -> None:
         """首屏引导（§23.5）：仅首次运行（无 onboarded 标记）弹出。"""
@@ -420,19 +423,18 @@ class HostMainWindow(QMainWindow):
         info = get_local_node_info()
         if not info or not info.get("token"):
             QMessageBox.warning(
-                self, "未找到本机节点",
-                "未找到 node_config.json 或未配置 token。\n"
-                "请先在被监控电脑上启动采集节点（python -m node）生成配置。")
+                self, tr("local_node.not_found"),
+                tr("local_node.not_found_msg"))
             return
         node_id = make_host_id(info["ip"], info["port"])
         if node_id in self.nodes:
-            self.statusBar().showMessage("本机节点已在列表中", 3000)
+            self.statusBar().showMessage(tr("local_node.already"), 3000)
             return
         host_config.upsert_host(self.cfg, node_id, info["ip"], info["port"],
                                 info["token"], info["alias"])
         self._add_node(node_id, info["ip"], info["port"],
                        info["token"], info["alias"])
-        self.statusBar().showMessage(f"已接入本机节点 {info['ip']}", 3000)
+        self.statusBar().showMessage(tr("local_node.added", info["ip"]), 3000)
 
     def _on_discovery_add(self, ip, port, token, alias) -> None:
         node_id = make_host_id(ip, port)
@@ -445,7 +447,7 @@ class HostMainWindow(QMainWindow):
         if action == "remove":
             alias = self.nodes[node_id].alias if node_id in self.nodes else node_id
             reply = QMessageBox.question(
-                self, "移除节点", f"确认移除节点「{alias}」？",
+                self, tr("dialog.remove_node"), tr("dialog.confirm_remove", alias),
                 QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self._remove_node(node_id)
@@ -464,12 +466,12 @@ class HostMainWindow(QMainWindow):
         if conn is None:
             return
         dialog = QDialog(self)
-        dialog.setWindowTitle("编辑别名")
+        dialog.setWindowTitle(tr("dialog.edit_alias"))
         from common.theme import remove_help_button
         remove_help_button(dialog)   # 移除 Windows 标题栏问号按钮，防闪退
         form = QFormLayout(dialog)
         alias_edit = QLineEdit(conn.alias)
-        form.addRow("别名:", alias_edit)
+        form.addRow(tr("dialog.alias_label"), alias_edit)
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
@@ -501,7 +503,7 @@ class HostMainWindow(QMainWindow):
             self.detail_panel.update_all(self.frames[self.current_node])
 
     def _on_data(self, frame: dict, node_id: str) -> None:
-        """接收 monitor_data：注入本地测量的网络质量 + 更新显示。"""
+        """接收 monitor_data：注入本地测量的网络质量 + 更新显示 + 红线告警。"""
         self._inject_net_quality(frame, node_id)
         self.frames[node_id] = frame
 
@@ -514,6 +516,9 @@ class HostMainWindow(QMainWindow):
 
         if node_id == self.current_node:
             self.detail_panel.update_all(frame)
+
+        # 红线告警检测（第四篇）
+        self._check_alerts(frame, node_id)
 
     def _inject_net_quality(self, frame: dict, node_id: str) -> None:
         """将本机测量的 RTT/丢包/评分注入帧的 net_quality（§18.5）。"""
@@ -559,9 +564,101 @@ class HostMainWindow(QMainWindow):
     def _on_loss(self, loss: float, node_id: str) -> None:
         self.losses[node_id] = loss
 
+    # ---------- 红线告警（第四篇） ----------
+
+    def _init_tray(self) -> None:
+        """初始化系统托盘图标（告警气泡）。不可用时静默降级。"""
+        try:
+            if not QSystemTrayIcon.isSystemTrayAvailable():
+                return
+            self._tray = QSystemTrayIcon(self)
+            # 无图标时用一个纯色 QPixmap 占位
+            pix = QIcon().pixmap(16, 16)
+            if pix.isNull():
+                from PyQt5.QtGui import QPixmap, QColor
+                pm = QPixmap(16, 16)
+                pm.fill(QColor("#007acc"))
+                self._tray.setIcon(QIcon(pm))
+            else:
+                self._tray.setIcon(QIcon(pix))
+            self._tray.setToolTip(tr("app.title.host"))
+            self._tray.show()
+        except Exception as e:
+            log.debug("系统托盘初始化失败（告警弹窗降级为状态栏+日志）: %s", e)
+            self._tray = None
+
+    def _check_alerts(self, frame: dict, node_id: str) -> None:
+        """
+        检测红线告警：状态栏 + 日志 + 托盘气泡（red 去重弹窗）。
+        """
+        alerts = self.alert_engine.check(frame)
+        if not alerts:
+            # 无告警 → 清空本节点告警，状态栏恢复
+            self._clear_node_alerts(node_id)
+            return
+
+        red = [a for a in alerts if a["level"] == "red"]
+        warn = [a for a in alerts if a["level"] == "warn"]
+
+        # 状态栏
+        self._update_status_bar(red, warn)
+
+        # 日志 + 托盘（red 去重）
+        for a in red:
+            key = (node_id, a["path"])
+            if self._alert_state.get(key) != "red":
+                self._alert_state[key] = "red"
+                log.warning("[alert] %s %s=%s 超红线 %s",
+                            a["name"], a["path"], a["value"], a["threshold"])
+                self._show_tray_alert(a)
+        for a in warn:
+            key = (node_id, a["path"])
+            if self._alert_state.get(key) != "warn":
+                self._alert_state[key] = "warn"
+                log.info("[alert] %s %s=%s 达预警 %s",
+                         a["name"], a["path"], a["value"], a["threshold"])
+
+    def _clear_node_alerts(self, node_id: str) -> None:
+        """节点恢复正常 → 清除其告警状态，刷新状态栏。"""
+        changed = False
+        for key in list(self._alert_state.keys()):
+            if key[0] == node_id:
+                del self._alert_state[key]
+                changed = True
+        if changed:
+            self.statusBar().showMessage(tr("topbar.ready"), 3000)
+
+    def _update_status_bar(self, red: list, warn: list) -> None:
+        """状态栏显示告警摘要。"""
+        if red:
+            text = tr("alert.red_summary", red[0]["name"], red[0]["value"])
+            self.statusBar().setStyleSheet(
+                f"color: #f44747; font-weight: bold;")
+            self.statusBar().showMessage(text)
+        elif warn:
+            text = tr("alert.warn_summary", warn[0]["name"], warn[0]["value"])
+            self.statusBar().setStyleSheet(
+                f"color: #d7ba7d; font-weight: bold;")
+            self.statusBar().showMessage(text)
+
+    def _show_tray_alert(self, alert: dict) -> None:
+        """托盘气泡告警（red 首次触发时调用）。"""
+        if self._tray is None:
+            return
+        if not self.cfg.get("alert_popup", True):
+            return
+        try:
+            self._tray.showMessage(
+                tr("alert.tray_title"),
+                tr("alert.tray_body", alert["name"], alert["value"],
+                   alert["threshold"]),
+                QSystemTrayIcon.Warning, 5000)
+        except Exception as e:
+            log.debug("托盘气泡显示失败: %s", e)
+
     def _refresh_top(self) -> None:
         n = len(self.connected_nodes())
-        self.top_label.setText(f"已连接 {n}/{len(self.nodes)} 节点")
+        self.top_label.setText(tr("topbar.connected", n, len(self.nodes)))
 
     # ---------- 窗口事件 ----------
 
@@ -573,5 +670,10 @@ class HostMainWindow(QMainWindow):
             self.local_pack.stop()
         self.listener.stop()
         self.mdns.stop()
+        if self._tray:
+            try:
+                self._tray.hide()
+            except Exception:
+                pass
         self._save_state()
         event.accept()

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-网络采集器（见《技术文档.md》§8.5）。
+网络采集器（见《README.md》§8.5）。
 
 选定主网卡的上行/下行速率（1 秒差分）、链路速率（WMI Win32_NetworkAdapter）、
 错误/丢包计数（psutil.net_io_counters）。

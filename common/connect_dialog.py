@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-便捷连接对话框（见《技术文档.md》§2.5 / §23）。
+便捷连接对话框（见《README.md》§2.5 / §23）。
 
 提供三种便捷添加入口，供副机端/主机端复用：
 - ConnectCodeDialog：连接码接入（§23.2）
@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel,
                              QPushButton, QVBoxLayout, QMessageBox)
 
 from common import theme
+from common.i18n import tr
 from common.connect_code import (parse_connect_uri, resolve_connect_code,
                                  make_connect_code)
 from common.theme import remove_help_button
@@ -42,20 +43,20 @@ class ConnectCodeDialog(QDialog):
         self.candidates = candidates
         self.on_add = on_add
         remove_help_button(self)   # 移除 Windows 标题栏问号按钮，防闪退
-        self.setWindowTitle("连接码接入")
+        self.setWindowTitle(tr("topbar.connect_code"))
         self.resize(380, 160)
         self._build_ui()
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
-        hint = QLabel("请输入采集节点端显示的连接码（6 位数字，如 482913）：")
+        hint = QLabel(tr("connect.hint_code"))
         hint.setWordWrap(True)
         hint.setStyleSheet(f"color: {theme.COLOR_NA};")
         root.addWidget(hint)
 
         row = QHBoxLayout()
         self.code_edit = QLineEdit()
-        self.code_edit.setPlaceholderText("6 位数字连接码")
+        self.code_edit.setPlaceholderText(tr("connect.code_placeholder"))
         row.addWidget(self.code_edit, 1)
         root.addLayout(row)
 
@@ -71,9 +72,8 @@ class ConnectCodeDialog(QDialog):
         match = resolve_connect_code(code, self.candidates)
         if not match:
             QMessageBox.warning(
-                self, "未匹配到节点",
-                "该连接码未匹配到本地发现的节点。\n"
-                "请确认采集节点与本机在同一网段，且 mDNS/UDP 发现正常。")
+                self, tr("connect.no_match"),
+                tr("connect.no_match_msg"))
             return
         if self.on_add:
             self.on_add(match["ip"], match["port"], match["token"],
@@ -92,19 +92,19 @@ class ClipboardDialog(QDialog):
         super().__init__(parent)
         self.on_add = on_add
         remove_help_button(self)   # 移除 Windows 标题栏问号按钮，防闪退
-        self.setWindowTitle("从剪贴板添加")
+        self.setWindowTitle(tr("topbar.clipboard"))
         self.resize(400, 150)
         self._build_ui()
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
-        hint = QLabel("粘贴节点端复制的连接串（pcmonitor://...）：")
+        hint = QLabel(tr("connect.hint_clipboard"))
         hint.setWordWrap(True)
         hint.setStyleSheet(f"color: {theme.COLOR_NA};")
         root.addWidget(hint)
 
         self.uri_edit = QLineEdit()
-        self.uri_edit.setPlaceholderText("pcmonitor://192.168.1.100:12345?token=...")
+        self.uri_edit.setPlaceholderText(tr("connect.uri_placeholder"))
         root.addWidget(self.uri_edit)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -116,8 +116,8 @@ class ClipboardDialog(QDialog):
         parsed = parse_connect_uri(self.uri_edit.text())
         if not parsed:
             QMessageBox.warning(
-                self, "解析失败",
-                "连接串格式不正确。\n应为 pcmonitor://<IP>:<端口>?token=<token>")
+                self, tr("connect.parse_fail"),
+                tr("connect.parse_fail_msg"))
             return
         if self.on_add:
             self.on_add(parsed["ip"], parsed["port"], parsed["token"],
@@ -145,7 +145,7 @@ class OnboardingDialog(QDialog):
         self.local_ip = local_ip
         self.on_add_all = on_add_all
         remove_help_button(self)   # 移除 Windows 标题栏问号按钮，防闪退
-        self.setWindowTitle("欢迎使用 · 节点引导")
+        self.setWindowTitle(tr("connect.onboard_title"))
         self.resize(460, 380)
         self._build_ui()
         self._populate()
@@ -153,7 +153,7 @@ class OnboardingDialog(QDialog):
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
 
-        title = QLabel("正在扫描局域网内的采集节点...")
+        title = QLabel(tr("connect.onboard_title"))
         title.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {theme.COLOR_TEXT};")
         root.addWidget(title)
 
@@ -161,11 +161,11 @@ class OnboardingDialog(QDialog):
         root.addWidget(self.list_widget, 1)
 
         row = QHBoxLayout()
-        btn_all = QPushButton("一键接入全部")
+        btn_all = QPushButton(tr("connect.onboard_add_all"))
         btn_all.clicked.connect(self._on_add_all)
         row.addWidget(btn_all)
         row.addStretch(1)
-        btn_skip = QPushButton("跳过")
+        btn_skip = QPushButton(tr("connect.onboard_skip"))
         btn_skip.clicked.connect(self.reject)
         row.addWidget(btn_skip)
         root.addLayout(row)
@@ -180,7 +180,7 @@ class OnboardingDialog(QDialog):
         """填充发现的节点列表。"""
         self.list_widget.clear()
         if not self.merged_hosts:
-            self.list_widget.addItem("（未发现局域网节点，可稍后手动添加或点\"跳过\"）")
+            self.list_widget.addItem(tr("connect.onboard_empty"))
             return
         items = sorted(self.merged_hosts.values(), key=self._sort_key)
         for info in items:

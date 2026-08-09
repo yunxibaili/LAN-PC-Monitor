@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-副机端本机仪表盘面板 —— 显示本机全部采集数据（见《技术文档.md》§6.2 / §20.8）。
+副机端本机仪表盘面板 —— 显示本机全部采集数据（见《README.md》§6.2 / §20.8）。
 
 - 窗口顶部：本机主机名、IP、运行时间、"本机模式"标识。
 - **连接信息区**：IP / 端口 / Token / 连接码 用只读输入框展示，可一键复制（§2.5）。
@@ -18,6 +18,7 @@ import os
 from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QPushButton,
                              QVBoxLayout, QWidget)
 
+from common.i18n import tr
 from common.utils import format_uptime, get_lan_ip
 from host.gui.detail_panel import DetailPanel
 
@@ -74,17 +75,17 @@ class LocalPanel(DetailPanel):
         v.setContentsMargins(0, 0, 0, 6)
         v.setSpacing(2)
 
-        title = QLabel("本机连接信息（可直接复制告知他人接入本机）")
+        title = QLabel(tr("conninfo.title"))
         title.setStyleSheet("color: #007acc; font-weight: bold; font-size: 12px;")
         v.addWidget(title)
 
         # 每行：名称 + 只读输入框 + 复制按钮
         self._info_edits = {}   # key → QLineEdit
         row_defs = [
-            ("IP", "ip"),
-            ("端口", "port"),
-            ("Token", "token"),
-            ("连接码", "code"),
+            (tr("conninfo.ip"), "ip"),
+            (tr("conninfo.port"), "port"),
+            (tr("conninfo.token"), "token"),
+            (tr("conninfo.code"), "code"),
         ]
         for label, key in row_defs:
             row = QHBoxLayout()
@@ -94,7 +95,7 @@ class LocalPanel(DetailPanel):
             edit.setReadOnly(True)
             edit.setText("—")
             edit.setCursorPosition(0)   # 光标在开头，便于全选
-            btn = QPushButton("复制")
+            btn = QPushButton(tr("conninfo.copy"))
             btn.setFixedWidth(48)
             btn.clicked.connect(lambda _=False, k=key: self._copy_field(k))
             row.addWidget(name)
@@ -105,11 +106,11 @@ class LocalPanel(DetailPanel):
 
         # 整串复制：IP:端口
         row2 = QHBoxLayout()
-        self._copy_all_btn = QPushButton("复制 IP:端口")
+        self._copy_all_btn = QPushButton(tr("conninfo.copy_addr"))
         self._copy_all_btn.clicked.connect(self._copy_address)
         row2.addWidget(self._copy_all_btn)
-        self._copy_uri_btn = QPushButton("复制连接串")
-        self._copy_uri_btn.setToolTip("复制 pcmonitor:// 连接串，可在其他电脑\"剪贴板添加\"")
+        self._copy_uri_btn = QPushButton(tr("conninfo.copy_uri"))
+        self._copy_uri_btn.setToolTip(tr("conninfo.copy_uri_tip"))
         self._copy_uri_btn.clicked.connect(self._copy_uri)
         row2.addWidget(self._copy_uri_btn)
         row2.addStretch(1)
@@ -171,9 +172,7 @@ class LocalPanel(DetailPanel):
         self._fallback_ip = ip if ip != "N/A" else self._fallback_ip
 
         self.header_label.setText(
-            f"本机: {frame.get('hostname', 'N/A')}  |  "
-            f"IP: {ip}  |  "
-            f"运行: {uptime}  |  本机模式")
+            tr("conninfo.header", frame.get("hostname", "N/A"), ip, uptime))
 
         # 刷新连接信息区（IP 可能随帧更新）
         self._update_connect_info()

@@ -38,7 +38,7 @@ def format_uptime(seconds: float) -> str:
 
 def get_lan_ip(preferred_iface: str = "") -> str:
     """
-    获取局域网 IP，过滤虚拟网卡（见《技术文档.md》§18.8）。
+    获取局域网 IP，过滤虚拟网卡（见《README.md》§18.8）。
 
     优先级：
     1. 指定 preferred_iface（网卡名）时，返回该网卡 IP；
@@ -97,7 +97,7 @@ def get_lan_ip(preferred_iface: str = "") -> str:
 
 
 def make_host_id(ip: str, port: int) -> str:
-    """根据 IP+端口生成 8 位 host_id（见《技术文档.md》§12.2）。"""
+    """根据 IP+端口生成 8 位 host_id（见《README.md》§12.2）。"""
     return hashlib.md5(f"{ip}:{port}".encode()).hexdigest()[:8]
 
 
@@ -155,7 +155,7 @@ def get_local_node_info() -> dict:
 
 def get_default_gateway() -> str:
     """
-    获取默认网关 IP（用于网关延迟测量，见《技术文档.md》§8.6）。
+    获取默认网关 IP（用于网关延迟测量，见《README.md》§8.6）。
 
     Windows 下优先用 route print 解析；失败时用 netifaces.gateways()。
     :return: 网关 IP 字符串；获取失败返回空串
@@ -212,7 +212,7 @@ def parse_ping_output(output: str) -> float:
 
 def ping_gateway(gateway: str = "", timeout: float = 3.0) -> float:
     """
-    对默认网关执行系统 ping，返回 RTT 毫秒（免提权，见《技术文档.md》§15.4）。
+    对默认网关执行系统 ping，返回 RTT 毫秒（免提权，见《README.md》§15.4）。
 
     :param gateway: 网关 IP；空串时自动探测
     :param timeout: 超时秒数

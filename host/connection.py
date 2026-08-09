@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-监控主机单节点连接器 —— NodeConnection（见《技术文档.md》§6.2 / §4.7）。
+监控主机单节点连接器 —— NodeConnection（见《README.md》§6.2 / §4.7）。
 
 - 独立连接线程：连接 → 鉴权 → 阻塞接收；断线独立指数退避重连（1s→60s）。
 - socket 独立超时 30s。
@@ -95,8 +95,8 @@ class NodeConnection(QObject):
                 send_frame(self._sock, {"type": "auth", "token": self.token})
                 auth = recv_frame(self._sock)
                 if not auth or not auth.get("ok"):
-                    reason = (auth or {}).get("reason", "未知错误")
-                    self._emit_status(f"鉴权失败 ({reason})")
+                    reason = (auth or {}).get("reason", "unknown error")
+                    self._emit_status("auth_failed")
                     self.log.warning("%s 鉴权失败: %s", self.alias, reason)
                     self._sock.close()
                     self._sock = None
@@ -106,7 +106,7 @@ class NodeConnection(QObject):
 
                 self._connected = True
                 backoff = 1
-                self._emit_status("已连接")
+                self._emit_status("connected")
                 self.log.info("%s 已连接", self.alias)
 
                 threading.Thread(target=self._ping_loop, daemon=True,
@@ -119,19 +119,19 @@ class NodeConnection(QObject):
                 self._connected = False
                 if self._stop_event.is_set():
                     break
-                self._emit_status("已断开，重连中")
+                self._emit_status("reconnecting")
                 self.log.info("%s 断开", self.alias)
 
             except socket.timeout:
                 self._connected = False
                 if self._stop_event.is_set():
                     break
-                self._emit_status(f"超时，{backoff}s重连")
+                self._emit_status("timeout")
             except Exception as e:
                 self._connected = False
                 if self._stop_event.is_set():
                     break
-                self._emit_status(f"离线，{backoff}s重连")
+                self._emit_status("offline")
                 self.log.warning("%s 连接失败: %s", self.alias, e)
             finally:
                 if self._sock:

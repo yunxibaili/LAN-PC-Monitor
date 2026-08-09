@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-进程采集器（见《技术文档.md》§8.7）。
+进程采集器（见《README.md》§8.7）。
 
 - 采集频率 2~3 秒，与 1 秒数据帧解耦（process_iter 较重）。
 - CPU Top3：psutil.process_iter 排序（需预热）。

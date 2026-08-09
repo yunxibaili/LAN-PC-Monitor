@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-开机自启动管理（见《技术文档.md》§13）。
+开机自启动管理（见《README.md》§13）。
 
 - 采集节点：schtasks 计划任务（需管理员，/RL HIGHEST 提权，pythonw.exe 静默）
 - 监控主机：注册表 HKCU Run 项（无需管理员）

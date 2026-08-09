@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-采集节点入口模块（见《技术文档.md》§5.1）。
+采集节点入口模块（见《README.md》§5.1）。
 
 启动流程：
 1. 解析命令行参数（--install-startup / --remove-startup / 普通启动）

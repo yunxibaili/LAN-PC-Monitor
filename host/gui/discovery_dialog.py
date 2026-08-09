@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-监控主机自动发现弹窗（见《技术文档.md》§6.5 / §18.9）。
+监控主机自动发现弹窗（见《README.md》§6.5 / §18.9）。
 
 - 显示当前在线节点（来自 UDP 心跳监听器），支持多选批量添加。
 - 已添加的节点（IP+端口已在配置）标记"已添加"并禁用勾选。
@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel,
                              QListWidget, QListWidgetItem, QPushButton,
                              QVBoxLayout)
 
+from common.i18n import tr
 from common.theme import COLOR_NA
 from common.utils import make_host_id
 
@@ -37,7 +38,7 @@ class DiscoveryDialog(QDialog):
         self.on_add_local = on_add_local
         from common.theme import remove_help_button
         remove_help_button(self)   # 移除 Windows 标题栏问号按钮，防闪退
-        self.setWindowTitle("自动扫描节点")
+        self.setWindowTitle(tr("topbar.scan"))
         self.resize(480, 420)
         self._build_ui()
         self._refresh()
@@ -45,7 +46,7 @@ class DiscoveryDialog(QDialog):
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
 
-        hint = QLabel("以下为节点端 UDP 心跳检测到的在线节点，可多选批量添加：")
+        hint = QLabel(tr("discovery.hint"))
         hint.setWordWrap(True)
         hint.setStyleSheet(f"color: {COLOR_NA};")
         root.addWidget(hint)
@@ -56,15 +57,15 @@ class DiscoveryDialog(QDialog):
 
         # 便捷入口：一键添加本机节点
         local_row = QHBoxLayout()
-        self.btn_local = QPushButton("一键添加本机节点")
-        self.btn_local.setToolTip("读取本机 node_config.json 自动填入 IP/端口/token")
+        self.btn_local = QPushButton(tr("discovery.add_local"))
+        self.btn_local.setToolTip(tr("discovery.add_local_tip"))
         self.btn_local.clicked.connect(self._on_add_local)
         local_row.addWidget(self.btn_local)
         local_row.addStretch(1)
         root.addLayout(local_row)
 
         bottom = QHBoxLayout()
-        refresh_btn = QPushButton("刷新")
+        refresh_btn = QPushButton(tr("discovery.refresh"))
         refresh_btn.clicked.connect(self._refresh)
         bottom.addWidget(refresh_btn, 0, Qt.AlignLeft)
 
@@ -89,8 +90,7 @@ class DiscoveryDialog(QDialog):
         else:
             hosts = self.listener or {}
         if not hosts:
-            self.list_widget.addItem("（未发现局域网节点，请确认被监控电脑已启动采集节点\n"
-                                     " 且 UDP 12346 已在防火墙放行；也可点下方按钮一键添加本机节点）")
+            self.list_widget.addItem(tr("discovery.empty"))
             return
         for ip, info in sorted(hosts.items()):
             hostname = info.get("hostname", ip)
@@ -106,7 +106,7 @@ class DiscoveryDialog(QDialog):
                 "node_id": node_id,
             })
             if node_id in self.existing:
-                item.setText(f"{text}  [已添加]")
+                item.setText(tr("discovery.added_tag", text))
                 item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
             self.list_widget.addItem(item)
 

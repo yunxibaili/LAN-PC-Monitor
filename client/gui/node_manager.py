@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-副机端节点管理器 —— 已接入节点摘要列表（见《技术文档.md》§6.3 / §20.8）。
+副机端节点管理器 —— 已接入节点摘要列表（见《README.md》§6.3 / §20.8）。
 
 - 显示已接入的所有节点列表（含本机）。
 - 每个节点项：别名（可编辑）、IP、连接状态（● 在线/离线/重连中）、RTT、评分摘要。
@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QPushButton, QVBoxLayout,
                              QWidget)
 
 from common import theme
+from common.i18n import tr
 from host.gui.node_list import LOCAL_NODE_ID, NodeListWidget
 
 log = logging.getLogger("client.gui.node_manager")
@@ -42,20 +43,20 @@ class NodeManager(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
 
-        title = QLabel("节点管理器")
+        title = QLabel(tr("node_mgr.title"))
         title.setObjectName("panel_title")
         root.addWidget(title)
 
         # 操作按钮
         btns = QHBoxLayout()
-        btn_add = QPushButton("添加节点")
+        btn_add = QPushButton(tr("topbar.add_node"))
         btn_add.clicked.connect(self.add_clicked.emit)
         btns.addWidget(btn_add)
-        btn_local = QPushButton("添加本机节点")
-        btn_local.setToolTip("一键接入本机采集节点（读取 node_config.json 自动填入）")
+        btn_local = QPushButton(tr("node_mgr.add_local"))
+        btn_local.setToolTip(tr("node_mgr.add_local_tip"))
         btn_local.clicked.connect(self.add_local_clicked.emit)
         btns.addWidget(btn_local)
-        btn_scan = QPushButton("扫描")
+        btn_scan = QPushButton(tr("topbar.scan"))
         btn_scan.clicked.connect(self.scan_clicked.emit)
         btns.addWidget(btn_scan)
         btns.addStretch(1)
@@ -63,20 +64,20 @@ class NodeManager(QWidget):
 
         # 便捷连接入口（§2.5）：连接码 / 剪贴板 / 导入 / 导出
         quick = QHBoxLayout()
-        btn_code = QPushButton("连接码")
-        btn_code.setToolTip("输入节点端显示的连接码快速接入（§23.2）")
+        btn_code = QPushButton(tr("topbar.connect_code"))
+        btn_code.setToolTip(tr("node_mgr.tip_conn_code"))
         btn_code.clicked.connect(self.connect_code_clicked.emit)
         quick.addWidget(btn_code)
-        btn_clip = QPushButton("剪贴板")
-        btn_clip.setToolTip("粘贴节点端复制的连接串（pcmonitor://）接入（§23.3）")
+        btn_clip = QPushButton(tr("topbar.clipboard"))
+        btn_clip.setToolTip(tr("node_mgr.tip_clipboard"))
         btn_clip.clicked.connect(self.clipboard_clicked.emit)
         quick.addWidget(btn_clip)
-        btn_imp = QPushButton("导入")
-        btn_imp.setToolTip("导入 .pcm 配置文件批量添加（§23.4）")
+        btn_imp = QPushButton(tr("topbar.import"))
+        btn_imp.setToolTip(tr("node_mgr.tip_import"))
         btn_imp.clicked.connect(self.import_clicked.emit)
         quick.addWidget(btn_imp)
-        btn_exp = QPushButton("导出")
-        btn_exp.setToolTip("导出当前节点列表为 .pcm 配置（§23.4）")
+        btn_exp = QPushButton(tr("topbar.export"))
+        btn_exp.setToolTip(tr("node_mgr.tip_export"))
         btn_exp.clicked.connect(self.export_clicked.emit)
         quick.addWidget(btn_exp)
         quick.addStretch(1)
@@ -92,7 +93,7 @@ class NodeManager(QWidget):
     def add_node(self, node_id: str, alias: str, ip: str,
                  is_local: bool = False):
         """添加节点列表项；本机节点别名加 [本机] 标签。"""
-        display_alias = f"{alias} [本机]" if is_local else alias
+        display_alias = tr("node_mgr.local_tag", alias) if is_local else alias
         return self.node_list.add_node(node_id, display_alias, ip, is_local)
 
     def remove_node(self, node_id: str):
@@ -108,4 +109,4 @@ class NodeManager(QWidget):
         """远程节点悬停提示：详情请在主机端查看（§6.1）。"""
         item = self.node_list._item_nodes.get(node_id)
         if item is not None:
-            item.setToolTip("该节点详情请在主机端查看")
+            item.setToolTip(tr("node.detail_in_host"))

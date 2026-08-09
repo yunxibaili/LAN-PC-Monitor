@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-监控主机入口模块（见《技术文档.md》§6）。
+监控主机入口模块（见《README.md》§6）。
 
 启动流程：
 1. 解析命令行参数（--install-startup / --remove-startup）
@@ -19,6 +19,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
+from common.i18n import ensure_language
 from common.logger import setup_logger
 from common.single_instance import ensure_single_instance, release_single_instance
 from common.startup import install_host_startup, remove_host_startup
@@ -55,6 +56,9 @@ def main() -> int:
 
     app = QApplication(sys.argv)
     app.setStyleSheet(DARK_QSS)
+
+    # 语言选择：首次启动弹窗，之后读配置
+    ensure_language(cfg, host_config.save_config, parent=app)
 
     window = HostMainWindow(cfg)
     window.show()

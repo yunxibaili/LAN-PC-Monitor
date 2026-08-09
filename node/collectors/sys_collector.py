@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-系统信息采集器（见《技术文档.md》§7 system 字段）。
+系统信息采集器（见《README.md》§7 system 字段）。
 
 提供 uptime 与本地 IP。与数据帧一起 1 秒刷新。
 """

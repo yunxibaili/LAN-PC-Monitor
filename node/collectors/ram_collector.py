@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-内存采集器（见《技术文档.md》§8.2）。
+内存采集器（见《README.md》§8.2）。
 
 psutil.virtual_memory + swap_memory，最稳定，无额外依赖。
 """

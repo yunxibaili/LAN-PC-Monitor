@@ -197,7 +197,7 @@ def test_connection():
         check("数据帧含完整字段", f0.get("hostname")
               and "cpu" in f0 and "gpu" in f0 and "ram" in f0)
         check("connected_clients 去重计数 = 1", f0.get("connected_clients") == 1)
-    check("主机状态含 已连接", any("已连接" in s for s in statuses))
+    check("主机状态含 已连接", any("connected" in s for s in statuses))
 
     # 等待 RTT
     deadline = time.time() + 6

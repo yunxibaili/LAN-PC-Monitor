@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-LibreHardwareMonitor (LHM) 温度/功耗读取（见《技术文档.md》§8.1 / §8.4）。
+LibreHardwareMonitor (LHM) 温度/功耗读取（见《README.md》§8.1 / §8.4）。
 
 - 通过 WMI 读取 LibreHardwareMonitor 的传感器（需管理员权限）。
 - 传感器类型过滤：Temperature / Power / Load 等。

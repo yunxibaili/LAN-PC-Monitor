@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-假数据生成器 —— 开发/测试用（见《技术文档.md》§16 node/fake_data.py）。
+假数据生成器 —— 开发/测试用（见《README.md》§16 node/fake_data.py）。
 
 字段结构对齐 §7 JSON Schema，供无真实硬件环境的链路测试。
 """

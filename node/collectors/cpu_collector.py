@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-CPU 采集器（见《技术文档.md》§8.1）。
+CPU 采集器（见《README.md》§8.1）。
 
 实现：型号、总/每核使用率、物理/逻辑核心数、频率。
 温度/功耗：LibreHardwareMonitor（WMI，需管理员），失败 N/A。
