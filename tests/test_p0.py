@@ -1,3 +1,26 @@
+
+# v5.0 兼容性：以下模块为 v4.0 节点残留测试提供 skip 标记
+class _V4Skip(Exception):
+    """v4.0-only test in v5.0; skip."""
+    pass
+
+
+def _v4_collectors_available():
+    """v5.0 已将 node.collectors 移入 common.collectors，行为兼容。"""
+    try:
+        from common.collectors import start_all, stop_all, create_collectors
+        return True
+    except Exception:
+        return False
+
+
+def _v4_node_available():
+    """v4.0 node.* 模块已删除，对应测试必须跳过。"""
+    try:
+        import node  # noqa: F401
+        return True
+    except Exception:
+        return False
 # -*- coding: utf-8 -*-
 """
 P0-P3 自检脚本 —— 无 GUI 窗口验证数据链路（v3.0 架构）。
@@ -100,8 +123,11 @@ def test_protocol():
 
 
 def test_auth():
-    """测试鉴权流程（采集节点 TCP Server）。"""
+    """测试鉴权流程（采集节点 TCP Server）。v5.0 已迁移至 agent.ws + REST，本函数 SKIP。"""
     print("\n--- 2. 节点鉴权流程 ---")
+    if not _v4_node_available():
+        print("  [SKIP] test_auth (v4.0 node.* 已迁移至 agent/host，对应测试见 test_api.py)")
+        return
     from node.tcp_server import MonitorTCPServer
     from common.protocol import send_frame, recv_frame
 
@@ -156,15 +182,18 @@ def test_auth():
 
 
 def test_connection():
-    """测试监控主机 NodeConnection 与节点数据流（完整链路，依赖 Qt 信号）。"""
+    """测试监控主机 NodeConnection 与节点数据流（完整链路，依赖 Qt 信号）。v5.0 已迁移至 WS。"""
     print("\n--- 3. 节点聚合 → 主机接收 完整链路 ---")
     if not HAS_QT:
         skip("未安装 PyQt5，跳过信号链路验证")
         return
+    if not _v4_node_available():
+        print("  [SKIP] test_connection (v4.0 node.tcp_server 已由 agent WS 服务端替代)")
+        return
 
     from node.tcp_server import MonitorTCPServer
     from node.fake_data import FakeDataGenerator
-    from node.aggregator import DataAggregator
+    from agent.aggregator import DataAggregator
     from host.connection import NodeConnection
 
     server = MonitorTCPServer(host="127.0.0.1", port=12346, token="tok123")
@@ -211,10 +240,13 @@ def test_connection():
 
 
 def test_graceful_shutdown():
-    """测试退出阶段无竞态日志噪声（本次修复重点）。"""
+    """测试退出阶段无竞态日志噪声（本次修复重点）。v5.0 已迁移至 agent WS。"""
     print("\n--- 5. 退出阶段无噪声 ---")
     if not HAS_QT:
         skip("未安装 PyQt5，跳过")
+        return
+    if not _v4_node_available():
+        print("  [SKIP] test_graceful_shutdown (v4.0 node.tcp_server 已由 agent WS 服务端替代)")
         return
 
     import io
@@ -231,8 +263,8 @@ def test_graceful_shutdown():
 
     from node.tcp_server import MonitorTCPServer
     from node.fake_data import FakeDataGenerator
-    from node.aggregator import DataAggregator
-    from node.discovery import DiscoveryBroadcaster
+    from agent.aggregator import DataAggregator
+    from agent.discovery import DiscoveryBroadcaster
     from host.connection import NodeConnection
 
     # 起一个完整采集节点（TCP + UDP 广播 + 聚合）
@@ -312,8 +344,13 @@ def test_client_config():
 
 
 def test_client_config_v4():
-    """测试副机端 client 配置持久化（v4.0 §13.2）。"""
+    """测试副机端 client 配置持久化（v4.0 §13.2）。v5.0 client 角色已取消，本函数 SKIP。"""
     print("\n--- 6b. 副机端配置持久化 ---")
+    try:
+        import client.config  # noqa: F401
+    except Exception:
+        print("  [SKIP] test_client_config_v4 (v4.0 client.* 已删除，配置改由 host_config.json 统管)")
+        return
     import tempfile
     tmp = tempfile.mkdtemp()
     import client.config as ccfg
@@ -356,7 +393,7 @@ def test_collectors():
         skip("未安装 psutil，跳过")
         return
 
-    from node.collectors import create_collectors
+    from common.collectors import create_collectors
     import json
 
     collectors = create_collectors({})
@@ -453,7 +490,7 @@ def test_quality_scorer():
 def test_fps_stats():
     """测试帧率统计 FrameStats（§11.6，P4）。"""
     print("\n--- 9b. 帧率统计 ---")
-    from node.collectors.fps_collector import FrameStats, FpsCollector
+    from common.collectors.fps_collector import FrameStats, FpsCollector
 
     s = FrameStats()
     check("空帧 → fps N/A", s.fps() == "N/A")
@@ -521,7 +558,7 @@ def test_discovery():
         skip("未安装 PyQt5，跳过")
         return
 
-    from node.discovery import DiscoveryListener
+    from host.discovery import DiscoveryListener
     import json
     import socket as _sock
 
@@ -585,10 +622,10 @@ def run_demo():
 
     from common.logger import setup_logger
     from common.theme import DARK_QSS
-    from node import config as node_config
-    from node.aggregator import DataAggregator
-    from node.collectors import create_collectors, start_all
-    from node.discovery import DiscoveryBroadcaster
+    from agent import config as node_config
+    from agent.aggregator import DataAggregator
+    from common.collectors import create_collectors, start_all
+    from agent.discovery import DiscoveryBroadcaster
     from node.tcp_server import MonitorTCPServer
     from host import config as host_config
     from host.gui.main_window import HostMainWindow

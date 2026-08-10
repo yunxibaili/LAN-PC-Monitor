@@ -40,6 +40,7 @@ logs/*.png
 node_config.json
 client_config.json
 host_config.json
+agent_config.json
 
 # OS
 .DS_Store

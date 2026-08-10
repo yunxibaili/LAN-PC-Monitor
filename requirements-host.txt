@@ -1,0 +1,4 @@
+-r requirements-common.txt
+PyQt5>=5.15.0
+websocket-client>=1.7
+requests>=2.31.0

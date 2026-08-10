@@ -1,6 +1,8 @@
 {
   "app.title.host": "PC 监控 - 主机端",
   "app.title.client": "PC 监控 - 副机端",
+  "app.title.agent": "PC 监控 - 副机端 Agent",
+  "node.local_mode": "本机模式",
   "topbar.connected": "已连接 {0} / {1} 节点",
   "topbar.overview": "概览",
   "topbar.add_node": "添加节点",
@@ -50,7 +52,7 @@
   "node_mgr.tip_export": "导出当前节点列表为 .pcm 配置（§23.4）",
   "node_mgr.local_tag": "{0} [本机]",
   "dialog.add_node": "手动添加节点",
-  "dialog.add_node_hint": "填被监控电脑（采集节点）的信息：\n· IP：该电脑的局域网 IP（如 192.168.1.100）\n· 端口：采集节点 TCP 端口，默认 12345\n· Token：采集节点 node_config.json 中的 token\n· 别名：任意名称，便于识别",
+  "dialog.add_node_hint": "填被监控电脑（副机端 Agent）的信息：\n· IP：该电脑的局域网 IP（如 192.168.1.100）\n· 端口：Agent HTTP/WebSocket 端口，默认 12345\n· Token：Agent agent_config.json 中的 token\n· 别名：任意名称，便于识别",
   "dialog.ip": "IP",
   "dialog.port": "端口",
   "dialog.token": "Token",

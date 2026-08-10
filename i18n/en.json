@@ -1,6 +1,8 @@
 {
   "app.title.host": "PC Monitor - Host",
   "app.title.client": "PC Monitor - Client",
+  "app.title.agent": "PC Monitor - Agent",
+  "node.local_mode": "Local Mode",
   "topbar.connected": "Connected {0} / {1} nodes",
   "topbar.overview": "Overview",
   "topbar.add_node": "Add Node",
@@ -50,7 +52,7 @@
   "node_mgr.tip_export": "Export node list to .pcm config",
   "node_mgr.local_tag": "{0} [Local]",
   "dialog.add_node": "Add Node Manually",
-  "dialog.add_node_hint": "Fill in the monitored computer (node) info:\n· IP: LAN IP (e.g. 192.168.1.100)\n· Port: node TCP port, default 12345\n· Token: token in node_config.json\n· Alias: any name for identification",
+  "dialog.add_node_hint": "Fill in the monitored computer (Agent) info:\n· IP: LAN IP (e.g. 192.168.1.100)\n· Port: Agent HTTP/WebSocket port, default 12345\n· Token: token in agent_config.json\n· Alias: any name for identification",
   "dialog.ip": "IP",
   "dialog.port": "Port",
   "dialog.token": "Token",

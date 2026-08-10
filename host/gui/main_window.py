@@ -18,14 +18,15 @@ from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMessageBox,
                              QPushButton, QSplitter, QStackedWidget,
                              QSystemTrayIcon, QVBoxLayout, QWidget)
 
+from common import theme
 from common.i18n import tr
 from common.quality import QualityScorer
 from common.utils import get_lan_ip, get_local_node_info, make_host_id
 from host import config as host_config
 from host.alerts import AlertEngine
 from host.connection import NodeConnection
-from node.discovery import DiscoveryListener, MdnsDiscovery
-from host.gui.detail_panel import DetailPanel
+from host.discovery import DiscoveryListener, MdnsDiscovery
+from common.gui.detail_panel import DetailPanel
 from host.gui.discovery_dialog import DiscoveryDialog
 from host.gui.node_list import LOCAL_NODE_ID, NodeListWidget
 from host.gui.overview_grid import OverviewGrid
@@ -419,7 +420,7 @@ class HostMainWindow(QMainWindow):
         return hosts
 
     def _on_add_local_node(self) -> None:
-        """一键接入本机采集节点（读取 node_config.json 自动填入）。"""
+        """一键接入本机采集节点（读取 agent_config.json 自动填入）。"""
         info = get_local_node_info()
         if not info or not info.get("token"):
             QMessageBox.warning(

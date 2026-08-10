@@ -1,119 +1,132 @@
-# 局域网多级硬件监控系统（LAN PC Monitor）
+# 局域网硬件监控系统（LAN PC Monitor）v5.0 · 前后端分离版
 
-基于 **TCP + UDP/mDNS 零配置发现** 的局域网硬件实时监控系统，Windows 10/11，Python 3.10+。
+基于 **HTTP/REST + WebSocket** 的局域网硬件实时监控系统，Windows 10/11，Python 3.10+。
 
-**v4.0 三角色架构**：采集节点（纯后台）＋ 副机端（本机仪表盘 + 节点管理）＋ 主机端（集中监控大屏）。
+**v5.0 双角色架构**：副机端 **Agent（服务端）** ＋ 主机端 **Host（纯前端）**。取消独立的采集节点（Node），采集能力与 API 服务整合到 Agent；Host 通过标准 WebSocket/REST 拉取或订阅数据，形成经典"前后端分离"模式。
 
-本文档为项目**唯一技术文档**，整合了系统技术规格、需求增强说明、多语言（i18n）、自定义红线告警四部分，后续新增需求请在本文件追加新章节。
+> **文档状态**：本文件为 v5.0 重构版**唯一技术文档**（设计基线），整合系统技术规格、前后端交互协议（WebSocket/REST API）、采集方案、多语言（i18n）、自定义红线告警五部分。
+>
+> **迁移说明**：当前代码库基线为 v4.0（采集节点/副机端/主机端三角色，TCP+UDP/mDNS）。本文件描述 v5.0 目标架构；重构按 §25 实施步骤逐模块迁移，迁移期间保持 `monitor_data` 数据帧格式不变。
 
 ## 架构
 
-| 角色 | 启动方式 | TCP | UDP | GUI | 说明 |
-|------|----------|-----|-----|-----|------|
-| **采集节点 Node** | `python -m node` | Server (12345) | 广播心跳 (12346) | 无 | 纯后台采集 + 推送，每台被监控电脑运行 |
-| **副机端 Client** | `python -m client` | Client (多连接) | 监听 | 本机仪表盘 | 本机全量数据 + 远程节点摘要管理 |
-| **主机端 Host** | `python -m host` | Client (多连接) | 监听 | 集中大屏 | 所有节点完整详情 + 本机节点 |
+| 角色 | 启动方式 | 网络角色 | GUI | 说明 |
+|------|----------|----------|-----|------|
+| **副机端 Agent** | `python -m agent` | HTTP/WebSocket **Server** (12345) | 可选：原生本机仪表盘（PyQt5） | 每台被监控电脑运行的后台服务：采集 + API + 推送 |
+| **主机端 Host** | `python -m host` | HTTP/WebSocket **Client**（多连接） | 集中监控大屏 | 连接所有 Agent，集中展示所有节点完整数据 |
 
-- 同一采集节点可被多台副机端/主机端同时连接（按 IP 去重计数）。
-- 副机端仅显示本机详情 + 其他节点摘要（IP/别名/状态/RTT/评分），详情归集到主机端。
+- 同一 Agent 可被多台 Host（及多台浏览器）同时连接订阅（WebSocket 多客户端广播）。
+- Agent 之间**不直接通信**；每台 Agent 只提供本机数据。
+- Host 通过配置的 Agent 地址列表（IP + 端口）分别连接，实时拉取/订阅。
 
 ## 功能特性
 
 - **实时采集**：CPU / 内存 / 磁盘（含队列深度）/ 网络速率 / 进程 TOP / 系统信息 / GPU（NVML 全指标，AMD pyadl 可选）/ 温度（LibreHardwareMonitor）
 - **网络质量**：RTT 实测 + 丢包测量 + 滑动平均评分（阈值变色）
-- **帧率采集**：PresentMon CLI 主方案（前台窗口动态绑定 + 1% Low），无工具时自动降级 DXGI 截帧（缺失自动提示）
-- **零配置连接（§2.5）**：mDNS 自动发现（`_pcmonitor._tcp.local.`）＋ UDP 广播互为备份；6 位纯数字连接码（二维码方案已省略）；`.pcm` 配置一键导入导出；`pcmonitor://` 剪贴板连接串；首屏引导一键接入
-- **运维能力**：鉴权（token）、自动重连（指数退避）、单实例互斥、端口占用检测、日志轮转、开机自启（节点服务化/两端注册表）、性能兜底（CPU 超限自动降级频率）
+- **帧率采集**：PresentMon CLI 主方案（前台窗口动态绑定 + 1% Low），无工具时自动降级 DXGI 截帧
+- **前后端分离**：WebSocket 每秒推送 `monitor_data` 帧（格式与 v4.0 完全一致，§8）；REST API 提供节点/配置/健康/扫描等辅助能力（§4.5）
+- **自动发现（可选）**：mDNS（`_pcmonitor._tcp.local.`）＋ UDP 广播互为备份，发现后经 HTTP API 补全详情；`pcmonitor://` 剪贴板连接串；`.pcm` 配置一键导入导出；首屏引导一键接入
+- **运维能力**：鉴权（token）、自动重连（指数退避）、单实例互斥、端口占用检测、日志轮转、开机自启（Agent 服务化 / Host 注册表）、性能兜底（CPU 超限自动降级频率）
 - **深色主题**：集中大屏自适应三模式（概览/详情/自动），阈值三级变色
+- **双端独立打包（强制）**：Agent 与 Host 独立构建、独立安装包、独立安装目录与配置，互不混装（§16.5）
+- **可扩展**：Host 保留 PyQt5 原生桌面 GUI，打包为独立 exe；Agent 为后台服务，可选原生本机仪表盘
 
 ## 快速开始
 
 ```bash
-pip install -r requirements.txt
+# 开发/调试：一键安装全部依赖
+pip install -r requirements-agent.txt -r requirements-host.txt
+# 或按角色安装（见 §16.1）：
+#   仅 Agent 端:  pip install -r requirements-agent.txt
+#   仅 Host 端:   pip install -r requirements-host.txt
 
-python -m node      # 1) 采集节点（被监控端，建议管理员运行）
-python -m client    # 2) 副机端（本机仪表盘，无需提权）
-python -m host      # 3) 主机端（集中监控大屏，无需提权）
+python -m agent            # 1) 副机端 Agent（被监控端，建议管理员运行；后台服务，无界面）
+python -m agent --gui      #    可选：后台服务 + 本机仪表盘 GUI（PyQt5）
+python -m host             # 2) 主机端 Host（集中监控大屏，无需提权）
 ```
 
-首次启动自动生成 `node_config.json`（含随机 token）；副机/主机端首屏引导自动发现节点，一键接入。
+首次启动自动生成 `agent_config.json`（含随机 token）；Host 首屏引导自动发现 Agent，一键接入。
 
-防火墙需放行 TCP 12345 与 UDP 12346（见下文第一篇 §17.2）。
+防火墙需放行 TCP 12345（HTTP/WebSocket）与 UDP 12346（自动发现，可选）。见 §16.2。
 
 ## 测试
 
 ```bash
-python tests/test_connect.py   # 双端连接端到端（鉴权/数据帧/RTT/丢包/断线清理） 17 项
-python tests/test_p0.py        # 协议/鉴权/链路/发现/评分器/采集器冒烟                 63 项
-python tests/test_p4.py        # 真实进程双端集成（重连/多客户端/mDNS/降级链路）       44 项
+python tests/test_p0.py        # 协议/鉴权/链路/发现/评分器/采集器冒烟
+python tests/test_connect.py   # 双端连接端到端（鉴权/数据帧/RTT/丢包/断线清理）
+python tests/test_p4.py        # 真实进程双端集成（重连/多客户端/mDNS/降级链路）
+python tests/test_api.py       # （新增）REST API 与 WebSocket 订阅端到端
 ```
 
-## 目录结构
+## 目录结构（v5.0）
 
 ```
-
 ├── common/                     # 协议/工具/日志/主题/评分/LHM/单实例/自启/连接码/连接对话框
-├── node/                       # 采集节点（config/tcp_server/discovery(UDP+mDNS)/aggregator/collectors*）
-├── client/                     # 副机端（connection/discovery/local_node/gui*）
-├── host/                       # 主机端（connection/discovery/local_node/self_monitor/gui*）
-├── tests/                      # test_connect / test_p0 / test_p4
+│   └── collectors/             # 采集器（v5.0 已从 node/collectors 迁移至此，Agent 与 Host 本机节点共用）
+│   └── self_monitor.py         # 性能兜底（v5.0 已从 host/ 提升至此，Agent 与 Host 共用）
+├── agent/                      # 副机端（config/aggregator/http_server/websocket_server/discovery/self_monitor/gui/main）
+│   └── gui/                    # 本机仪表盘（PyQt5，--gui 模式）
+├── host/                       # 主机端（connection/discovery/local_node/self_monitor/alerts/gui*）
+├── tests/                      # test_p0 / test_connect / test_p4 / test_api
 ├── tools/PresentMon.exe        # 帧率工具（需手动下载）
 └── logs/                       # 运行日志（自动创建）
 ```
 
-## 实现进度
+## 实施进度
 
-P0 骨架 → P1 基础采集 → P2 多节点管理（含副机端）→ P3 进阶采集（GPU/温度/质量评分）→ P4 帧率 + 性能兜底 → P5 便捷连接（mDNS / 连接码 / .pcm / 剪贴板 / 首屏引导）——**P0-P5 全部完成**。
+v4.0（三角色）P0-P5 全部完成，自检基线：`test_p0` **63/63**、`test_connect` **17/17**、`test_p4` **44/44**（当前环境缺 PyQt5，实际运行 test_p0 53 通过/3 跳过）。
 
-当前基线：`tests/test_p0.py` **63/63**、`tests/test_connect.py` **17/17**、`tests/test_p4.py` **44/44** 全部通过。详见下文第一篇 §21。
-
+v5.0（前后端分离）迁移阶段详见 §25：
+- **M1 ✅ 完成**：采集器从 `node/collectors/` 迁至 `common/collectors/`；`SelfMonitor` 从 `host/` 提升至 `common/self_monitor.py`；旧 `node/`、`client/` 目录删除。
+- **M2 ✅ 完成**：`agent/` 服务实现——`config`/`aggregator`（最新帧缓存）/`websocket_server`（/ws 鉴权+推送+loss_ping/pong）/`http_server`（/api/health|nodes|scan|config）/`discovery`/`main`（aiohttp 单应用）。新增 `tests/test_api.py` **14/14 通过**。
+- **M2b ✅ 完成**：Agent 本机仪表盘 `agent/gui/`（PyQt5，`--gui` 模式，Qt 主循环 + 后台服务 QThread）。
+- **M3 ✅ 完成**：Host 网络层 TCP→WebSocket——`host/connection.py` 重写为 `NodeConnection`（websocket-client，`ws://ip:port/ws?token=`），信号接口与 v4.0 完全兼容，GUI 零改动；RTT 经 loss_pong 精确测量；沙箱端到端 8/8 通过。
+- **M4 待办**：便捷连接/鉴权迁移。
+- **M5 待办**：打包与验收（**强制双端分离打包**，§16.5）。
 
 ---
 
 # 技术规格与设计文档
 
-# 第一篇 · 系统技术规格（v4.0）
+# 第一篇 · 系统技术规格（v5.0）
 
-
-> 版本：v4.0（三角色架构）　　日期：2026-08-08　　适用平台：Windows 10 / 11
+> 版本：v5.0（前后端分离）　日期：2026-08-10　适用平台：Windows 10 / 11
 >
-> **v4.0 重大变更**：相对 v3.0 集中式架构，新增**副机端**角色，构成"采集节点 + 副机端 + 主机端"三角色体系：
-> - **采集节点（Node · 纯后台）**：每台被监控电脑运行，TCP Server（12345）+ UDP 心跳广播（12346）+ mDNS 零配置发现，无界面。
-> - **副机端（Client · 本机仪表盘 + 节点管理）**：与采集节点同机部署，显示本机全部数据（本地采集器直供）+ 维护已接入节点摘要列表（IP/别名/状态/RTT/评分），**不显示远程节点详细数据**。
-> - **监控主机（Host · 集中监控大屏）**：主控电脑运行，同时连接所有采集节点，集中展示所有节点的完整详细数据 + 本机节点。
+> **v5.0 重大变更**：相对 v4.0 三角色架构，取消独立采集节点（Node），将采集能力与 API 服务整合到**副机端 Agent**，主机端 Host 改为**纯前端应用**，通信从 TCP 自定义协议 + UDP 广播升级为 **HTTP/REST + WebSocket**。
+> - **副机端 Agent（服务端）**：每台被监控电脑运行一个后台服务，① 1 秒采集本机硬件数据 ② 提供 WebSocket（实时推送）与 REST API（辅助功能）③ 可选原生本机仪表盘（PyQt5）④ 节点管理 API。
+> - **主机端 Host（纯前端）**：可部署于任意电脑，通过网络请求连接所有 Agent，集中展示数据；负责节点配置持久化、阈值变色、自定义红线告警。
 >
-> 数据最终汇聚到主机端集中显示；副机端仅显示本机详情 + 其他节点摘要，管理接入节点列表并转发给主机端。
->
-> **实现状态**：P0-P5 全部完成（骨架 / 基础采集 / 多节点管理 / 进阶采集 / 帧率与运维 / 便捷连接）。自检脚本 `tests/test_p0.py` 基线 **63/63 通过**；双端连接端到端 `tests/test_connect.py` **17/17 通过**。
+> **数据帧格式完全保留**：`monitor_data` JSON Schema 与 v4.0 §8 一致，便于逐步迁移、兼容既有解析端。
 
 ---
 
 ## 目录
 
 1. [项目概述](#1-项目概述)
-2. [节点角色与通信拓扑](#2-节点角色与通信拓扑)
+2. [角色与通信拓扑](#2-角色与通信拓扑)
 3. [系统架构设计](#3-系统架构设计)
-4. [网络通信协议设计](#4-网络通信协议设计)
-5. [采集节点设计（Node · 无界面后台）](#5-采集节点设计node--无界面后台)
-6. [副机端设计（Client · 本机仪表盘 + 节点管理）](#6-副机端设计client--本机仪表盘--节点管理)
-7. [监控主机设计（Host · 集中监控大屏）](#7-监控主机设计host--集中监控大屏)
-8. [数据格式规范（JSON Schema）](#8-数据格式规范json-schema)
-9. [各指标采集方案](#9-各指标采集方案)
-10. [网络质量评分算法](#10-网络质量评分算法)
-11. [帧率采集方案](#11-帧率采集方案)
-12. [日志系统](#12-日志系统)
-13. [单实例与配置持久化](#13-单实例与配置持久化)
-14. [开机自启动管理](#14-开机自启动管理)
-15. [异常处理与降级策略](#15-异常处理与降级策略)
-16. [性能兜底机制](#16-性能兜底机制)
-17. [依赖清单与部署](#17-依赖清单与部署)
-18. [目录结构规划](#18-目录结构规划)
-19. [启动脚本与批处理](#19-启动脚本与批处理)
-20. [UI 交互细节与边界场景补充](#20-ui-交互细节与边界场景补充)
-21. [附录：实现优先级](#21-附录实现优先级)
-22. [扩展方向](#22-扩展方向非必须锦上添花)
-23. [便捷连接技术实现（mDNS / 连接码 / .pcm / 剪贴板）](#23-便捷连接技术实现mdns--连接码--pcm--剪贴板)
-24. [快速开始与自检脚本](#24-快速开始与自检脚本)
+4. [通信协议设计（WebSocket + REST）](#4-通信协议设计websocket--rest)
+5. [副机端设计（Agent · 服务端）](#5-副机端设计agent--服务端)
+6. [主机端设计（Host · 纯前端）](#6-主机端设计host--纯前端)
+7. [数据格式规范（JSON Schema）](#7-数据格式规范json-schema)
+8. [各指标采集方案](#8-各指标采集方案)
+9. [网络质量评分算法](#9-网络质量评分算法)
+10. [帧率采集方案](#10-帧率采集方案)
+11. [日志系统](#11-日志系统)
+12. [单实例与配置持久化](#12-单实例与配置持久化)
+13. [开机自启动管理](#13-开机自启动管理)
+14. [异常处理与降级策略](#14-异常处理与降级策略)
+15. [性能兜底机制](#15-性能兜底机制)
+16. [依赖清单与部署](#16-依赖清单与部署)
+17. [目录结构规划](#17-目录结构规划)
+18. [启动脚本与批处理](#18-启动脚本与批处理)
+19. [UI 交互细节与边界场景补充](#19-ui-交互细节与边界场景补充)
+20. [REST API 与 WebSocket 参考](#20-rest-api-与-websocket-参考)
+21. [功能实现的理论效果](#21-功能实现的理论效果)
+22. [扩展方向](#22-扩展方向)
+23. [文档维护约定](#23-文档维护约定)
+24. [自检脚本与验收](#24-自检脚本与验收)
+25. [v5.0 迁移实施步骤](#25-v50-迁移实施步骤)
 
 ---
 
@@ -121,353 +134,280 @@ P0 骨架 → P1 基础采集 → P2 多节点管理（含副机端）→ P3 进
 
 ### 1.1 项目目标
 
-构建一套运行于局域网（LAN）内的**多级硬件监控系统**，采用 **三角色** 架构：
-- **采集节点（Node，被监控端，无界面）**：运行在每台被监控电脑上的**纯后台服务**。每 1 秒采集本机硬件数据，作为 TCP Server（端口 12345）等待连接并推送数据；同时通过 UDP 广播心跳包（端口 12346）以便自动发现。**无任何 GUI 窗口**，纯后台运行。
-- **副机端（Client，本机仪表盘 + 轻量管理）**：与被监控电脑上的采集节点**同机部署**。提供两个功能：① **本机仪表盘 GUI**——实时显示本机全部采集数据（本地采集器直供，不经过网络）；② **节点管理器 GUI**——"添加节点"、"自动扫描"功能，将其他采集节点接入系统，并显示已接入节点的摘要列表（IP、别名、状态、RTT、评分）。**副机端不显示其他节点的详细数据**（详情由主机端集中展示），仅维护节点列表并转发给主机端。
-- **集中监控主机（Host，大屏显示端）**：运行在主控电脑上，作为 TCP Client **同时连接所有采集节点**，在主机屏幕上集中展示所有节点的实时详细数据。
+构建一套运行于局域网（LAN）内的**硬件监控系统**，采用**前后端分离**架构：
+
+- **副机端 Agent（服务端）**：运行在每台被监控电脑上的**后台服务**。每 1 秒采集本机硬件数据，作为 HTTP/WebSocket 服务端（端口 12345）等待连接；通过 WebSocket 向所有已订阅主机端**推送**实时数据；通过 REST API 提供节点/配置/健康/扫描等辅助能力。**可选**提供原生本机仪表盘（PyQt5）。
+- **主机端 Host（纯前端）**：运行在主控电脑上的**原生桌面应用**（PyQt5，打包为独立 exe）。通过 WebSocket **订阅**所有 Agent，集中展示所有节点的实时详细数据；管理 Agent 地址列表、阈值变色、自定义红线告警。
 
 ### 1.2 设计原则
 
 | 原则 | 说明 |
 |------|------|
-| **分级监控** | 采集节点采集推送 → 副机端本地查看 + 节点管理 → 主机端集中大屏，三级分工明确 |
-| **集中显示** | 所有节点详细数据最终汇聚到主机端一块大屏展示；副机端仅本机详情 + 节点摘要 |
-| **角色反转** | 采集节点 = TCP Server，显示端（副机/主机）= TCP Client 主动连接（支持多客户端同时连接） |
-| **本机统一** | 副机端/主机端本地采集器产出"本机数据"，与远程节点同构显示，不经过网络 |
-| **多节点扩展** | 每台显示端可同时管理多台节点，单台断开不影响其他，离线保留并自动重连 |
-| **局域网优先** | 1 秒高频采集，RTT 精度 < 1ms |
+| **前后端分离** | Agent 只提供服务（采集 + API），Host 只做展示与交互（纯前端） |
+| **标准协议** | 放弃 TCP 自定义帧 + UDP 广播主通道，改用 HTTP/REST + WebSocket |
+| **多主机扩展** | 同一 Agent 可被多台 Host / 浏览器同时订阅（WebSocket 多客户端广播） |
+| **数据帧兼容** | `monitor_data` JSON Schema 与 v4.0 完全一致，迁移不断档 |
+| **节点自治** | 每台 Agent 独立运行，互不通信；单台离线不影响其他 |
+| **局域网优先** | 1 秒高频推送，RTT 精度 < 1ms（WebSocket PING/PONG） |
 | **健壮性** | 任意指标/连接失败均降级 N/A 或标记离线，不影响整体 |
-| **异步非阻塞** | 采集、推送、GUI 刷新分离线程，Qt 信号槽跨线程传递 |
+| **异步非阻塞** | 采集、推送、GUI 刷新分离（Agent 用 asyncio，Host 用信号槽） |
 | **运维友好** | 单实例检测、日志轮转、开机自启动、配置持久化 |
 | **详细中文注释** | 全部代码含中文注释，方便二次修改 |
 
 ### 1.3 典型场景
 
-- 机房多台服务器部署采集节点（后台静默运行），运维主机集中监控所有节点；运维人员自己的电脑跑副机端看本机 + 快速接入管理。
-- 游戏主机部署节点后台采集，主控大屏集中显示各主机 CPU/GPU/FPS；选手机可开副机端看自己机器状态。
-- 多人电竞队：每台选手机部署节点，教练主机同屏概览所有机器状态，副机端供选手自查。
-- 多显示端场景：同一节点可同时被多台副机端和主机端连接。
+- 机房多台服务器运行 Agent 后台服务（静默），运维主机集中监控所有节点；Agent 可选浏览器仪表盘供本机快速查看。
+- 游戏主机运行 Agent，主控大屏集中显示各主机 CPU/GPU/FPS；选手可开 Agent 本机仪表盘自查。
+- 多主机同时连接同一 Agent（如教练屏 + 运维屏 + 浏览器），互不影响。
+- Host 端支持手动添加 Agent 地址，或通过 mDNS/连接码/.pcm/剪贴板便捷接入（§2.4）。
 
 ---
 
-## 2. 节点角色与通信拓扑
+## 2. 角色与通信拓扑
 
-### 2.1 节点角色
+### 2.1 角色
 
-| 角色 | 程序 | TCP 角色 | UDP | GUI | 说明 |
-|------|------|----------|-----|-----|------|
-| **采集节点 Node** | `node/`（`python -m node`） | **Server (12345)** | 广播心跳 (12346) | **无界面** | 纯后台采集 + 推送 |
-| **副机端 Client** | `client/`（`python -m client`） | **Client (多连接)** | 监听心跳 (12346) | 本机仪表盘 + 节点管理 | 显示本机数据 + 管理接入节点 |
-| **监控主机 Host** | `host/`（`python -m host`） | **Client (多连接)** | 监听心跳 (12346) | 集中监控大屏 | 显示所有节点详细数据 |
+| 角色 | 程序 | 网络角色 | GUI | 说明 |
+|------|------|----------|-----|------|
+| **副机端 Agent** | `agent/`（`python -m agent`） | HTTP/WebSocket **Server (12345)** | 可选（本机仪表盘） | 采集 + 推送 + REST API + 节点管理 |
+| **主机端 Host** | `host/`（`python -m host`） | HTTP/WebSocket **Client (多连接)** | 集中监控大屏 | 订阅所有 Agent，集中展示 |
 
 ### 2.2 通信拓扑
 
 ```
-采集节点 A (纯后台)  ──TCP──┐
-采集节点 B (纯后台)  ──TCP──┼──→ 副机端 A (本机仪表盘 + 节点管理)
-采集节点 C (纯后台)  ──TCP──┘     │  显示本机数据 + 管理接入节点
-                                  │
-采集节点 A (纯后台)  ──TCP──┐     │
-采集节点 B (纯后台)  ──TCP──┼──→ 主机端 (集中监控大屏)
-采集节点 C (纯后台)  ──TCP──┘     显示所有节点详细数据
+┌───────────────────────┐
+│  副机端 A (Agent)      │
+│  采集器 + WebSocket    │──┐
+│  + REST API           │  │
+│  本机仪表盘(可选)       │  │
+└───────────────────────┘  │
+                           ├── WebSocket (1s 推送) ──► 主机端 Host（订阅/展示）
+┌───────────────────────┐  │   REST（健康/配置/扫描）
+│  副机端 B (Agent)      │  │
+│  采集器 + WebSocket    │──┘
+│  + REST API           │
+│  本机仪表盘(可选)       │
+└───────────────────────┘
 
-本机数据 (副机端 A) ──本地采集器──→ 副机端 A 的仪表盘（不经过网络）
-本机数据 (主机端)   ──本地采集器──→ 主机端的"本机"节点（不经过网络）
+本机节点 (Host) ──本地采集器──→ Host 的"本机"卡片（可选，默认关闭，不经网络）
 ```
 
-- 每个采集节点独立采集、独立推送，可**同时服务多个客户端**（副机端和主机端可同时连接同一节点）。
-- **副机端**仅显示本机详情 + 其他节点的**摘要列表**（IP/别名/状态/RTT/评分），不显示远程详细数据。
-- **主机端**显示所有节点的**完整详情**（CPU/GPU/内存/磁盘/网络/帧率/进程）+ 本机节点。
-- 副机端和主机端的节点列表**各自独立持久化**。
+- 每个 Agent 独立采集、独立服务，可**同时服务多个客户端**（WebSocket 多订阅 + REST 多请求）。
+- Agent 之间不直接通信；Host 通过配置的 Agent 地址列表分别连接。
+- Host 的节点列表**本地持久化**（`host_config.json`），重启自动重连。
 
 ### 2.3 端口规划
 
 | 用途 | 协议 | 默认端口 | 说明 |
 |------|------|----------|------|
-| TCP 数据传输 | TCP | 12345 | 节点监听，副机/主机连接（每节点一个连接） |
-| UDP 自动发现 | UDP | 12346 | 节点广播心跳，副机/主机监听 |
+| HTTP + WebSocket | TCP | 12345 | Agent 监听（同一端口提供 `/api/*` 与 `/ws`） |
+| UDP 自动发现（可选） | UDP | 12346 | Agent 广播心跳，Host 监听 |
 
-> 端口需在 Windows 防火墙放行（专用网络）。详见 §17.2。
+> 端口需在 Windows 防火墙放行（专用网络）。详见 §16.2。
 
-### 2.4 版本演进对照
+### 2.4 便捷连接方式（保留）
 
-| v3.0（集中式） | v4.0（三角色） | 变化说明 |
-|----------------|----------------|----------|
-| 采集节点 `node/`（`python -m node`） | **采集节点** `node/`（`python -m node`） | 不变：纯后台 TCP Server + UDP 广播 |
-| 监控主机 `host/`（`python -m host`） | **监控主机** `host/`（`python -m host`） | 不变：集中显示所有节点详情 + 本机节点 |
-| ——（无副机角色） | **副机端** `client/`（`python -m client`） | 新增：本机仪表盘 + 节点管理器（仅摘要），v2.0 副机端的轻量回归 |
-| `host_config.json` | `host_config.json` + **`client_config.json`** | 副机端节点列表/窗口持久化到 client_config.json |
-| —— | **`node_config.json`（节点配置）** | token/端口/采集器开关（沿用） |
+沿用 v4.0 的零配置接入能力，但**接入后通过 HTTP API 获取详细信息**：
 
-> 关键点：TCP 数据流方向不变（采集节点 → 显示端）；RTT 仍由各显示端（副机/主机）独立发 ping 测量；副机端只做本机详情 + 节点摘要管理，详细数据集中到主机端。
+| 方式 | 说明 |
+|------|------|
+| **mDNS 自动发现** | Agent 注册 `_pcmonitor._tcp.local.`，Host 自动发现并填入列表（§20.2） |
+| **UDP 广播扫描** | Agent 每 2 秒广播 `agent_heartbeat`，Host 监听扫描（兼容层，§20.3） |
+| **连接码** | 6 位纯数字短码（`ip:port:token` 摘要），Host 输入后经发现候选匹配（§20.4） |
+| **.pcm 配置** | JSON 配置一键导入导出（§20.5） |
+| **剪贴板** | `pcmonitor://<ip>:<port>?token=...` 连接串（§20.6） |
+| **手动添加** | 输入 Agent 的 IP + 端口 + token（兜底） |
 
-### 2.5 连接方式优化（零配置 + 一键接入）
-
-为降低用户接入门槛，在原有"手动添加 + UDP 自动扫描"基础上，新增以下便捷连接方式。**所有方式并行共存**，用户可按需选择；各方式在 GUI 中对应不同入口按钮/菜单，统一管理到"添加节点"功能区域。
-
-#### 2.5.1 零配置自动发现（mDNS / Bonjour）
-
-- **节点端**：采集节点启动后，通过 **mDNS（Multicast DNS）** 在局域网内广播自身服务信息，无需手动配置 IP 或端口。
-- **主机端/副机端**：自动发现局域网内所有运行中的采集节点，无需用户操作，节点列表自动填充。
-- **技术实现**：Python 库 **`zeroconf`**（跨平台 mDNS 实现），节点注册 `_pcmonitor._tcp.local.` 服务，服务信息包含节点别名、IP、端口、token 摘要（技术细节见 §23.1）。
-- **备选降级**：若环境不支持 mDNS（如部分老旧网络），自动回退到 UDP 广播心跳（§4.6），**两种机制并行运行**，互为备份。
-- **用户感知**：副机/主机启动后，几秒内自动在节点列表中显示所有在线节点，状态为"待连接"或"已连接"，用户仅需点击"接入"按钮即可完成连接。
-
-#### 2.5.2 连接码接入
-
-- **连接码**：节点端每次启动生成一个 **6 位纯数字短码**（如 `482913`，便于输入），由 `ip:port:token` 的 SHA-256 摘要取数字部分前 6 位生成，不含明文地址，显示在节点端控制台窗口或本地通知中。用户在主机/副机端输入该连接码即可自动解析并接入节点（格式见 §23.2）。
-- **二维码（未实现）**：早期规划用 `qrcode` 库生成二维码扫码接入，用户最终选择纯数字连接码，故不引入 qrcode/opencv 依赖。
-- **使用场景**：适用于用户知道节点所在机器但不想输入 IP 的场景，或同一局域网内有多个节点需要区分。
-
-#### 2.5.3 一键导出/导入节点配置
-
-- **导出**：副机/主机端可将当前已配置的节点列表导出为 **`.pcm` 配置文件**，格式为 JSON 文本，内容包含节点别名、IP、端口、token（已加密，格式见 §23.4）。
-- **导入**：将配置文件拖入副机/主机窗口，或通过文件选择器选中即可**一键批量添加**所有节点。
-- **跨端同步**：在主机端导出的配置文件可直接在副机端导入，反之亦然，便于多端配置同步。
-
-#### 2.5.4 剪贴板快速添加
-
-用户在节点端复制一行连接字符串（如 `pcmonitor://192.168.1.100:12345?token=abc&alias=主机A`），在副机/主机端点击"从剪贴板添加"按钮即可自动解析并连接。
-
-- 协议格式与 §4 一致，仅作为便捷入口，**不引入新协议**（解析规则见 §23.5）。
-
-#### 2.5.5 首屏引导 + 默认节点推荐
-
-- **首次启动引导**：副机/主机端首次运行时，自动弹出引导界面，提示"正在扫描局域网内的采集节点..."，并展示扫描进度。
-- **默认节点推荐**：若扫描到多个节点，按信号强度（**IP 段匹配度**）排序，优先推荐同一网段的节点。
-- **一键全选**：提供"一键接入全部"按钮，批量接入所有扫描到的节点。
-
-#### 2.5.6 连接方式优先级与降级链路
-
-| 优先级 | 方式 | 说明 |
-|--------|------|------|
-| 1（最便捷） | 零配置 mDNS 自动发现 | 节点列表自动填充，用户点击即可接入 |
-| 2 | UDP 广播自动扫描 | 现有方式，点击"扫描"按钮弹出列表 |
-| 3 | 连接码 | 输入节点端显示的 6 位数字短码即可添加 |
-| 4 | 导入 .pcm 配置文件 | 批量添加，适合多端配置同步 |
-| 5 | 从剪贴板添加 | 复制连接串即可 |
-| 6（传统） | 手动输入 IP+端口+token | 兜底方案，兼容所有场景 |
-
-**用户流程对比（优化前后）**：
-
-| 场景 | 优化前 | 优化后 |
-|------|--------|--------|
-| 首次添加节点 | 手动输入 IP、端口、token | 打开副机/主机 → 自动发现节点 → 点击"接入" |
-| 多节点批量添加 | 逐个手动添加 | 一键全选 → 一键接入全部 |
-| 跨端配置同步 | 无 | 导出 .pcm 文件 → 在另一台副机导入 |
-| 输入 IP 困难场景 | 必须输入 IP | 输入连接码 / 从剪贴板粘贴连接串 |
-| 节点 IP 变化 | 手动更新 | mDNS 自动更新，节点列表实时刷新 |
-
-> 总结：连接方式优化后，用户体验从"手动输入 IP 才能连接"升级为"开机自动发现，一键接入"，大幅降低使用门槛；同时保留传统手动添加方式作为兜底，确保兼容性。
+> 自动发现仅用于便捷添加入口；连接建立后一律走 HTTP/WebSocket 标准协议。
 
 ---
 
 ## 3. 系统架构设计
 
-### 3.1 采集节点架构（Node · 无界面）
-
-```
-┌───────────────────────────────────────────────┐
-│                  采集节点（Node · 纯后台）          │
-│   ┌─────────────────────────────────────────┐  │
-│   │            采集层（线程池）                 │  │
-│   │  CPU │ GPU │ 内存 │ 磁盘 │ 网络 │ 帧率 │ 进程 │ 系统 │
-│   │  (各采集器独立线程，异常隔离，线程安全读取)      │  │
-│   └───────────────┬─────────────────────────┘  │
-│                   │ get() 1s 节拍               │
-│   ┌───────────────▼─────────────────────────┐  │
-│   │        数据聚合器 Aggregator（1 秒）        │  │
-│   │   组装 monitor_data 帧 → broadcast 到所有   │  │
-│   │           已鉴权客户端（副机+主机）           │  │
-│   └───────┬──────────────────────┬───────────┘  │
-│   ┌───────▼──────────┐   ┌──────▼────────────┐  │
-│   │ TCP Server        │   │ UDP 广播器 (12346) │  │
-│   │ (0.0.0.0:12345)   │   │ 每 2 秒心跳广播      │  │
-│   │ 多客户端连接+鉴权   │   │                   │  │
-│   │ + ping/pong 应答   │   │                   │  │
-│   └───────────────────┘   └──────────────────┘  │
-│  无 GUI · 无控制台窗口（或可关闭）· 单实例互斥 · 日志 node.log │
-└───────────────────────────────────────────────┘
-```
-
-### 3.2 副机端架构（Client · 本机仪表盘 + 节点管理）
+### 3.1 副机端 Agent 架构（服务端 · 异步）
 
 ```
 ┌────────────────────────────────────────────────────┐
-│      副机端（Client · 本机仪表盘 + 节点管理）            │
-│  ┌─────────────────────┐    ┌─────────────────────┐ │
-│  │ 本地采集层（线程池）    │    │ 远程连接管理器          │ │
-│  │ CPU/GPU/内存/磁盘/    │    │ dict[node_id]→NodeConnection │
-│  │ 网络/帧率/进程/系统    │    │ 每节点独立线程+指数退避重连 │
-│  │ (与节点采集器同代码)    │    │ TCP Client 连各节点      │ │
-│  └─────────┬───────────┘    └──────────┬───────────┘ │
-│            │ 本机帧（内部管道）           │ data_received │
-│            │ (frame, LOCAL_NODE_ID)     │ (frame, node_id) │
-│  ┌─────────▼───────────────────────────▼───────────┐ │
-│  │      GUI 主线程（PyQt5 信号槽汇聚）                 │ │
-│  │  本机仪表盘：显示本机全部数据分区                    │ │
-│  │  节点管理器：已接入节点摘要列表（状态/RTT/评分）       │ │
-│  │  （不显示远程节点详细数据）                          │ │
-│  └─────────────────────────────────────────────────┘ │
-│  UDP 心跳监听 (12346) → 在线节点列表 → 自动扫描弹窗（多选）│
+│               副机端 Agent（服务端 · 异步）            │
+│  ┌──────────────────────────────────────────────┐  │
+│  │             采集层（线程池）                     │  │
+│  │  CPU │ GPU │ 内存 │ 磁盘 │ 网络 │ 帧率 │ 进程 │ 系统 │
+│  │  (各采集器独立线程，异常隔离，线程安全读取)         │  │
+│  └───────────────────┬──────────────────────────┘  │
+│                      │ get() 1s 节拍                │
+│  ┌───────────────────▼──────────────────────────┐  │
+│  │        数据聚合器 Aggregator（1 秒）            │  │
+│  │   组装 monitor_data 帧 → 存入最新帧缓存          │  │
+│  └───────┬─────────────────────┬────────────────┘  │
+│  ┌───────▼────────────┐  ┌─────▼─────────────────┐ │
+│  │ WebSocket Server    │  │ HTTP REST Server      │ │
+│  │ ws://0.0.0.0:12345/ws│  │ http://0.0.0.0:12345 │ │
+│  │ 多客户端订阅 · 每秒推送 │  │ /api/nodes /config   │ │
+│  │ PING/PONG · 鉴权      │  │ /scan /health        │ │
+│  └─────────────────────┘  └──────────────────────┘ │
+│  ┌─────────────────────┐  ┌──────────────────────┐ │
+│  │ 本机仪表盘（可选）     │  │ 自动发现（mDNS/UDP）   │ │
+│  │ 本机仪表盘（可选，PyQt5） │  │ 广播 agent_heartbeat │ │
+│  └─────────────────────┘  └──────────────────────┘ │
+│  单实例互斥 · 日志 agent.log · 端口占用检测           │
 └────────────────────────────────────────────────────┘
 ```
 
-### 3.3 监控主机架构（Host · 集中监控大屏）
+### 3.2 主机端 Host 架构（纯前端）
 
 ```
 ┌────────────────────────────────────────────────────┐
-│      监控主机（Host · 集中监控大屏）                    │
+│           主机端 Host（纯前端 · 集中监控大屏）          │
 │  ┌─────────────────────┐    ┌─────────────────────┐ │
-│  │ 本地采集层（线程池）    │    │ 远程连接管理器          │ │
-│  │ (同节点采集器)         │    │ dict[node_id]→NodeConnection │
-│  └─────────┬───────────┘    │ 每节点独立线程+指数退避重连 │
+│  │ 本地采集层（可选本机节点）│    │ 远程连接管理器          │ │
+│  │ (复用 agent/collectors)│   │ dict[node_id]→AgentConnection │
+│  └─────────┬───────────┘    │ 每节点独立 WS 连接+重连  │
 │            │ 本机帧          └──────────┬───────────┘ │
-│            │ (frame, LOCAL_NODE_ID)     │ data_received│
 │  ┌─────────▼───────────────────────────▼───────────┐ │
-│  │      GUI 主线程（PyQt5 信号槽汇聚）                 │ │
-│  │  左侧节点列表（别名/IP/状态/RTT/评分）               │ │
-│  │  右侧详情面板（点击节点显示该节点全部详细指标）         │ │
-│  │  概览视图（手动切换 · 网格卡片）                     │ │
+│  │      GUI 主线程（PyQt5 信号槽）                     │ │
+│  │  左侧节点列表（别名/IP/状态/RTT/评分）              │ │
+│  │  右侧详情面板（点击节点显示全部详细指标）             │ │
+│  │  概览视图（手动切换 · 网格卡片）                    │ │
+│  │  红线告警引擎（状态栏+日志+托盘弹窗）               │ │
 │  └─────────────────────────────────────────────────┘ │
-│  UDP 心跳监听 (12346) → 在线节点列表 → 自动扫描弹窗（多选）│
+│  mDNS/UDP 监听 → 在线 Agent 列表 → 自动扫描弹窗（多选）  │
 └────────────────────────────────────────────────────┘
 ```
 
-### 3.4 线程模型
+### 3.3 线程/协程模型
 
-| 线程 | 所属 | 职责 |
+| 单元 | 所属 | 职责 |
 |------|------|------|
-| 采集线程 ×N | 节点 / 副机本机 / 主机本机 | 各采集器独立线程，定时采集写共享数据 |
-| 聚合线程 | 节点 / 副机本机 / 主机本机 | 1 秒组装帧；节点 broadcast，本机端直接 emit |
-| TCP Server 接收线程 | 节点 | 接受客户端连接，每连接派生处理线程 |
-| TCP Server 处理线程 ×M | 节点 | 鉴权 + 回 pong/loss_pong + broadcast 推送 |
-| UDP 广播线程 | 节点 | 每 2 秒广播心跳 |
-| 连接线程 ×N | 副机 / 主机 | 每节点一个，连接 + 鉴权 + 接收 + 重连 |
-| ping 线程 ×N | 副机 / 主机 | 每节点一个，1 秒发 ping / 5 秒发 loss_ping |
-| UDP 监听线程 | 副机 / 主机 | 接收心跳 + 10 秒超时清理 |
-| GUI 主线程 | 副机 / 主机 | Qt 事件循环，信号槽更新界面 |
+| 采集线程 ×N | Agent / Host 本机 | 各采集器独立线程，定时采集写共享数据 |
+| 聚合线程 | Agent | 1 秒组装帧，写入最新帧缓存，触发 WS 广播 |
+| asyncio 事件循环 | Agent | WebSocket Server（每连接协程）+ REST Server |
+| WS 广播协程 | Agent | 每秒向所有已订阅客户端推送 `monitor_data` |
+| 连接线程 ×N | Host | 每 Agent 一个，WS 连接 + 鉴权 + 接收 + 重连 |
+| ping 协程/线程 ×N | Host | 每 Agent 一个，WS PING 帧测 RTT |
+| 发现监听线程 | Agent / Host | 广播 / 监听心跳 |
+| GUI 主线程 | Host | Qt 事件循环，信号槽更新界面 |
 
 ---
 
-## 4. 网络通信协议设计
+## 4. 通信协议设计（WebSocket + REST）
 
-### 4.1 TCP 帧格式（解决粘包）
+### 4.1 总览
 
-4 字节大端长度前缀 + UTF-8 JSON 载荷：
+放弃 TCP 长度前缀帧，改用**标准 WebSocket 消息**（文本 JSON）与 **HTTP JSON**：
 
-```
-┌────────────────┬─────────────────────────────┐
-│ 帧长度 (4 bytes, 大端) │       JSON 载荷 (UTF-8, length 字节)   │
-│ uint32, 不含自身 4 字节 │ {"type": "monitor_data", ...}         │
-└────────────────┴─────────────────────────────┘
-```
+| 通道 | 用途 | 说明 |
+|------|------|------|
+| **WebSocket** `/ws` | 实时推送监控数据 | Agent 每秒推送 `monitor_data` 帧；支持多客户端同时订阅 |
+| **REST** `/api/*` | 辅助功能 | 节点列表、配置读写、健康检查、触发扫描 |
+| **RTT 测量** | WebSocket PING/PONG 帧 | 标准 WS 控制帧，客户端本地时间戳计算 |
+
+### 4.2 WebSocket 数据推送
+
+- **连接**：`ws://<agent_ip>:12345/ws?token=xxx`（默认查询参数鉴权，§4.4）。
+- **鉴权**：连接后 Agent 校验 token，失败关闭连接（HTTP 403 或 WS close 1008）。
+- **推送**：鉴权通过后，Agent 每秒广播一条 `monitor_data` 文本帧（§7 Schema）。
+- **多客户端**：Agent 维护订阅者集合，广播给所有已订阅客户端（与 v4.0 多显示端能力一致）。
+- **RTT**：Host 端发 WS **PING 帧**，Agent 端由底层自动回 **PONG**（RFC 6455 控制帧），Host 用本地 `perf_counter` 时间戳计算 `RTT = (t_recv - t_sent) * 1000`，精度 < 1ms、无需时钟同步。
 
 ```python
-def send_frame(sock, payload: dict):
-    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    sock.sendall(struct.pack(">I", len(data)) + data)
-
-def recv_frame(sock) -> dict | None:
-    header = recv_exactly(sock, 4)
-    if not header:
-        return None
-    length = struct.unpack(">I", header)[0]
-    body = recv_exactly(sock, length)
-    if body is None:
-        return None
+# Agent 端：aiohttp + websockets 示意
+async def ws_handler(ws):
+    await auth(ws)                      # 首帧/查询参数校验 token
+    subscribers.add(ws)
     try:
-        return json.loads(body.decode("utf-8"))
-    except json.JSONDecodeError:
-        return None  # 损坏帧丢弃，等下一帧
+        async for msg in ws:            # 接收 PING 由底层自动回 PONG
+            pass
+    finally:
+        subscribers.discard(ws)
+
+async def push_loop():
+    while True:
+        frame = aggregator.latest_frame()            # 最新帧缓存
+        for ws in list(subscribers):
+            try: await ws.send_str(json.dumps(frame, ensure_ascii=False))
+            except Exception: subscribers.discard(ws)
+        await asyncio.sleep(1.0)
 ```
 
-### 4.2 控制帧与数据帧
+### 4.3 消息类型
 
-| type | 方向 | 用途 | 关键字段 |
-|------|------|------|----------|
-| `monitor_data` | 节点→副机/主机 | 1 秒监控数据帧 | 见 §8 |
-| `ping` | **副机/主机→节点** | RTT 测量 | `ts` (perf_counter) |
-| `pong` | **节点→副机/主机** | RTT 回复 | 原样回传 `ts` |
-| `loss_ping` | 副机/主机→节点 | 丢包测量 | `seq`, `ts` |
-| `loss_pong` | 节点→副机/主机 | 丢包回复 | `seq`, `ts` |
-| `auth` | 副机/主机→节点 | 鉴权（连接后首帧） | `token` |
-| `auth_result` | 节点→副机/主机 | 鉴权结果 | `ok`, `reason` |
-| `node_heartbeat` | 节点→局域网(UDP) | 自动发现心跳 | `hostname`, `ip`, `tcp_port`, `token`, `ts` |
+| type | 方向 | 用途 | 说明 |
+|------|------|------|------|
+| `monitor_data` | Agent→Host | 1 秒监控数据帧 | Schema 见 §7（与 v4.0 一致） |
+| `auth` | Host→Agent | 鉴权（首帧，若未走查询参数） | `{"type":"auth","token":"xxx"}` |
+| `auth_result` | Agent→Host | 鉴权结果 | `{"ok":true}` / `{"ok":false,"reason":"token错误"}` |
+| `agent_heartbeat` | Agent→局域网(UDP) | 自动发现心跳 | `hostname/ip/http_port/token/ts` |
+| `loss_ping` / `loss_pong` | Host→Agent / Agent→Host | WS 链路丢包测量（低频，§4.7） | `{"seq":N,"ts":...}` |
+| `error` | Agent→Host | 错误通知 | `{"code":..., "message":...}` |
 
-### 4.3 鉴权流程（简单 token 防误连）
+### 4.4 鉴权流程
 
-1. 节点配置 `token`（默认随机生成或配置文件指定）。
-2. 副机/主机连接 TCP 后**首帧**发送 `{"type":"auth","token":"xxx"}`。
-3. 节点校验：匹配 → 回 `{"type":"auth_result","ok":true}` 并加入已连接客户端列表；不匹配 → 回 `{"type":"auth_result","ok":false,"reason":"token错误"}` 并关闭连接。
-4. 客户端收到 `ok:true` 后开始发送 ping、接收数据。
+1. Agent 配置 `token`（默认随机生成或配置文件指定）。
+2. Host 连接 `ws://ip:12345/ws` 时进行鉴权，**推荐方式：查询参数 `?token=xxx`**（默认/首选）。备选：连接后首帧发送 `{"type":"auth","token":"xxx"}`。
+3. Agent 校验：匹配 → 加入订阅者集合并推送数据；不匹配 → 关闭连接（close 1008 / HTTP 403）。
+4. REST 请求同理在 `Authorization: Bearer <token>` 头或 `?token=` 参数携带 token。
 
-> token 明文传输，仅防误连，不防恶意（LAN 可信环境）。支持多客户端同时连接同一节点（副机端和主机端可同时连接）。
+> **鉴权优先级（明确）**：推荐 **查询参数 `?token=xxx`** 作为默认鉴权方式——更简单、符合 RESTful 风格，且**在 WebSocket 握手阶段即可校验并拒绝**，无需等待首帧。**首帧 auth 消息作为备选**，用于不便修改 URL 的场景（如第三方客户端复用连接串、或需在连接建立后动态鉴权）。Agent 端实现需同时支持两者，Host 端默认走查询参数。
+>
+> token 明文传输，仅防误连，不防恶意（LAN 可信环境）。如需更强可加 TLS（自签名，见 §22）。
 
-### 4.4 RTT 测量（精度 < 1ms）
+### 4.5 REST API（辅助）
 
-- **副机端/主机端各自独立**每 1 秒（与数据帧节拍对齐）发 `ping`，**节点**立即回 `pong` 原样返回 `ts`。
-- 客户端收到 pong：`RTT = (perf_counter() - ts) * 1000`，保留 3 位小数。
-- **必须用 `time.perf_counter()`**（单调、纳秒精度），不能用 `time.time()`（受 NTP 跳变）。
-- `pong` 原样回传 `ts`，**无需两端时钟同步**。
-- 信号 `rtt_updated(rtt_ms, node_id)` 带 node_id，GUI 按节点显示该节点与本端之间的 RTT。副机端与主机端各自独立测量 RTT。
+| 方法 | 路径 | 用途 | 说明 |
+|------|------|------|------|
+| `GET` | `/api/health` | 健康检查 | `{"status":"ok","version":"5.0","uptime":...}` |
+| `GET` | `/api/nodes` | 获取本机信息与已配置节点列表 | 返回本机概况 + 节点管理结果 |
+| `POST` | `/api/scan` | 触发 UDP/mDNS 扫描 | 返回发现到的候选 Agent 列表 |
+| `GET` | `/api/config` | 读取配置 | token 之外的配置（端口/采集开关/日志级别等） |
+| `POST` | `/api/config` | 更新配置（别名等） | 见 §20.1 |
 
-### 4.5 丢包率测量
+> 完整字段与示例见 §20。Host 端通过上述接口实现"节点管理"（添加、扫描、别名、持久化），替代 v4.0 中副机端 GUI 直连操作。
 
-每 5 秒发 3 个 `loss_ping`（间隔 100ms，带 `seq` 1/2/3），1 秒后统计回复数：
+### 4.6 超时与重连
 
-```
-丢包率 = (3 - 已收 loss_pong 数) / 3 * 100%
-```
+- 每 Agent 连接独立设置 WS 超时（如 30 秒无消息则视为断开）。
+- 断线后**每 Agent 独立**指数退避重连：1s→2s→4s→8s→16s→32s→60s 封顶；连上后重置为 1s。
+- 已配置的 Agent 即使离线也保留在列表中，持续重连（见 §19.7）。
 
-复用 TCP ping/pong 通道（不额外建 UDP），减少协议复杂度。
+### 4.7 丢包测量
 
-### 4.6 UDP 自动发现
-
-节点每 2 秒广播心跳（UDP `255.255.255.255:12346`，或组播 `239.0.0.1`）：
-
-```json
-{"type":"node_heartbeat","hostname":"GAME-PC","ip":"192.168.1.100",
- "tcp_port":12345,"token":"abc123","ts":1722892800.0}
-```
-
-副机端和主机端各自监听 UDP 12346，维护 `dict[ip] = {hostname, tcp_port, token, last_seen}`，**超过 10 秒无心跳**标记离线并移除。
-
-### 4.7 超时与重连
-
-- 每节点 TCP socket 设独立超时 **30 秒**（`settimeout(30)`），避免某节点卡死阻塞接收线程。
-- 断线后**每节点独立**指数退避重连：1s→2s→4s→8s→16s→32s→60s 封顶；连上后重置为 1s。
-- 已配置的节点即使离线也保留在列表中，持续重连（见 §20.9）。
+- **到网关丢包（主）**：`net_quality.packet_loss_percent` 默认由**到网关丢包**（系统 `ping` 解析）承担，免提权、兼容中英文输出。
+- **WS 链路丢包（补充，保留）**：标准 WebSocket 是可靠传输，天然无应用层丢包；但为感知"中间链路质量"（如交换机拥塞丢包），**保留低频应用层 `loss_ping`/`loss_pong` 作为补充测量**：
+  - Host 每 **10 秒**发 3 个 `{"type":"loss_ping","seq":N,"ts":...}`（间隔 100ms），Agent 回 `{"type":"loss_pong","seq":N,"ts":...}`。
+  - 1 秒后统计：`WS链路丢包率 = (3 - 已收 loss_pong 数) / 3 * 100%`。
+  - 该值可作为独立指标展示，或与网关丢包综合纳入评分（§9）。
+- **设计取舍（明确）**：若不需要中间链路质量感知，可仅保留网关丢包；WS 链路丢包为**可选增强**，默认开启低频测量，开销可忽略。
 
 ---
 
-## 5. 采集节点设计（Node · 无界面后台）
+## 5. 副机端设计（Agent · 服务端）
 
 ### 5.1 启动流程
 
 ```
 1. 解析命令行参数（--install-startup / --remove-startup / 普通启动）
-2. 单实例检测（命名互斥体 Global\PC_Monitor_Node），已有实例则退出
-3. 初始化日志（RotatingFileHandler → logs/node.log）
-4. 加载配置 node_config.json
+2. 单实例检测（命名互斥体 Global\PC_Monitor_Agent），已有实例则退出
+3. 初始化日志（RotatingFileHandler → logs/agent.log）
+4. 加载配置 agent_config.json（v4.0 node_config.json 迁移）
 5. 端口占用检测（TCP 12345 / UDP 12346），占用则提示并退出
 6. 初始化各采集器（CPU/GPU/内存/磁盘/网络/帧率/进程/系统/网络质量）
 7. 启动采集线程池
-8. 启动数据聚合定时器（1 秒节拍）
-9. 启动 TCP Server (0.0.0.0:12345)
-10. 启动 UDP 广播器（2 秒心跳）
-11. 【无 GUI】进入后台循环（time.sleep 轮询或 Event.wait 阻塞，等退出信号）
+8. 启动数据聚合定时器（1 秒节拍 → 最新帧缓存）
+9. 启动 HTTP REST Server（0.0.0.0:12345，/api/*）
+10. 启动 WebSocket Server（/ws，多订阅推送）
+11. 启动 UDP/mDNS 广播器（可选，自动发现）
+12. 【可选】启动本机仪表盘（原生 PyQt5 界面）
+13. 进入 asyncio 事件循环（Event.wait 阻塞，等退出信号）
 ```
 
-> **无界面要点**：不创建 QApplication、不弹任何窗口。
->
-> **运行方式（开发 vs 生产，需明确）**：
-> - **开发调试**：`python -m node` —— 有控制台窗口，可直接观察 stdout/日志输出，便于排错。
-> - **生产部署**：`pythonw -m node` —— 无控制台窗口，纯后台运行；或 `start /B python -m node`。
-> - **注意**：`pythonw.exe` 会**丢弃标准输出/错误**（stdout/stderr 被重定向到 NUL），调试困难，故仅用于生产；开发调试务必用 `python`。
-> - 生产环境也可注册为 Windows 服务（见 §22 扩展方向）。详见 §14。
+> **运行方式（开发 vs 生产）**：
+> - **开发调试**：`python -m agent` —— 有控制台窗口，可直接观察 stdout/日志。
+> - **生产部署**：`pythonw -m agent`（无控制台窗口，纯后台）或注册为 Windows 服务（见 §22）。
+> - `pythonw.exe` 会丢弃 stdout/stderr，调试困难，故仅用于生产。
 
 ### 5.2 采集器接口
+
+沿用 v4.0 设计，各采集器独立线程、异常隔离、线程安全读取：
 
 ```python
 class BaseCollector:
@@ -484,9 +424,8 @@ class BaseCollector:
         t.start()
 
     def _loop(self):
-        # 首次采集预热（部分指标如 cpu_percent 首次返回 0）
         try:
-            self._data = self.collect()
+            self._data = self.collect()          # 首次预热
         except Exception as e:
             logging.warning(f"{self.__class__.__name__} 首次采集失败: {e}")
         while not self._stop.is_set():
@@ -510,13 +449,15 @@ class BaseCollector:
 
 ```python
 class DataAggregator:
-    """每 1 秒聚合数据，广播给所有已鉴权客户端（副机端+主机端）"""
-    def __init__(self, collectors, server):
+    """每 1 秒聚合数据，写入最新帧缓存；WS 推送协程从缓存读取广播"""
+    def __init__(self, collectors):
         self.collectors = collectors
-        self.server = server
+        self._latest = {}          # 最新帧缓存（线程安全）
+        self._lock = threading.Lock()
 
-    def start(self):
-        threading.Thread(target=self._loop, daemon=True).start()
+    def latest_frame(self) -> dict:
+        with self._lock:
+            return dict(self._latest)
 
     def _loop(self):
         while True:
@@ -533,283 +474,99 @@ class DataAggregator:
                 "fps": self.collectors["fps"].get(),
                 "processes": self.collectors["proc"].get(),
                 "system": self.collectors["sys"].get(),
-                "connected_clients": self.server.unique_client_count(),
+                "connected_clients": ws_server.subscriber_count(),
             }
-            self.server.broadcast(frame)   # 推送给所有已连接客户端
-            time.sleep(1.0)
-```
-
-### 5.4 TCP Server（多客户端 + 鉴权）
-
-```python
-class MonitorTCPServer:
-    def __init__(self, host="0.0.0.0", port=12345, token=""):
-        self.host, self.port, self.token = host, port, token
-        self._clients = []       # 已鉴权 TCP 连接（用于 broadcast）
-        self._peer_ips = set()   # 客户端唯一 IP 集合（去重计数）
-        self._lock = threading.Lock()
-
-    def unique_client_count(self) -> int:
-        """唯一客户端数（按 IP 去重）"""
-        with self._lock:
-            return len(self._peer_ips)
-
-    def _handle(self, conn, addr):
-        peer_ip = addr[0]
-        # 鉴权
-        auth = recv_frame(conn)
-        if not auth or auth.get("type") != "auth" or auth.get("token") != self.token:
-            send_frame(conn, {"type":"auth_result","ok":False,"reason":"token错误"})
-            conn.close(); return
-        # 先登记再回结果，避免客户端取 unique_client_count 拿到 0 的竞态
-        with self._lock:
-            self._clients.append(conn)
-            self._peer_ips.add(peer_ip)
-        send_frame(conn, {"type":"auth_result","ok":True})
-        try:
-            while True:
-                msg = recv_frame(conn)  # 接收 ping/loss_ping
-                if msg is None: break
-                if msg.get("type") == "ping":
-                    send_frame(conn, {"type":"pong","ts":msg["ts"]})
-                elif msg.get("type") == "loss_ping":
-                    send_frame(conn, {"type":"loss_pong","seq":msg["seq"],"ts":msg["ts"]})
-        finally:
             with self._lock:
-                if conn in self._clients: self._clients.remove(conn)
-                self._peer_ips.discard(peer_ip)
-            conn.close()
-
-    def broadcast(self, frame):
-        dead = []
-        with self._lock: clients = list(self._clients)
-        for c in clients:
-            try: send_frame(c, frame)
-            except Exception: dead.append(c)
-        for c in dead:
-            with self._lock:
-                if c in self._clients: self._clients.remove(c)
-            try: c.close()
-            except Exception: pass
-```
-
-> 支持多个客户端同时连接（副机端和主机端可同时连接同一节点）：每个连接独立 `_handle` 线程，`broadcast` 推送给全部。
-
-### 5.5 UDP 广播器
-
-```python
-class DiscoveryBroadcaster:
-    """每 2 秒广播心跳，含主机名/IP/端口/token"""
-    def __init__(self, tcp_port, token, interval=2.0, use_multicast=False):
-        self.tcp_port, self.token = tcp_port, token
-        self.interval = interval
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.use_multicast = use_multicast
-
-    def _loop(self):
-        while True:
-            try:
-                pkt = json.dumps({
-                    "type":"node_heartbeat","hostname":socket.gethostname(),
-                    "ip":get_lan_ip(),"tcp_port":self.tcp_port,
-                    "token":self.token,"ts":time.time()
-                }, ensure_ascii=False).encode("utf-8")
-                dest = ("239.0.0.1",12346) if self.use_multicast else ("<broadcast>",12346)
-                self.sock.sendto(pkt, dest)
-            except Exception as e:
-                logging.warning(f"广播失败: {e}")
+                self._latest = frame
             time.sleep(self.interval)
 ```
 
-### 5.6 mDNS 广播器（零配置发现，§2.5.1）
+### 5.4 本机仪表盘（可选，已实现）
 
-节点启动后除 UDP 广播心跳外，**并行**注册 mDNS 服务（`_pcmonitor._tcp.local.`），供副机/主机零配置自动发现。mDNS 与 UDP 广播互为备份：mDNS 优先用于同一子网内的零配置发现；UDP 广播作为兼容层，确保跨子网/老旧网络环境仍可工作（技术细节见 §23.1）。
+- **方案 A（原生 PyQt5 GUI，已实现）**：PyQt5 界面，仅用于显示本机数据——本地采集数据直接喂给 GUI（`agent/gui/`，复用 `DetailPanel`），**不再连接远程节点**（节点管理已移到 Host）。
+- **方案 B（本地 Web，不推荐）**：Agent 内嵌 HTTP 页面（`http://<ip>:12345/`），浏览器访问查看本机仪表盘。
 
-```python
-from zeroconf import ServiceInfo, Zeroconf
+> **采用方案 A（原生 PyQt5）**，理由：
+> 1. **与整体技术栈一致**——Host 也是 PyQt5 桌面程序，两端统一为原生 exe，维护心智成本低；
+> 2. **无需依赖浏览器/HTTP 页面**——仪表盘直接走 Qt 信号槽复用本地采集数据，不经网络，与推送数据同构；
+> 3. **打包统一**——Agent 与 Host 都用 PyInstaller 打 exe，符合 §16.5 双端独立打包约束。
+>
+> **使用方式**：`python -m agent --gui`（Qt 主循环 + 后台 asyncio 服务同进程，关闭窗口即停服务）；默认 `python -m agent` 为无界面后台模式（pythonw 运行）。
+> 方案 B 作为备选（未来若需远程浏览器查看本机指标时启用）。两种方案均复用 `agent/collectors/`，与推送数据同构。
 
-def register_mdns(ip, port, hostname, token):
-    # 注册 _pcmonitor._tcp.local. 服务
-    service_info = ServiceInfo(
-        "_pcmonitor._tcp.local.",
-        f"{hostname}._pcmonitor._tcp.local.",
-        addresses=[socket.inet_aton(ip)],
-        port=port,
-        properties={
-            "hostname": hostname,
-            "token_hash": hashlib.sha256(token.encode()).hexdigest()[:8],
-        },
-    )
-    zc = Zeroconf()
-    zc.register_service(service_info)
-    return zc  # 保持引用防止服务下线
-```
+### 5.5 配置管理
 
-> 启动时序：TCP Server 就绪后调用 `register_mdns(...)`，退出时调用 `zc.unregister_service()` + `zc.close()`。zeroconf 不可用（未安装/异常）时捕获异常并降级，仅保留 UDP 广播。
+保留 `agent_config.json`，字段含 token、端口、采集器开关、日志级别等（§12.2）。
 
-### 5.7 后台运行与单实例
+### 5.6 开机自启 / 单实例
 
-- **无控制台窗口**：用 `pythonw.exe` 启动，或打包时设 `CREATE_NO_WINDOW`。
-- **单实例**：命名互斥体 `Global\PC_Monitor_Node`（§13.1），已有实例则退出。
-- **退出信号**：主线程 `Event.wait()` 阻塞，收到 SIGINT/服务停止信号时 set 退出。
-- **连接码展示（§2.5.2）**：启动后生成纯数字连接码（§23.2），输出到控制台窗口（`python -m node` 开发模式）或本地通知（生产模式），供用户在其他端输入接入。
+- **开机自启**：Windows 沿用 schtasks（Agent 需管理员，`/RL HIGHEST`）；Linux 用 systemd（若跨平台）。
+- **单实例**：命名互斥体 `Global\PC_Monitor_Agent`（§12.1）。
 
 ---
 
-## 6. 副机端设计（Client · 本机仪表盘 + 节点管理）
+## 6. 主机端设计（Host · 纯前端）
 
 ### 6.1 概述
 
-副机端运行在被监控电脑上，与采集节点同机部署，提供两个功能：
+Host 端作为**纯前端应用**，通过 WebSocket 订阅所有 Agent，集中展示数据。
 
 | 功能 | 说明 |
 |------|------|
-| **本机仪表盘（主视图）** | 实时显示本机（即该副机所在电脑）的全部采集数据，作为本地查看窗口 |
-| **节点管理器（侧边栏或独立标签页）** | 提供"添加节点"、"自动扫描"功能，将其他采集节点接入系统，并显示已接入节点的摘要列表 |
+| **节点列表（左侧）** | 显示所有已配置/已连接 Agent（别名、IP、状态、RTT、评分） |
+| **详情面板（右侧）** | 点击节点显示该节点全部详细指标，阈值变色 |
+| **概览视图** | 网格卡片布局，关键指标一目了然（适合大屏） |
+| **红线告警** | 自定义红线检测 + 状态栏/日志/托盘弹窗（§第四篇） |
+| **节点管理** | 通过 REST API 添加/扫描/改别名；配置持久化到 `host_config.json` |
+| **本机节点（可选，默认关闭）** | 复用采集器本地采集，作为"本机"卡片显示；默认关闭，用户手动启用 |
 
-**副机端不显示其他节点的详细数据**（详情由主机端集中展示），仅维护节点列表并转发给主机端。
+### 6.2 前端技术选型
 
-**节点管理器交互边界（明确）**：
-- 节点列表项**仅用于查看摘要**（状态/RTT/评分），**点击不展开远程详情**。
-- **右侧详情面板固定显示本机仪表盘**（本机数据），**不因点击远程节点而切换**——本机仪表盘是主视图，节点管理器是侧边栏/标签页，二者独立。
-- 悬停远程节点项可显示 **Tooltip 提示**："该节点详情请在主机端查看"。
+| 方案 | 说明 |
+|------|------|
+| **原生 PyQt5 + WebSocket 客户端（采用）** | 迁移成本最低，沿用现有 GUI 与 QSS 深色主题；替换 `host/connection.py` 的 TCP 为 WS；打包为独立 exe |
+| **Electron + Vue/React（不采用，备选）** | 未来若需 Web 化再考虑；需重写 GUI，与现有 PyQt5 大量代码不兼容 |
 
-### 6.2 本机仪表盘（主视图）
+> **技术决策（明确）**：Host 端采用**原生 PyQt5 桌面应用**，网络层统一为"WebSocket 客户端 + REST 客户端"，GUI 层仅消费数据帧。Electron/Web 方案**不在本版本实施范围**，仅作为未来扩展方向保留。
 
-- **窗口顶部**：显示本机主机名、IP、运行时间、"本机模式"标识。
-- **连接信息区**：IP / 端口 / Token / 连接码 用**只读输入框**展示（可全选复制），并提供「复制」「复制 IP:端口」「复制连接串」按钮，方便把本机接入信息直接告知他人（§2.5）。
-- **中部**：按分区显示本机的全部采集数据：CPU/GPU/内存/磁盘/网络/帧率/进程。
-- **数值实时刷新**，阈值变色（绿/橙/红三级）。
-- **底部**：显示当前已接入的远程节点数量（不含本机）。
-- **本机数据通过本地采集器直接获取**（不经过网络），与远程节点数据结构统一。
-- **窗口关闭行为（统一，与主机端一致）**：关闭副机端窗口时弹出确认弹窗："确定退出副机端监控？"，防止误关；取消则不退出。本机采集/节点连接在窗口隐藏或最小化时**继续运行**，不随窗口关闭而停止（与主机端逻辑统一）。
+### 6.3 WebSocket 客户端
 
 ```python
-# 本机数据由 LocalCollectorPack（复用节点采集器）直接 emit 到 GUI
-self.local_pack = LocalCollectorPack(collectors)   # 同节点采集器
-self.local_pack.local_data.connect(self._on_local_data)  # (frame, LOCAL_NODE_ID)
-```
-
-### 6.3 节点管理器（侧边栏或独立标签页）
-
-- 显示**已接入的所有节点列表**（含本机）。
-- 每个节点项显示：**别名**（可编辑）、**IP 地址**、**连接状态**（● 在线 / ● 离线 / ● 重连中）、**RTT 延迟**、**网络评分摘要**。
-- **本机节点自动添加**，状态始终为"在线"，RTT 显示为"0.00ms"。
-- **已配置的节点即使离线也保留在列表中**，并自动重连。
-- 支持**右键菜单**：移除节点、编辑别名、手动重连。
-
-### 6.4 节点管理操作
-
-副机端"添加节点"功能区域统一提供以下**六种入口**（§2.5.6 优先级）：
-
-| 入口 | 操作 | 说明 |
-|------|------|------|
-| **零配置自动发现** | 无需操作 | mDNS 自动发现（§2.5.1），节点列表自动填充"待连接"项，点击"接入"即可 |
-| **自动扫描** | 点击"扫描"按钮 | UDP 心跳发现（§4.6），弹窗多选批量添加 |
-| **连接码** | 点击"连接码"按钮 | 输入节点端显示的 6 位数字短码添加（§2.5.2，实现见 §23.2） |
-| **导入 .pcm** | 点击"导入配置"或拖拽文件 | 一键批量添加（§2.5.3） |
-| **从剪贴板添加** | 点击"从剪贴板添加"按钮 | 解析 `pcmonitor://` 连接串（§2.5.4） |
-| **手动添加** | 点击"添加节点"按钮 | 输入 IP + 端口 + 别名 + token（兜底） |
-
-- **一键接入全部**：扫描/发现结果中提供"一键接入全部"按钮，批量接入所有扫描到的节点（§2.5.5）。
-- **节点列表持久化**到 `client_config.json`，下次启动自动重连。
-- **导出**：点击"导出配置"将当前节点列表导出为 `.pcm` 文件（§2.5.3）。
-
-### 6.5 配置持久化
-
-- 记忆节点列表（IP、端口、别名）、窗口位置/大小。
-- **副机端仅维护节点列表摘要，不存储详细历史数据**（存储由主机端负责）。
-
-### 6.6 跨线程更新
-
-- 每个远程节点的接收线程通过 `pyqtSignal(data, node_id)` 传递数据。
-- 本机数据通过本地采集器直接 emit 到 GUI。
-- GUI 主线程按 node_id 更新对应列表项摘要（状态/RTT/评分）。
-
-```python
-class NodeConnection(QObject):
-    """单个采集节点的连接：接收线程 + 重连线程 + ping 线程 + 信号"""
+class AgentConnection(QObject):
+    """单个 Agent 的连接：WS 接收 + 重连 + RTT + 信号"""
     data_received = pyqtSignal(dict, str)       # (frame, node_id)
     status_changed = pyqtSignal(str, str)       # (node_id, status_text)
     rtt_updated = pyqtSignal(float, str)        # (rtt_ms, node_id)
+
+    def connect_ws(self, ip, port, token):
+        # websocket-client / aiohttp 建立 ws://ip:port/ws?token=xxx
+        # 接收 monitor_data 帧 → emit data_received
+        # 定期发 WS PING → 计算 RTT
+        ...
 ```
+
+### 6.4 节点管理（经 REST API）
+
+- **手动添加**：输入 Agent 的 IP + 端口 + 别名 + token，经 `GET /api/health` 校验可达后写入列表。
+- **自动扫描**：点击"扫描"→ 触发 `POST /api/scan` 或本地 UDP/mDNS 监听 → 弹窗多选批量添加。
+- **别名/配置**：`POST /api/config` 更新远端别名等；Host 本地列表可编辑别名（仅本地生效）。
+- **持久化**：Agent 列表（IP/端口/别名/token）、窗口布局、视图模式保存到 `host_config.json`。
+
+### 6.5 展示功能（沿用 v4.0）
+
+- 节点列表项：别名 / IP / 状态（● 在线 ● 重连中 ● 离线 / 鉴权失败）/ RTT / 评分（§19.1）。
+- 详情面板：全部指标分区显示，阈值三级变色（§14.1）。
+- 概览视图：网格卡片（CPU/GPU/内存/温度/FPS/评分），上限可配，横向滚动（§19.2）。
+- 顶部状态栏：已连接节点数 / 总节点数。
+- 窗口关闭确认；最小化不退出，后台连接继续（§19.8）。
+
+> **本机节点定位（明确）**：Host 的"本机节点"是一个**可选的辅助功能**，**默认关闭**，仅在用户手动启用时才在 Host 本地启动采集器并显示为一张卡片。它**不影响主架构**——Host 核心职责仍是纯前端（订阅/展示/告警），本机节点只是让"监控机本身"也能被纳入监控。启用后数据来自本地采集器（不经网络），与远程节点同构显示。若追求严格的"前后端分离"、不需要监控 Host 本身，可保持关闭，功能不受任何影响。
 
 ---
 
-## 7. 监控主机设计（Host · 集中监控大屏）
+## 7. 数据格式规范（JSON Schema）
 
-主机端作为**唯一的"详情显示端"**，将所有节点的数据集中展示：
-
-### 7.1 节点列表（左侧）
-
-- 显示所有**已连接和已配置**的节点列表。
-- 每个节点项显示：**节点别名**（可编辑）、**IP 地址**、**连接状态**（● 在线 / ● 离线 / ● 重连中）、**RTT 延迟**、**网络评分摘要**。
-- **已配置的节点即使离线也保留在列表中**，并自动重连。
-- 支持**右键菜单**：移除节点、编辑别名、手动重连。
-- **便捷添加入口**（与副机端一致，§6.4）：mDNS 零配置自动发现 + "扫描" + "连接码" + "导入 .pcm" + "从剪贴板添加" + "手动添加"六种方式，统一管理到"添加节点"功能区域。
-- **导出**：点击"导出配置"将当前节点列表导出为 `.pcm` 文件（§2.5.3）。
-
-### 7.2 详情面板（右侧）
-
-- 点击左侧节点，右侧显示该节点的**全部详细指标**（CPU/GPU/内存/磁盘/网络/帧率/进程）。
-- 布局分区清晰，数值实时刷新，阈值变色。
-
-### 7.3 "本机"节点
-
-- 主机端启动时自动在列表顶部添加一个名为**"本机 (localhost)"**的特殊节点。
-- 该节点数据通过**本地采集器直接采集**（不经过网络），与远程节点使用相同的数据结构统一显示。
-- 本机节点状态始终为"在线"，RTT 显示为"0.00ms"。
-
-```python
-# 本机节点由 LocalCollectorPack（复用采集器），直接 emit 到 GUI
-self.local_pack = LocalCollectorPack(collectors)   # 同节点采集器
-self.local_pack.local_data.connect(self._on_data)  # (frame, LOCAL_NODE_ID)
-```
-
-### 7.4 概览视图（手动切换）
-
-- 提供"概览视图"按钮，点击后右侧切换为**网格卡片布局**。
-- 每张卡片展示一个节点的关键指标（CPU/GPU/内存/温度/FPS/评分），适合大屏监控。
-- 卡片数量超过配置值（默认 16）时**横向滚动**。
-- 点击卡片切换到该节点详情。
-
-### 7.5 顶部状态栏
-
-- 显示**已连接节点数 / 总节点数**、全局状态摘要。
-
-### 7.6 跨线程更新
-
-- 每个节点的接收线程通过 `pyqtSignal(data, node_id)` 传递数据，GUI 主线程按 node_id 更新对应面板。
-
-```python
-# 每节点连接的信号统一连到分发器
-conn.data_received.connect(self.on_data)        # frame, node_id
-conn.status_changed.connect(self.on_status)     # status, node_id
-conn.rtt_updated.connect(self.on_rtt)           # rtt, node_id
-
-def on_data(self, frame, node_id):
-    # GUI 主线程按 node_id 更新对应面板（本机节点 node_id="localhost" 同道处理）
-    if node_id in self.cards:
-        self.cards[node_id].update_all(frame)
-        self.cards[node_id].update_list_summary()  # 更新左侧列表摘要
-```
-
-### 7.7 配置持久化
-
-- 记忆节点列表（IP、端口、别名）、窗口位置/大小、当前选中节点、视图模式。
-
-### 7.8 窗口关闭行为（与副机端统一）
-
-- 关闭主机端窗口时弹出确认弹窗："确定退出主机端监控？"，取消则不退出。
-- 最小化/隐藏时**后台连接与采集继续运行**，不随窗口关闭而停止（与副机端 §6.2 逻辑统一）。
-- 关闭确认文案、隐藏行为统一由 `common/theme.py` 或 GUI 基类管理，避免两端不一致。
-
----
-
-## 8. 数据格式规范（JSON Schema）
-
-每秒推送的完整数据帧（`type: monitor_data`）：
+每秒推送的完整数据帧（`type: monitor_data`）——**与 v4.0 完全一致**：
 
 ```json
 {
@@ -902,15 +659,15 @@ def on_data(self, frame, node_id):
 ```
 
 > 无法获取的字段统一 `"N/A"` 或 `null`，GUI 识别后显示 N/A 并跳过变色。
-> **`net_quality.latency_to_client_ms`**：节点端填 `null`，RTT 由各显示端（副机/主机）本地测量，带 node_id（见 §20.5）。
+> **`net_quality.latency_to_client_ms`**：Agent 端填 `null`，RTT 由各 Host 本地经 WebSocket PING 测量，带 node_id（见 §19.5）。
 
 ---
 
-## 9. 各指标采集方案
+## 8. 各指标采集方案
 
-> 采集方案对采集节点、副机端本机、主机端本机**完全一致**（共享 `node/collectors/` 代码）。
+> 采集方案对 Agent 与 Host 本机节点**完全一致**（共享 `common/collectors/`，由原 `node/collectors/` 迁移）。
 
-### 9.1 CPU
+### 8.1 CPU
 
 | 指标 | 方案 | 库 |
 |------|------|-----|
@@ -920,19 +677,17 @@ def on_data(self, frame, node_id):
 | 核心数 | `psutil.cpu_count(logical=False/True)` | psutil |
 | 型号 | `cpuinfo.get_cpu_info()['brand_raw']` | py-cpuinfo |
 
-### 9.2 内存
+### 8.2 内存
 
 `psutil.virtual_memory()` + `psutil.swap_memory()`，最稳定。
 
-### 9.3 GPU
+### 8.3 GPU
 
-GPU 采集按厂商分三路，优先级 NVIDIA > AMD > Intel，任一可用即返回真实数据，全部不可用则返回全 N/A（保证 §8 Schema 字段完整）。
+GPU 采集按厂商分三路，优先级 NVIDIA > AMD > Intel，任一可用即返回真实数据，全部不可用则返回全 N/A（保证 §7 Schema 字段完整）。
 
-#### 9.3.1 NVIDIA（pynvml / NVML，主方案）
+#### 8.3.1 NVIDIA（pynvml / NVML，主方案）
 
-**库**：`nvidia-ml-py`（PyPI 包名，`import pynvml`）。NVML 随 NVIDIA 驱动自带 `nvml.dll`，**无需单独装 CUDA Toolkit**。要求 NVIDIA 驱动 ≥ R341 分支（350+）。旧 PyPI 包名 `pynvml` 已弃用但仍可装，推荐 `nvidia-ml-py`。
-
-**初始化与生命周期**（采集器启动/退出各一次）：
+**库**：`nvidia-ml-py`（PyPI 包名，`import pynvml`）。NVML 随 NVIDIA 驱动自带 `nvml.dll`，**无需单独装 CUDA Toolkit**。要求 NVIDIA 驱动 ≥ R341 分支（350+）。
 
 ```python
 import pynvml
@@ -942,9 +697,9 @@ handle = pynvml.nvmlDeviceGetHandleByIndex(0)    # 单 GPU（index=0）
 pynvml.nvmlShutdown()                            # 退出一次
 ```
 
-`nvmlInit()` 失败（非 N 卡 / 驱动未装 / NVML 库缺失）捕获 `pynvml.NVMLError`，采集器整体降级为全 N/A，不影响其他采集器。
+`nvmlInit()` 失败（非 N 卡 / 驱动未装 / NVML 库缺失）捕获 `pynvml.NVMLError`，采集器整体降级为全 N/A。
 
-**字段 → NVML API 映射**（对照 §8 `gpu` 字段）：
+**字段 → NVML API 映射**（对照 §7 `gpu` 字段）：
 
 | JSON 字段 | NVML API | 说明 / 单位换算 |
 |-----------|----------|----------------|
@@ -963,17 +718,17 @@ pynvml.nvmlShutdown()                            # 退出一次
 | `engine_usage.graphics` | `nvmlDeviceGetUtilizationRates(handle).gpu` | 与 usage_percent 同源 |
 | `engine_usage.encode` | `nvmlDeviceGetEncoderUtilization(handle)` | 返回 `(utilization%, sampling_period_us)`，取第一项 |
 | `engine_usage.decode` | `nvmlDeviceGetDecoderUtilization(handle)` | 同上 |
-| `top_vram_processes` | `nvmlDeviceGetComputeRunningProcesses(handle)` | 见 §9.3.4 |
+| `top_vram_processes` | `nvmlDeviceGetComputeRunningProcesses(handle)` | 见 §8.3.4 |
 
-> **热点温度 API 可用性**：`NVML_TEMPERATURE_GPU_HOTSPOT` 在**旧版 nvidia-ml-py 中可能未定义**（热点温度枚举较新，需 Driver 435+ / 对应 NVML 版本）。
+> **热点温度 API 可用性**：`NVML_TEMPERATURE_GPU_HOTSPOT` 在**旧版 nvidia-ml-py 中可能未定义**（需 Driver 435+ / 对应 NVML 版本）。
 > 实现时**必须做属性存在性 fallback**：用 `getattr(pynvml, "NVML_TEMPERATURE_GPU_HOTSPOT", None)` 判断，若枚举不存在、调用抛 `NVMLError`/`AttributeError` 或不支持，则 `hotspot_temp_c` 返回 `"N/A"`，**不因单 API 缺失导致整个 GPU 采集失败**。
 >
-> **热点温度回退链路**：热点温度优先使用 NVML `NVML_TEMPERATURE_GPU_HOTSPOT`；若不可用，则回退到 LibreHardwareMonitor WMI 读取（见 `common/lhm.py`，需管理员），再不可用才返回 `"N/A"`。
-> **依赖关系**：`common/lhm.py` 是 `cpu_collector.py`（CPU 温度/功耗）与 `gpu_collector.py`（GPU 热点温度补读）的**共享依赖模块**，仅提供底层 WMI 读取函数，不包含采集循环逻辑。
+> **热点温度回退链路**：热点温度优先使用 NVML；若不可用，则回退到 LibreHardwareMonitor WMI 读取（见 `common/lhm.py`，需管理员），再不可用才返回 `"N/A"`。
+> **依赖关系**：`common/lhm.py` 是 `cpu_collector.py`（CPU 温度/功耗）与 `gpu_collector.py`（GPU 热点温度补读）的**共享依赖模块**。
 
-> **多 GPU**：`pynvml.nvmlDeviceGetCount()` 遍历枚举。默认采集 `index=0`（主渲染卡），配置项 `gpu_index`（node_config.json）可指定。
+> **多 GPU**：`pynvml.nvmlDeviceGetCount()` 遍历枚举。默认采集 `index=0`（主渲染卡），配置项 `gpu_index`（agent_config.json）可指定。
 
-#### 9.3.2 AMD（pyadl，后备方案）
+#### 8.3.2 AMD（pyadl，后备方案）
 
 **库**：`pyadl`（基于 ADL/ADLX SDK）。**支持范围有限**，仅以下字段可取真实值，其余 N/A：
 
@@ -986,15 +741,15 @@ pynvml.nvmlShutdown()                            # 退出一次
 
 **不支持**：显存占用、显存进程、功耗/功耗墙、引擎细分、显存温度、热点温度 → 统一 N/A。
 
-#### 9.3.3 Intel（集显，降级）
+#### 8.3.3 Intel（集显，降级）
 
 Intel 集显无免费稳定的 Python 采集库。返回全 N/A，仅 `name` 通过 WMI `Win32_VideoController.Name` 取得。
 
-#### 9.3.4 GPU Top3 进程（→ `processes.top_gpu`）
+#### 8.3.4 GPU Top3 进程（→ `processes.top_gpu`）
 
 仅 NVIDIA 可用：`nvmlDeviceGetComputeRunningProcesses(handle)` 返回占用 GPU 显存的进程列表，每项含 `pid` 与 `usedGpuMemory`（字节）。
 
-> **关键健壮性**：新版 `nvidia-ml-py`（≥13）在无法获取某进程显存占用时，`p.usedGpuMemory` 返回 **`None`** 而非抛异常。**必须判空**，否则 `None / 1024**2` 抛 `TypeError` 会导致整个 GPU 采集失败、全部指标回退 N/A。
+> **关键健壮性**：新版 `nvidia-ml-py`（≥13）在无法获取某进程显存占用时，`p.usedGpuMemory` 返回 **`None`** 而非抛异常。**必须判空**，否则 `None / 1024**2` 抛 `TypeError` 会导致整个 GPU 采集失败。
 
 ```python
 for p in procs:
@@ -1006,7 +761,7 @@ for p in procs:
 
 PID → `psutil.Process(pid).name()` 取进程名，按显存降序取 Top3。AMD/Intel 卡 `top_gpu` 返回空列表 `[]`。
 
-### 9.4 磁盘
+### 8.4 磁盘
 
 - 读写速度/IOPS：`psutil.disk_io_counters` 1 秒差分。
 - **盘符↔物理盘映射**：WMI `Win32_DiskDriveToDiskPartition` + `Win32_LogicalDiskToPartition`。
@@ -1014,32 +769,30 @@ PID → `psutil.Process(pid).name()` 取进程名，按显存降序取 Top3。AM
 - 温度：LibreHardwareMonitor / smartctl（需管理员）。
 - 剩余空间/使用率：`psutil.disk_usage`。
 
-### 9.5 网络
+### 8.5 网络
 
 `psutil.net_io_counters(pernic=True)` 差分；网卡链接速度 WMI `Win32_NetworkAdapter.Speed`；错误/丢弃包计数取 `errin/errout/dropin/dropout`。
 
-### 9.6 网络质量
+### 8.6 网络质量
 
-- 到各显示端 RTT：见 §4.4（各端独立测量，带 node_id）。
+- 到各 Host RTT：见 §4.4（各 Host 独立经 WebSocket PING 测量，带 node_id）。
 - 到网关延迟：解析系统 `ping` 输出（兼容中英文），免提权。
-- 丢包率：见 §4.5。
-- 评分：见 §10，**滑动平均**（最近 N 次评分均值，平滑抖动）。
+- 丢包率：见 §4.7。
+- 评分：见 §9，**滑动平均**（最近 N 次评分均值，平滑抖动）。
 
-### 9.7 进程（2~3 秒采集，与 1 秒数据帧解耦）
+### 8.7 进程（2~3 秒采集，与 1 秒数据帧解耦）
 
 - CPU Top3：`psutil.process_iter` 排序（需预热）。
-- GPU Top3：NVML 取 PID + 占用（注意 §9.3.4 判空）。
+- GPU Top3：NVML 取 PID + 占用（注意 §8.3.4 判空）。
 - uptime：`time.time() - psutil.boot_time()`。
 
-### 9.8 帧率
+### 8.8 帧率
 
-见 §11。前台窗口动态绑定。
+见 §10。前台窗口动态绑定。
 
----
+## 9. 网络质量评分算法
 
-## 10. 网络质量评分算法
-
-### 10.1 评分公式
+### 9.1 评分公式
 
 ```
 延迟扣分 = max(0, (rtt_ms - 5) / 10) * 5      # 5ms 起算，每增 10ms 扣 5 分
@@ -1047,10 +800,10 @@ PID → `psutil.Process(pid).name()` 取进程名，按显存降序取 Top3。AM
 瞬时分   = max(0, round(100 - 延迟扣分 - 丢包扣分))
 ```
 
-> **系数说明**：延迟扣分系数为 **5**，与 v2.0/v3.0 保持一致，避免延迟惩罚过重。
-> （v3.0 曾采用系数 15，导致 rtt=15ms 即扣 15 分、评分 85 仅"良好"，延迟惩罚偏重，故 v4.0 回退为 5。）
+> **系数说明**：延迟扣分系数为 **5**，与 v2.0/v3.0/v4.0 保持一致，避免延迟惩罚过重。
+> （v3.0 曾采用系数 15，导致 rtt=15ms 即扣 15 分、评分 85 仅"良好"，延迟惩罚偏重，故回退为 5。）
 
-**瞬时分校验**（应与 §10.3 等级一致）：
+**瞬时分校验**（应与 §9.3 等级一致）：
 
 | rtt_ms | loss% | 延迟扣分 | 丢包扣分 | 瞬时分 | 等级 |
 |--------|-------|---------|---------|--------|------|
@@ -1059,7 +812,7 @@ PID → `psutil.Process(pid).name()` 取进程名，按显存降序取 Top3。AM
 | 30 | 1 | 12.5 | 10 | 78 | 良好 ✓ |
 | 5 | 8 | 0 | 80 | 20 | 较差 ✓ |
 
-### 10.2 滑动平均（平滑抖动）
+### 9.2 滑动平均（平滑抖动）
 
 ```python
 from collections import deque
@@ -1079,7 +832,7 @@ class QualityScorer:
 
 > **滑动窗口说明**：显示分 = 最近 N 次瞬时分均值，平滑无线网络抖动。**单元测试评估各档等级时，应使用独立的新建 scorer**（避免前序样本污染均值）；一次性恶值不剧变用单独用例验证平滑效果。
 
-### 10.3 等级
+### 9.3 等级
 
 | 评分 | 等级 | 颜色 |
 |------|------|------|
@@ -1090,9 +843,9 @@ class QualityScorer:
 
 ---
 
-## 11. 帧率采集方案
+## 10. 帧率采集方案
 
-### 11.1 方案对比与选择
+### 10.1 方案对比与选择
 
 | 方案 | 原理 | 优点 | 缺点 | 适用场景 |
 |------|------|------|------|---------|
@@ -1111,10 +864,9 @@ class QualityScorer:
 > `"PresentMon.exe 未找到，已自动降级为 DXGI 截帧模式，如需更精准帧率请下载 PresentMon.exe 放入 tools/ 目录"`
 >
 > **dxcam 降级提示**：DXGI 模式下若 `dxcam` 未安装（`pip install dxcam` 可启用），帧率返回 N/A，
-> 采集器**每个进程仅警告一次**（模块级标志），避免多处创建 FpsCollector 时重复刷屏（§20.11）。
-> 让用户明确知道当前帧率精度受限，而非静默降级。
+> 采集器**每个进程仅警告一次**（模块级标志），避免重复刷屏（§19.9）。
 
-### 11.2 前台窗口动态绑定
+### 10.2 前台窗口动态绑定
 
 ```python
 import win32gui, win32process
@@ -1129,9 +881,9 @@ def get_foreground_process_name():
     return name, title
 ```
 
-PresentMon 按 `process_name` 捕获。采集器每秒检测前台进程名，**变化时**停止旧 PresentMon 会话、按新进程名重启（§11.4），实现窗口切换自动重新绑定。
+PresentMon 按 `process_name` 捕获。采集器每秒检测前台进程名，**变化时**停止旧 PresentMon 会话、按新进程名重启（§10.4），实现窗口切换自动重新绑定。
 
-### 11.3 PresentMon CLI 调用
+### 10.3 PresentMon CLI 调用
 
 **命令行**（PresentMon 2.x，参数单横杠）：
 
@@ -1141,7 +893,7 @@ PresentMon.exe -process_name <前台进程名> -output_stdout -no_top -stop_exis
 
 | 参数 | 作用 |
 |------|------|
-| `-process_name` | 仅捕获指定进程（按 §11.2 前台窗口绑定） |
+| `-process_name` | 仅捕获指定进程（按 §10.2 前台窗口绑定） |
 | `-output_stdout` | CSV 实时写到 stdout，采集器读管道解析（避免磁盘 IO） |
 | `-no_top` | 不显示控制台 swap chain 列表，减少输出噪音 |
 | `-stop_existing_session` | 启动时若已有同名 ETW 会话则先停掉，避免"会话已存在"错误 |
@@ -1156,9 +908,7 @@ PresentMon.exe -process_name <前台进程名> -output_stdout -no_top -stop_exis
 | `msGPUActive` | GPU 渲染该帧耗时 | GPU 帧耗时 |
 | `Application` / `ProcessID` | 进程名 / PID | 校验绑定目标 |
 
-### 11.4 PresentMon 进程管理
-
-采集器维护一个 PresentMon 子进程，生命周期与前台窗口绑定：
+### 10.4 PresentMon 进程管理
 
 ```python
 import subprocess, threading
@@ -1185,9 +935,9 @@ class PresentMonSession:
 
 **重启 / 崩溃处理**：前台进程名变化 → `stop()` + `start(new_name)`；子进程意外退出 → 日志 WARNING，指数退避重启（1s→10s）。无权限时自动降级 DXGI。
 
-### 11.5 DXGI 截帧降级实现
+### 10.5 DXGI 截帧降级实现
 
-**库**：`dxcam`（高性能 DXGI 桌面捕获，纯 pip 安装，**仅 Windows**，无需 C++ 编译）。配合 `numpy` 做帧差分。
+**库**：`dxcam`（高性能 DXGI 桌面捕获，纯 pip 安装，**仅 Windows**）。配合 `numpy` 做帧差分。
 
 ```python
 import dxcam, numpy as np, time
@@ -1211,7 +961,7 @@ class DxFpsEstimator:
 
 **局限**：全屏独占下 `grab()` 返回黑屏 → FPS 失败（返回 N/A）；多显示器默认主显示器。
 
-### 11.6 1% Low 计算
+### 10.6 1% Low 计算
 
 最近 100 帧帧时间排序，取第 99 百分位 → `low_1_percent = 1000 / frame_time_p99`。
 
@@ -1228,13 +978,13 @@ class FrameStats:
         return round(1000 / p99, 1)
 ```
 
-### 11.7 采集间隔与数据帧同步
+### 10.7 采集间隔与数据帧同步
 
 帧率采集是**事件驱动**（PresentMon 持续输出 / DXGI 轮询 100ms），与 1 秒数据帧解耦：采集器内部维护 `FrameStats`（最近 100 帧滑动窗口），聚合器每 1 秒取快照。`source` 字段标注：`"presentmon"` / `"dxgi"` / `"none"`。
 
-### 11.8 配置项
+### 10.8 配置项
 
-`node_config.json` 中：
+`agent_config.json` 中：
 
 ```json
 "collectors": {
@@ -1244,13 +994,13 @@ class FrameStats:
 }
 ```
 
-> 副机端/主机端本机节点同样支持帧率采集（前台窗口绑定本机前台进程）。
+> Host 端本机节点同样支持帧率采集（前台窗口绑定本机前台进程）。
 
 ---
 
-## 12. 日志系统
+## 11. 日志系统
 
-### 12.1 配置
+### 11.1 配置
 
 ```python
 import logging
@@ -1267,31 +1017,30 @@ def setup_logger(name, log_file, level=logging.INFO):
     return logger
 ```
 
-### 12.2 日志级别可配置（明确）
+### 11.2 日志级别可配置
 
-- 当前默认 **INFO** 级别；在配置文件中增加 **`log_level`** 字段（`node_config.json` / `client_config.json` / `host_config.json` 通用），取值 `"DEBUG" / "INFO" / "WARNING" / "ERROR"`，映射到 `logging` 级别后传入 `setup_logger(..., level=...)`。
-- 示例：`"log_level": "DEBUG"` 用于排查连接/协议问题；生产环境保持 `"INFO"` 或 `"WARNING"` 减少日志写入。
+- 默认 **INFO**；配置文件增加 **`log_level`** 字段（`agent_config.json` / `host_config.json` 通用），取值 `"DEBUG" / "INFO" / "WARNING" / "ERROR"`。
+- 示例：`"log_level": "DEBUG"` 用于排查连接/协议问题；生产环境保持 `"INFO"` 或 `"WARNING"`。
 - 未配置时默认 `"INFO"`。
 
-### 12.3 日志文件
+### 11.3 日志文件
 
 | 端 | 文件 | 说明 |
 |----|------|------|
-| 采集节点 | `logs/node.log` | 采集器/Server/广播器日志 |
-| 副机端 | `logs/client.log` | 本机采集 + 节点连接日志，带 `node_id`/`alias` 标签 |
-| 监控主机 | `logs/host.log` | 所有节点连接日志，带 `node_id`/`alias` 标签区分 |
+| 副机端 Agent | `logs/agent.log` | 采集器/WS/REST/广播器日志 |
+| 主机端 Host | `logs/host.log` | 所有 Agent 连接日志，带 `node_id`/`alias` 标签 |
 
 ```python
-# 每节点连接日志带标签
+# 每 Agent 连接日志带标签
 self.log = logging.getLogger(f"host.node.{self.node_id[:8]}")
 self.log.info(f"{self.alias} 已连接")
 ```
 
 ---
 
-## 13. 单实例与配置持久化
+## 12. 单实例与配置持久化
 
-### 13.1 单实例检测
+### 12.1 单实例检测
 
 Windows 命名互斥体（`pywin32`）：
 
@@ -1304,25 +1053,26 @@ def ensure_single_instance(name):
     return mutex  # 保持引用防止释放
 ```
 
-- 采集节点：`name="Global\\PC_Monitor_Node"`
-- 副机端：`name="Global\\PC_Monitor_Client"`
-- 监控主机：`name="Global\\PC_Monitor_Host"`
+- 副机端 Agent：`name="Global\\PC_Monitor_Agent"`
+- 监控主机 Host：`name="Global\\PC_Monitor_Host"`
 
 已有实例则提示并退出，避免端口/资源冲突。
 
-### 13.2 配置持久化
+> **双端共存（§16.5.3）**：Agent 与 Host 的互斥体名不同，**允许在同一台电脑上同时运行**——此时该电脑既是被监控机（Agent 后台服务）也是监控机（Host 前台大屏），互不干扰。
 
-**采集节点 `node_config.json`**：
+### 12.2 配置持久化
+
+**副机端 `agent_config.json`**（由 v4.0 `node_config.json` 迁移）：
 
 ```json
 {
-  "tcp_port": 12345,
+  "http_port": 12345,
   "udp_port": 12346,
   "token": "auto_generated_or_custom",
   "use_multicast": false,
   "preferred_iface": "",                 // 指定网卡名，空则自动选取
   "gpu_index": 0,                        // 多卡时指定
-  "log_level": "INFO",                   // 日志级别：DEBUG/INFO/WARNING/ERROR（§12.2）
+  "log_level": "INFO",                   // 日志级别（§11.2）
   "collectors": {"fps": "presentmon", "gpu": true, "temperature": true}
 }
 ```
@@ -1339,56 +1089,40 @@ def ensure_single_instance(name):
   "view_mode": "auto",                   // auto/single/multi/overview
   "max_overview_cards": 16,              // 概览模式最大卡片数
   "max_cards_per_row": 4,                // 每行卡片数
-  "udp_port": 12346,                     // 心跳监听端口
-  "log_level": "INFO",                   // 日志级别（§12.2）
-  "gui_refresh_interval": 1.0,           // GUI 刷新间隔秒（§20.10，预留）
+  "udp_port": 12346,                     // 心跳监听端口（可选发现）
+  "log_level": "INFO",                   // 日志级别（§11.2）
+  "gui_refresh_interval": 1.0,           // GUI 刷新间隔秒（§19.8，预留）
+  "alert_popup": true,                   // 红线告警托盘弹窗开关（第四篇）
+  "language": "zh_CN",                   // 界面语言（第三篇）
   "last_selected_node": "a1b2c3"
 }
 ```
 
-**副机端 `client_config.json`**：
-
-```json
-{
-  "nodes": [
-    {"node_id":"a1b2c3","ip":"192.168.1.100","port":12345,
-     "token":"abc","alias":"游戏主机"}
-  ],
-  "window_geometry": {"x":100,"y":100,"w":1000,"h":700},
-  "udp_port": 12346,
-  "log_level": "INFO",                   // 日志级别（§12.2）
-  "gui_refresh_interval": 1.0,           // GUI 刷新间隔秒（§20.10，预留）
-  "last_selected_node": "localhost"
-}
-```
-
-> 副机端仅保存节点列表摘要（IP/端口/别名/状态），**不存储详细历史数据**。
+> Host 端保存 Agent 列表（IP/端口/别名/token）、窗口布局、视图模式、告警配置、语言。
 > `node_id` 生成：`hashlib.md5(f"{ip}:{port}".encode()).hexdigest()[:8]`；本机节点固定 `node_id="localhost"`。
 
 ---
 
-## 14. 开机自启动管理
+## 13. 开机自启动管理
 
-### 14.1 命令行参数
+### 13.1 命令行参数
 
 | 程序 | 参数 | 作用 |
 |------|------|------|
-| `node/`（`python -m node`） | `--install-startup` | 安装节点开机自启（需管理员） |
-| `node/`（`python -m node`） | `--remove-startup` | 卸载节点开机自启 |
-| `client/`（`python -m client`） | `--install-startup` | 安装副机开机自启（无需管理员） |
-| `client/`（`python -m client`） | `--remove-startup` | 卸载副机开机自启 |
-| `host/`（`python -m host`） | `--install-startup` | 安装主机开机自启（无需管理员） |
-| `host/`（`python -m host`） | `--remove-startup` | 卸载主机开机自启 |
+| `agent/`（`python -m agent`） | `--install-startup` | 安装 Agent 开机自启（需管理员） |
+| `agent/`（`python -m agent`） | `--remove-startup` | 卸载 Agent 开机自启 |
+| `host/`（`python -m host`） | `--install-startup` | 安装 Host 开机自启（无需管理员） |
+| `host/`（`python -m host`） | `--remove-startup` | 卸载 Host 开机自启 |
 
-### 14.2 采集节点：schtasks 计划任务（需管理员）
+### 13.2 副机端 Agent：schtasks 计划任务（需管理员）
 
 ```python
-def install_node_startup():
+def install_agent_startup():
     exe = sys.executable.replace("python.exe", "pythonw.exe")  # 无控制台窗口
-    script = os.path.abspath("node/__main__.py")
+    script = os.path.abspath("agent/__main__.py")
     cmd = f'"{exe}" "{script}"'
     subprocess.run([
-        "schtasks", "/Create", "/TN", "PC_Monitor_Node",
+        "schtasks", "/Create", "/TN", "PC_Monitor_Agent",
         "/TR", f'"{cmd}"',
         "/SC", "ONLOGON",      # 登录时触发
         "/RL", "HIGHEST",      # 最高权限（满足温度/帧率采集）
@@ -1398,19 +1132,11 @@ def install_node_startup():
 
 > `/RL HIGHEST` 使计划任务以管理员权限静默运行，满足 LibreHardwareMonitor/PresentMon 的提权需求；`pythonw.exe` 保证无控制台窗口弹出。
 
-### 14.3 副机端 / 监控主机：注册表 Run 项（无需管理员）
+### 13.3 监控主机 Host：注册表 Run 项（无需管理员）
 
 ```python
 import winreg
-def install_client_startup():    # 副机端
-    exe = sys.executable.replace("python.exe", "pythonw.exe")
-    script = os.path.abspath("client/__main__.py")
-    key = winreg.HKEY_CURRENT_USER
-    sub = r"Software\Microsoft\Windows\CurrentVersion\Run"
-    with winreg.OpenKey(key, sub, 0, winreg.KEY_SET_VALUE) as k:
-        winreg.SetValueEx(k, "PC_Monitor_Client", 0, winreg.REG_SZ, f'"{exe}" "{script}"')
-
-def install_host_startup():      # 监控主机
+def install_host_startup():
     exe = sys.executable.replace("python.exe", "pythonw.exe")
     script = os.path.abspath("host/__main__.py")
     key = winreg.HKEY_CURRENT_USER
@@ -1419,29 +1145,28 @@ def install_host_startup():      # 监控主机
         winreg.SetValueEx(k, "PC_Monitor_Host", 0, winreg.REG_SZ, f'"{exe}" "{script}"')
 ```
 
-### 14.4 卸载
+### 13.4 卸载
 
-- 节点：`schtasks /Delete /TN PC_Monitor_Node /F`
-- 副机端：删除注册表 `Run` 项下的 `PC_Monitor_Client` 值。
-- 主机端：删除注册表 `Run` 项下的 `PC_Monitor_Host` 值。
+- Agent：`schtasks /Delete /TN PC_Monitor_Agent /F`
+- Host：删除注册表 `Run` 项下的 `PC_Monitor_Host` 值。
 
 ---
 
-## 15. 异常处理与降级策略
+## 14. 异常处理与降级策略
 
 | 场景 | 处理 |
 |------|------|
 | 单采集器异常 | 捕获日志，字段 N/A，不影响其他采集器 |
-| GPU 进程显存为 None | 判空跳过，不影响整体 GPU 采集（§9.3.4） |
-| 单节点断开 | 仅移除该连接，不影响其他节点；该节点标记离线并独立重连 |
+| GPU 进程显存为 None | 判空跳过，不影响整体 GPU 采集（§8.3.4） |
+| 单 Agent 断开 | 仅移除该连接，不影响其他 Agent；该 Agent 标记离线并独立重连 |
 | 端口占用 | 启动检测，提示并退出 |
 | 温度/帧率不可用 | 静默 N/A，不弹窗 |
 | 损坏 JSON 帧 | 丢弃该帧，等下一帧 |
-| 鉴权失败 | 关闭连接，客户端标记"鉴权失败" |
+| 鉴权失败 | 关闭 WS 连接（close 1008），Host 标记"鉴权失败" |
 | 已有实例运行 | 提示并退出 |
-| UDP 广播/监听失败 | 记录日志，客户端可手动连接 |
+| UDP 广播/监听失败 | 记录日志，Host 可手动连接 |
 
-### 15.1 阈值变色（三级）
+### 14.1 阈值变色（三级）
 
 | 指标 | 正常（绿） | 警告（橙） | 危险（红） |
 |------|-----------|-----------|-----------|
@@ -1457,15 +1182,15 @@ def install_host_startup():      # 监控主机
 
 ---
 
-## 16. 性能兜底机制
+## 15. 性能兜底机制
 
-### 16.1 目标与降级
+### 15.1 目标与降级
 
 监控程序自身 CPU 占用应 **< 2%**。超限时自动降级：
 
 ```python
 class SelfMonitor:
-    """自监控：检测本程序 CPU 占用，超限自动降级（节点端 / 副机本机 / 主机本机共用）"""
+    """自监控：检测本程序 CPU 占用，超限自动降级（Agent / Host 本机共用）"""
     def __init__(self, aggregator, collectors, interval=10.0):
         self.aggregator = aggregator
         self.collectors = collectors
@@ -1501,75 +1226,97 @@ class SelfMonitor:
 
 ---
 
-## 17. 依赖清单与部署
+## 16. 依赖清单与部署
 
-### 17.1 requirements.txt
+### 16.1 依赖清单（v5.0 · 双端分离，拆分安装）
+
+> **依赖归属**：`common/` 为共用代码（协议/采集器/工具），其依赖（psutil、wmi、pywin32 等）Agent 与 Host 均需要。依赖已**拆分为三份文件**，按角色安装（见 §16.5 打包约束）。
+
+**安装方式**：
+
+```bash
+# 一键安装全部（开发/调试）
+pip install -r requirements-agent.txt -r requirements-host.txt
+
+# 仅 Agent（被监控机）：共用 + Agent 依赖
+pip install -r requirements-agent.txt
+
+# 仅 Host（监控机）：共用 + Host 依赖
+pip install -r requirements-host.txt
+```
+
+**`requirements-common.txt`**（共用，两端都要）：
 
 ```
-# 核心采集
 psutil>=5.9.0
 py-cpuinfo>=9.0.0
 nvidia-ml-py>=11.5.0   # GPU（import pynvml；NVML 随 NVIDIA 驱动自带，无需 CUDA）
 wmi>=1.5.1
 pywin32>=305
-
-# GUI
-PyQt5>=5.15.0
-
-# 帧率降级（DXGI 截帧；仅 Windows）
-dxcam>=0.0.5           # DXGI 桌面捕获，pip 直装，无需 C++ 编译
-numpy>=1.24.0          # 帧差分计算
-
-# 网络（多网卡 IP 选取 / mDNS 零配置发现）
-netifaces>=0.11        # 无 C++ 编译器时安装失败，代码有 socket UDP 兜底
-zeroconf>=0.132.0      # mDNS/Bonjour 自动发现（§2.5.1）；未安装时自动降级仅 UDP 广播
-
-# 可选
-pyadl>=0.1             # AMD GPU（仅使用率/温度/频率，无显存进程/功耗）
+numpy>=1.24.0           # 帧差分计算（dxcam 依赖）
+dxcam>=0.0.5            # DXGI 截帧降级（仅 Windows）
+netifaces>=0.11         # 多网卡 IP（无 MSVC 时自动降级 UDP 兜底）
+zeroconf>=0.132.0       # mDNS 自动发现（未安装时降级仅 UDP 广播）
+pyadl>=0.1              # AMD GPU（可选，实验性）
 ```
+
+**`requirements-agent.txt`**（Agent 必需）：
+
+```
+-r requirements-common.txt
+websockets>=12.0        # Agent WebSocket 服务端
+aiohttp>=3.9.0          # Agent HTTP/REST 服务端（与 WS 共用端口）
+```
+
+**`requirements-host.txt`**（Host 必需）：
+
+```
+-r requirements-common.txt
+PyQt5>=5.15.0           # Host GUI（原生桌面，见 §6.2）
+websocket-client>=1.7   # Host WS 客户端
+requests>=2.31.0        # Host REST API 客户端
+```
+
+> **打包裁剪原则（依赖粒度）**：Agent 发布包**不包含** PyQt5/websocket-client/requests（后台无 GUI）；Host 发布包**不包含** aiohttp/websockets（仅作客户端，用更轻的 `websocket-client` + `requests`）。共用依赖（psutil 等）两端各自打包进各自的产物，互不共用安装目录。双端分离打包的强制规定见 §16.5。
 
 **依赖说明**：
 
-| 包 | 用途 | 平台 | 备注 |
-|----|------|------|------|
-| `nvidia-ml-py` | NVIDIA GPU（pynvml） | 全平台 | PyPI 包名 `nvidia-ml-py`，`import pynvml`；需 NVIDIA 驱动 ≥ 350。**注意 ≥13 版 `usedGpuMemory` 可能返回 None，需判空** |
-| `dxcam` | DXGI 帧率降级 | **仅 Windows** | 无需 C++ 编译，pip 直装；全屏独占下失败 |
-| `numpy` | DXGI 帧差分 | 全平台 | dxcam 依赖 |
-| `netifaces` | 多网卡 IP | 全平台 | 需 C++ 编译器（MSVC）；否则安装失败，`common/utils.py` 有 socket UDP 兜底 |
-| `zeroconf` | mDNS 零配置发现 | 全平台 | 未安装/不可用时自动降级，仅保留 UDP 广播心跳 |
-| `pyadl` | AMD GPU | 全平台 | 仅支持使用率/温度/频率 |
-| PresentMon.exe | 帧率（主方案） | **仅 Windows** | 非 pip 包，手动下载放入 `tools/`（§20.6）；需管理员 |
+| 包 | 归属 | 用途 | 平台 | 备注 |
+|----|------|------|------|------|
+| `websockets` | Agent | WebSocket 服务端 | 全平台 | 也可用 aiohttp 内置 WS 实现 |
+| `aiohttp` | Agent | HTTP/REST 服务端 | 全平台 | 提供 `/api/*` 与可选的 WS |
+| `PyQt5` | Host | 原生 GUI | 全平台 | 主窗口/详情面板/概览/告警托盘 |
+| `websocket-client` | Host | WS 客户端 | 全平台 | 订阅 Agent 推送 |
+| `requests` | Host | REST 客户端 | 全平台 | 调用 `/api/*`（健康/配置/扫描） |
+| `nvidia-ml-py` | 共用 | NVIDIA GPU（pynvml） | 全平台 | 需驱动 ≥ 350；**≥13 版 `usedGpuMemory` 可能返回 None，需判空** |
+| `dxcam` | 共用 | DXGI 帧率降级 | **仅 Windows** | 全屏独占下失败 |
+| `netifaces` | 共用 | 多网卡 IP | 全平台 | 无 MSVC 时自动降级 socket UDP |
+| `zeroconf` | 共用 | mDNS 零配置发现 | 全平台 | 未安装/不可用时自动降级 |
+| `pyadl` | 共用 | AMD GPU | 全平台 | 实验性，仅使用率/温度/频率 |
 
-> **netifaces 安装失败处理**：若环境无 MSVC，跳过即可，`common/utils.py` 自动降级为 UDP 连接探测法获取出口 IP，功能正常。
+> **pyadl 可用性（明确）**：`pyadl` 多年未更新，基于旧版 ADL/ADLX SDK，**在较新 AMD 驱动上可能完全失效**。采集器需捕获初始化失败，整体降级为 N/A；依赖置为可选。
 
-> **pyadl 可用性（明确）**：`pyadl` 已多年未更新（最后版本 2016），基于旧版 ADL/ADLX SDK，
-> **在较新 AMD 驱动上可能完全失效**（`ADLManager.getInstance()` 抛错或返回空）。因此 **AMD 支持为实验性**：
-> - 采集器需捕获 `pyadl` 初始化失败，整体降级为 N/A，不影响其他采集器。
-> - 依赖在 requirements.txt 中**置为可选**（已注释标注），仅在 AMD 机器且需要 GPU 数据时安装。
-> - NVIDIA（主方案）与 Intel（降级 N/A）不受影响。
-
-### 17.2 防火墙放行
+### 16.2 防火墙放行
 
 PowerShell（管理员）：
 
 ```powershell
-New-NetFirewallRule -DisplayName "PC_Monitor_TCP" -Direction Inbound -Protocol TCP -LocalPort 12345 -Action Allow -Profile Private
-New-NetFirewallRule -DisplayName "PC_Monitor_UDP" -Direction Inbound -Protocol UDP -LocalPort 12346 -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "PC_Monitor_HTTP" -Direction Inbound -Protocol TCP -LocalPort 12345 -Action Allow -Profile Private
+New-NetFirewallRule -DisplayName "PC_Monitor_UDP"  -Direction Inbound -Protocol UDP -LocalPort 12346 -Action Allow -Profile Private
 ```
 
-### 17.3 部署步骤
+### 16.3 部署步骤
 
 1. 装 Python 3.10+。
-2. `pip install -r requirements.txt`。
+2. **按角色装依赖**：被监控机 `pip install -r requirements-agent.txt`；监控机 `pip install -r requirements-host.txt`（或开发机一键全装，见 §16.1）。
 3. （可选）下载 PresentMon.exe → `tools/`。
 4. （可选）安装 LibreHardwareMonitor（温度/功耗）。
 5. 防火墙放行 12345/12346。
-6. **采集节点**以管理员运行 `node/`（`python -m node`）（温度/帧率需提权），生产环境用 `pythonw.exe` 或注册服务。
-7. **副机端**运行 `client/`（`python -m client`）（本机仪表盘 + 节点管理，无需提权）。
-8. **监控主机**运行 `host/`（`python -m host`）（集中监控大屏，无需提权）。
-9. （可选）`python -m node --install-startup` / `python -m client --install-startup` / `python -m host --install-startup` 装开机自启。
+6. **副机端 Agent** 以管理员运行 `agent/`（`python -m agent`）（温度/帧率需提权），生产环境用 `pythonw.exe` 或注册服务；可选 `python -m agent --gui` 带本机仪表盘。
+7. **主机端 Host** 运行 `host/`（`python -m host`）（集中监控大屏，无需提权）。
+8. （可选）`python -m agent --install-startup` / `python -m host --install-startup` 装开机自启。
 
-### 17.4 权限说明
+### 16.4 权限说明
 
 | 功能 | 需管理员 |
 |------|---------|
@@ -1577,153 +1324,190 @@ New-NetFirewallRule -DisplayName "PC_Monitor_UDP" -Direction Inbound -Protocol U
 | 温度/功耗（LibreHardwareMonitor） | **是** |
 | PresentMon ETW 帧率 | **是** |
 | 系统命令 `ping` 解析 | 否 |
-| 节点开机自启（schtasks /RL HIGHEST） | **是**（安装时） |
-| 副机/主机开机自启（注册表 Run） | 否 |
+| Agent 开机自启（schtasks /RL HIGHEST） | **是**（安装时） |
+| Host 开机自启（注册表 Run） | 否 |
+
+### 16.5 打包与分发约束（强制）
+
+> **核心原则**：Agent（服务端）和 Host（客户端）是**两个独立的软件产品**，必须**独立构建、独立打包、独立分发、独立部署**。严禁将两者合并为一个单一安装包或单一可执行文件。本节为**强制规定**，打包/发布必须遵守。
+
+#### 16.5.1 强制规定
+
+| 维度 | 副机端 Agent | 主机端 Host |
+|------|--------------|-------------|
+| **构建系统** | PyInstaller 独立 spec 配置（`agent.spec`） | PyInstaller 独立 spec（`host.spec`） |
+| **输出产物** | 独立可执行文件 / 安装包（如 `PC-Monitor-Agent-Setup.exe`） | 独立可执行文件 / 安装包（如 `PC-Monitor-Host-Setup.exe`） |
+| **安装目录** | 默认 `C:\Program Files\PC-Monitor\Agent\` | 默认 `C:\Program Files\PC-Monitor\Host\`（**不与 Agent 混装**） |
+| **运行方式** | 后台服务 / 系统托盘，无主界面（可选原生 PyQt5 本机仪表盘） | 前台桌面应用程序（PyQt5），独立进程 |
+| **配置文件** | 独立 `agent_config.json`（存在 Agent 目录） | 独立 `host_config.json`（存在 Host 目录） |
+| **日志目录** | `logs/agent.log` | `logs/host.log` |
+
+#### 16.5.2 严禁行为（红线）
+
+- ❌ **禁止** 将 Agent 和 Host 打包到同一个 `.exe` 或同一个安装包中。
+- ❌ **禁止** 共用同一份 `config.json` 或同一套资源文件。
+- ❌ **禁止** 通过命令行参数在同一个 Python 进程中同时启动 Agent 和 Host（`python -m agent` 与 `python -m host` **必须为两个独立进程入口**）。
+- ❌ **禁止** 在 Host 安装包中内嵌 Agent 可执行文件，或反过来。
+
+#### 16.5.3 产出物与发布规范
+
+**独立发布渠道**
+
+| 发布包 | 命名规范 |
+|--------|----------|
+| Agent | `PC-Monitor-Agent-v5.0-win-x64.exe` |
+| Host | `PC-Monitor-Host-v5.0-win-x64.exe` |
+
+- 两者**分别提供下载链接**，用户按需安装：被监控机装 **Agent**，监控机装 **Host**。
+
+**安装互不干扰**
+
+- 安装路径允许用户自定义，但**默认路径必须分离**（Agent → `...\Agent\`，Host → `...\Host\`）。
+- 注册表项、计划任务、快捷方式均需带**角色后缀**（如 `PC_Monitor_Agent`、`PC_Monitor_Host`），避免互相覆盖。
+- **单实例互斥独立**：
+  - Agent 单实例互斥体名：`Global\PC_Monitor_Agent`
+  - Host 单实例互斥体名：`Global\PC_Monitor_Host`
+  - 两者互不冲突，**允许在同一台电脑上同时运行**（此时该电脑既是被监控机也是监控机）。
+
+#### 16.5.4 开发期与打包期检查清单
+
+- [ ] 依赖**明确区分** Agent 必需与 Host 必需：`requirements-common.txt`（共用）/ `requirements-agent.txt` / `requirements-host.txt`（§16.1）。
+- [ ] 打包脚本（如 `build_agent.py` 与 `build_host.py`）**分离**，各自独立触发。
+- [ ] CI/CD 流水线**分别产出两个制品**，发布到不同目录/标签。
+- [ ] 文档明确说明"**双端分离，按需安装**"，并列明各自系统要求（Agent 建议管理员、Host 普通用户即可）。
 
 ---
 
-## 18. 目录结构规划
+## 17. 目录结构规划
 
 ```
 远程监控电脑状态/
 ├── docs/                         # 📁 文档归档
-│   ├── 技术文档.md
-│   └── 需求增强说明.md
 ├── tests/                        # 📁 测试脚本
 │   ├── test_p0.py                # 自检（帧协议/鉴权/链路/采集器/评分/连接码等）
-│   ├── test_p4.py                # P4 集成测试（真实双端/断线重连/双客户端/帧率降级）
-│   └── test_connect.py           # 双端连接端到端测试
-├── requirements.txt
-├── start_node.bat               # 节点启动批处理（菜单：启动/装自启/卸自启）
-├── start_client.bat             # 副机启动批处理（菜单：启动/装自启/卸自启）
-├── start_host.bat               # 主机启动批处理（菜单：启动/装自启/卸自启）
-├── common/                      # 公共模块
+│   ├── test_connect.py           # 双端连接端到端测试（v5.0 弃用，见 test_api）
+│   ├── test_p4.py                # P4 集成测试（v5.0 弃用，见 test_api）
+│   └── test_api.py               # （v5.0）REST + WebSocket 端到端
+├── requirements.txt               # 依赖清单（含拆分安装指南，见 §16.1）
+├── requirements-common.txt        # 共用依赖（Agent + Host）
+├── requirements-agent.txt         # Agent 额外依赖（websockets/aiohttp）
+├── requirements-host.txt          # Host 额外依赖（PyQt5/websocket-client/requests）
+├── build_agent.py                 # Agent 独立打包脚本（§16.5）
+├── build_host.py                  # Host 独立打包脚本（§16.5）
+├── agent.spec                     # PyInstaller Agent 独立 spec
+├── host.spec                      # PyInstaller Host 独立 spec
+├── start_agent.bat               # Agent 启动批处理（菜单：启动/装自启/卸自启）
+├── start_host.bat                # Host 启动批处理（菜单：启动/装自启/卸自启）
+├── common/                       # 公共模块
 │   ├── __init__.py
-│   ├── protocol.py              # send_frame/recv_frame 帧格式
+│   ├── protocol.py              # WS 消息类型 / REST 封装（替代 v4.0 send_frame）
 │   ├── utils.py                 # 单位换算、IP 获取、网关 ping、端口检测、连接串解析等
 │   ├── logger.py                # RotatingFileHandler 日志
 │   ├── single_instance.py       # 单实例检测（命名互斥体）
 │   ├── startup.py               # 开机自启安装/卸载
 │   ├── quality.py               # 网络质量评分器（滑动平均）
 │   ├── lhm.py                   # LibreHardwareMonitor 温度读取
-│   ├── connect_code.py          # 连接码生成/解析（§23.2）、.pcm 导入导出（§23.4）
-│   ├── connect_dialog.py        # 连接码/剪贴板/首屏引导对话框（§2.5，Qt 复用）
-│   └── theme.py                 # 深色主题/变色规则 + 问号按钮移除（防闪退）
-├── node/                        # 采集节点模块
-│   ├── __init__.py / __main__.py / main.py   # python -m node 入口
-│   ├── config.py                # node_config.json 读写
-│   ├── tcp_server.py            # TCP Server（多客户端+鉴权+去重计数+_ready 门控）
-│   ├── discovery.py             # UDP 广播器 + mDNS 注册/发现（§5.6/§23.1）
-│   ├── aggregator.py            # 数据聚合器
-│   ├── fake_data.py             # 假数据（开发/测试用）
-│   └── collectors/
-│       ├── base.py
-│       ├── cpu_collector.py     # CPU + LHM 温度/功耗
-│       ├── ram_collector.py
-│       ├── gpu_collector.py     # NVML/ADL/none 三后端（热点温度 LHM 回退）
-│       ├── disk_collector.py    # 盘符 WMI 映射 + 队列深度 + LHM 温度
-│       ├── net_collector.py
-│       ├── net_quality_collector.py
-│       ├── proc_collector.py
-│       ├── sys_collector.py
-│       └── fps_collector.py     # PresentMon + DXGI 降级 + FrameStats
-├── client/                      # 副机端模块
-│   ├── __init__.py / __main__.py / main.py   # python -m client 入口
-│   ├── config.py                # client_config.json 读写
-│   ├── connection.py            # NodeConnection（复用 host.connection）
-│   ├── discovery.py             # UDP 心跳监听 + mDNS 发现（复用 node.discovery）
-│   ├── local_node.py            # 本机节点（复用 host.local_node）
-│   ├── client_main.py           # 独立脚本入口（等价 python -m client）
+│   ├── connect_code.py          # 连接码生成/解析、.pcm 导入导出
+│   ├── connect_dialog.py        # 连接码/剪贴板/首屏引导对话框
+│   └── theme.py                 # 深色主题/变色规则
+├── agent/                        # 副机端模块（服务端）
+│   ├── __init__.py / __main__.py / main.py   # python -m agent 入口
+│   ├── config.py                # agent_config.json 读写
+│   ├── http_server.py           # REST API（/api/health|nodes|scan|config）
+│   ├── websocket_server.py      # WS 服务端（/ws 多订阅推送 + PING 处理）
+│   ├── discovery.py             # UDP/mDNS 广播与注册（agent_heartbeat，自实现）
+│   ├── aggregator.py            # 数据聚合器（最新帧缓存）
+│   ├── self_monitor.py          # 性能兜底（复用 common.self_monitor）
 │   └── gui/
-│       ├── main_window.py       # 主窗口（本机仪表盘 + 节点管理器）
-│       ├── local_panel.py       # 本机仪表盘面板（连接信息可复制区）
-│       ├── node_manager.py      # 节点管理器（摘要列表 + 六种添加入口）
-│       └── discovery_dialog.py  # 自动发现弹窗（复用 host.gui）
-├── host/                        # 监控主机模块
+│       ├── __init__.py
+│       └── main_window.py       # 本机仪表盘（AgentDashboardWindow，--gui 模式）
+├── host/                        # 主机端模块（原生 PyQt5 前端）
 │   ├── __init__.py / __main__.py / main.py   # python -m host 入口
 │   ├── config.py                # host_config.json 读写
-│   ├── connection.py            # NodeConnection（多节点连接+重连+ping/loss）
-│   ├── discovery.py             # UDP 心跳监听（复用 node.discovery）
-│   ├── local_node.py            # 本机节点（本地采集器，不经网络）
-│   ├── self_monitor.py          # 性能兜底（CPU 预热 + 连续阈值降级）
+│   ├── connection.py            # AgentConnection（WebSocket 客户端，v5.0）
+│   ├── discovery.py             # UDP/mDNS 监听与发现
+│   ├── local_node.py            # 本机节点（本地采集器，可选）
+│   ├── self_monitor.py          # 性能兜底（转发 common.self_monitor）
+│   ├── alerts.py                # 红线告警引擎（第四篇）
 │   └── gui/
-│       ├── main_window.py       # 主窗口（自适应布局 + 六种添加入口）
+│       ├── main_window.py       # 主窗口（自适应布局 + 添加入口）
 │       ├── node_list.py         # 左侧节点列表（右键菜单）
 │       ├── detail_panel.py      # 右侧详情面板
 │       ├── overview_grid.py     # 概览卡片网格
-│       └── discovery_dialog.py  # 自动发现弹窗（多选 + 一键添加本机）
+│       └── discovery_dialog.py  # 自动发现弹窗（多选 + 一键添加）
+├── i18n/                        # 📁 多语言资源
+│   ├── zh_CN.json
+│   └── en.json
 ├── tools/
 │   └── PresentMon.exe           # 帧率工具（需手动下载）
 └── logs/                        # 运行日志（自动创建）
-    ├── node.log
-    ├── client.log
+    ├── agent.log
     └── host.log
 ```
 
-> **采集器复用**：`node/collectors/` 与副机/主机本机节点共用同一套采集器代码（本机节点直接 import `node.collectors`），保证本机与远程节点数据同构。
+> **Host GUI 说明（§6.2）**：Host 端采用**原生 PyQt5**，打包为独立 exe。`host/gui/` 为 PyQt5 实现，网络层（未来 WS 客户端）与 GUI 解耦，仅通过信号/回调供界面消费。若未来确需 Web 化，可整体替换 `host/gui/` 为 Electron 渲染层，不影响网络层与告警/采集逻辑。
+
+> **采集器复用**：`agent/collectors/` 与 Host 本机节点共用同一套采集器代码（本机节点直接 import `agent.collectors`），保证本机与远程节点数据同构。
 >
-> **入口方式**：主入口统一 `python -m node` / `python -m client` / `python -m host`（bat 菜单调用）；`client/`（`python -m client`） 保留为独立脚本等价入口。
+> **入口方式**：主入口统一 `python -m agent` / `python -m host`（bat 菜单调用）。
 >
-> **mDNS/便捷连接扩展说明**：零配置发现逻辑（`zeroconf`）在 `node/discovery.py`（注册端）与 `client/discovery.py` / `host/discovery.py`（发现端）中扩展，**不新增目录**；连接码/二维码/.pcm/剪贴板解析统一收敛到 `common/connect_code.py`，两端 GUI 复用 `connect_dialog.py`。
+> **已清理**：v4.0 的 `node/`（采集节点）、`client/`（副机端）目录已在 v5.0 迁移中删除——采集器迁至 `common/collectors/`，采集+推送能力并入 `agent/`，副机端本机仪表盘并入 `agent/gui/`。
 
----
+## 18. 启动脚本与批处理
 
-## 19. 启动脚本与批处理
-
-### 19.1 start_node.bat（菜单式）
+### 18.1 start_agent.bat（菜单式）
 
 ```bat
 @echo off
 chcp 65001 >nul
+title 副机端 Agent（服务端 · 后台）菜单
 :menu
 cls
-echo ============ 采集节点（Node · 无界面） ============
-echo （普通权限可运行基本采集；温度/帧率建议管理员）
-echo 1. 启动节点（建议管理员，后台运行）
-echo 2. 安装开机自启动（需管理员，schtasks /RL HIGHEST）
-echo 3. 卸载开机自启动
-echo 0. 退出
+echo ============================================
+echo        副机端 Agent（采集 + WS/REST 服务）
+echo        （普通权限可运行基本采集；温度/帧率建议管理员）
+echo ============================================
+echo  1. 启动 Agent 后台服务（无界面，建议管理员）
+echo  2. 启动 Agent + 本机仪表盘（--gui，PyQt5）
+echo  3. 安装开机自启动（需管理员，schtasks /RL HIGHEST）
+echo  4. 卸载开机自启动
+echo  0. 退出
+echo ============================================
 set /p choice=请选择:
-if "%choice%"=="1" python -m node
-if "%choice%"=="2" python -m node --install-startup
-if "%choice%"=="3" python -m node --remove-startup
+
+if "%choice%"=="1" (
+    python -m agent
+    goto end
+)
+if "%choice%"=="2" (
+    python -m agent --gui
+    goto end
+)
+if "%choice%"=="3" (
+    python -m agent --install-startup
+    goto end
+)
+if "%choice%"=="4" (
+    python -m agent --remove-startup
+    goto end
+)
 if "%choice%"=="0" exit
+echo 无效选择，请重新输入。
+:end
 pause
 goto menu
 ```
 
-### 19.2 start_client.bat（菜单式）
+### 18.2 start_host.bat（菜单式）
 
 ```bat
 @echo off
 chcp 65001 >nul
 :menu
 cls
-echo ============ 副机端（Client · 本机仪表盘 + 节点管理） ============
-echo （无需管理员权限，普通权限即可运行）
-echo 1. 启动副机端
-echo 2. 安装开机自启动（注册表 Run，无需管理员）
-echo 3. 卸载开机自启动
-echo 0. 退出
-set /p choice=请选择:
-if "%choice%"=="1" python -m client
-if "%choice%"=="2" python -m client --install-startup
-if "%choice%"=="3" python -m client --remove-startup
-if "%choice%"=="0" exit
-pause
-goto menu
-```
-
-### 19.3 start_host.bat（菜单式）
-
-```bat
-@echo off
-chcp 65001 >nul
-:menu
-cls
-echo ============ 监控主机（Host · 集中监控大屏） ============
+echo ============ 主机端 Host（集中监控大屏 · 纯前端） ============
 echo （无需管理员权限；仅当需要查看本机温度/帧率时才建议以管理员运行）
-echo 1. 启动主机
+echo 1. 启动 Host
 echo 2. 安装开机自启动（注册表 Run，无需管理员）
 echo 3. 卸载开机自启动
 echo 0. 退出
@@ -1736,17 +1520,17 @@ pause
 goto menu
 ```
 
-> 节点 .bat 提示"需管理员"：可检测当前是否管理员，非则提示右键以管理员运行。安装 schtasks 必须管理员。
+> Agent .bat 提示"需管理员"：可检测当前是否管理员，非则提示右键以管理员运行。安装 schtasks 必须管理员。
 
 ---
 
-## 20. UI 交互细节与边界场景补充
+## 19. UI 交互细节与边界场景补充
 
-> 本章针对 GUI 交互、多节点语义、性能兜底、网络选择等边界场景给出明确规范，避免实现时产生歧义。
+> 本章针对 GUI 交互、多节点语义、性能兜底、网络选择等边界场景给出明确规范。多数沿用 v4.0，仅将"节点"替换为"Agent"、网络通道替换为 WebSocket/REST。
 
-### 20.1 节点列表项显示规范
+### 19.1 节点列表项显示规范
 
-**列表项布局**（副机端节点管理器 / 主机端多机模式左侧列表 / 概览模式卡片头部通用）：
+**列表项布局**（Host 左侧列表 / 概览模式卡片头部通用）：
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -1758,12 +1542,13 @@ goto menu
 - **左侧**：别名（大号粗体）+ 换行 IP 地址 + 状态指示点（● 绿 已连接 / ● 橙 重连中 / ● 红 离线/鉴权失败）。
 - **右侧**：两个小标签（`QLabel` 圆角背景）：
   - `RTT 0.45ms`——当前 RTT，颜色随阈值变色（<5ms 绿 / 5~20ms 橙 / >20ms 红）。**本机节点固定显示 `RTT 0.00ms`（绿）**。
-  - `98 优秀`——网络评分 + 等级，评分数字随阈值变色。**本机节点评分统一显示为 `—`（长横杠，灰色）**：本机数据不经过网络，无实际延迟/丢包可测，评分无意义，故以 `—` 占位而非 100，避免误导用户以为"网络质量满分"。**（选型说明：也可显示 `100 优秀`（到自身延迟为 0），但需全局统一；本方案采用 `—`，实现时在 theme.py 中统一处理。）**
+  - `98 优秀`——网络评分 + 等级，评分数字随阈值变色。**本机节点评分统一显示为 `—`（长横杠，灰色）**（本机数据不经过网络，评分无意义）。
+- **本机节点**：默认关闭（§6.5），仅在用户手动启用后出现在列表顶部并显示 `[本机]` 标识。
 - **选中高亮**：选中某节点，该列表项背景高亮（`#2d2d30` + 左侧 2px 蓝色竖条 `#007acc`），右侧详情面板切换为该节点数据。选中状态在数据更新、断线重连过程中持续保持。
-- **实时更新**：列表项摘要（RTT/评分/状态）随每秒数据帧实时变化，信号触发局部更新，不全量重绘。
+- **实时更新**：列表项摘要（RTT/评分/状态）随每秒数据帧实时变化。
 - **右键菜单**：移除节点、编辑别名、手动重连（本机节点不可移除/重连）。
 
-### 20.2 概览卡片排布与数量限制（主机端专用）
+### 19.2 概览卡片排布与数量限制（Host 端）
 
 **单张卡片布局**（3 列 × 2 行网格，共 6 项关键指标）：
 
@@ -1785,12 +1570,12 @@ goto menu
 - **点击卡片**：切换到该节点详情视图。
 - **数量限制**：`max_overview_cards`（默认 16），超过启用横向滚动，右上角显示"共 N 台，显示前 M 台"。本机节点卡片也参与概览。
 
-### 20.3 阈值变色实现
+### 19.3 阈值变色实现
 
 采用 `QLabel.setStyleSheet` 动态切换文字颜色：
 
 ```python
-# common/theme.py 中定义颜色与阈值（节点/副机/主机共用）
+# common/theme.py 中定义颜色与阈值（Agent 本机仪表盘 / Host 共用）
 COLOR_NORMAL = "#4ec9b0"   # 绿
 COLOR_WARN   = "#d7ba7d"   # 橙
 COLOR_DANGER = "#f44747"   # 红
@@ -1814,34 +1599,19 @@ def apply_color(label, color):
 
 > 全部变色逻辑集中在 `common/theme.py`，阈值参数化、N/A 统一灰色，不参与变色。
 
-### 20.4 `connected_clients` 语义与去重
+### 19.4 `connected_clients` 语义与去重
 
-**问题**：`client_count()` 返回 TCP 连接数，但同一显示端多线程连接会重复计数。
+**问题**：v4.0 中 `client_count()` 返回 TCP 连接数，但同一显示端多线程连接会重复计数。
 
-**方案**：鉴权时记录客户端 IP 并去重，区分"TCP 连接数"与"唯一客户端数"：
+**方案（v5.0）**：WebSocket 每个订阅连接天然是一个独立连接；`connected_clients` 直接统计**当前 WS 订阅者数量**（按连接去重，同一 Host 的多标签页/多窗口按连接计）。Agent 在聚合帧中填充 `connected_clients = ws_server.subscriber_count()`，表示"几台 Host/浏览器正在订阅本 Agent"。
 
-```python
-class MonitorTCPServer:
-    def __init__(self, ...):
-        self._clients = []          # 已鉴权 TCP 连接列表（用于 broadcast）
-        self._peer_ips = set()      # 客户端唯一 IP 集合（去重计数）
-        self._lock = threading.Lock()
+### 19.5 RTT 在多 Host 场景的语义
 
-    def unique_client_count(self) -> int:
-        """唯一客户端数（按 IP 去重）"""
-        with self._lock:
-            return len(self._peer_ips)
-```
+- **RTT 由各 Host 测量，不由 Agent 测量**。每台 Host 独立经 WebSocket **PING 帧**测量，Agent 端由底层自动回 **PONG**，Host 本地计算 `RTT = perf_counter() - ts`（§4.2）。RTT 本质是**每台 Host 对各 Agent 的独立测量值**。
+- **Agent 端 `net_quality.latency_to_client_ms` 字段**：多 Host 场景下意义有限，**填 `null`**，RTT 完全由 Host 本地测量并显示。
+- **Host 端**：`rtt_updated` 信号带 `node_id`，GUI 按 node_id 显示该节点与本端之间的 RTT。本机节点 RTT 固定 0.00ms。
 
-**数据帧字段语义**：`connected_clients` 采用**唯一客户端数**（按 IP 去重），表示"几台显示端在看本节点"。
-
-### 20.5 RTT 在多显示端场景的语义
-
-- **RTT 由各显示端测量，不由节点测量**。副机端和主机端各自发 ping、节点回 pong，显示端本地计算 `RTT = perf_counter() - ts`（§4.4）。RTT 本质是**每台显示端对各节点的独立测量值**。
-- **节点端 `net_quality.latency_to_client_ms` 字段**：多显示端场景下意义有限（节点不知道回给哪个显示端），**填 `null`**（方案 A），RTT 完全由显示端本地测量并显示。
-- **显示端**：`rtt_updated` 信号带 `node_id`，GUI 按 node_id 显示该节点与本端之间的 RTT，语义清晰。本机节点 RTT 固定 0.00ms。
-
-### 20.6 PresentMon 分发与许可
+### 19.6 PresentMon 分发与许可
 
 - **项目地址**：https://github.com/GameTechDev/PresentMon
 - **许可证**：MIT License，允许随程序分发与商用，需保留版权声明。
@@ -1849,153 +1619,132 @@ class MonitorTCPServer:
 - **下载方式**：检测 `tools/PresentMon.exe` 不存在时日志提示用户从 GitHub Releases 下载，不自动联网下载。
 - **替代方案**：仅启用 DXGI 截帧降级（`"collectors": {"fps": "dxgi"}`）。
 
-### 20.7 多网卡场景下 UDP 广播的 IP 选择
+### 19.7 自动发现与手动添加的混合场景
 
-**问题**：`_get_local_ip()` 用临时 UDP 连接 `8.8.8.8` 获取出口 IP，在 VPN/虚拟网卡场景下可能拿到非局域网 IP，导致心跳包广播的 IP 主机无法连回。
-
-**方案**：优先选取物理有线/无线网卡且属私网段的 IP（节点广播器与显示端本机节点共用）：
-
-```python
-def get_lan_ip(preferred_iface: str = None) -> str:
-    """获取局域网 IP，过滤虚拟网卡：
-    1. 若指定 preferred_iface，优先返回该网卡 IP
-    2. 否则遍历所有网卡，排除回环/虚拟/VPN，取私网段 IP
-    3. 多个候选时优先有线(Ethernet)其次无线(Wi-Fi)
-    """
-    import netifaces
-    candidates = []
-    for iface in netifaces.interfaces():
-        addrs = netifaces.ifaddresses(iface)
-        inet = addrs.get(netifaces.AF_INET, [])
-        for a in inet:
-            ip = a.get("addr", "")
-            if ip.startswith("127."): continue
-            if not (ip.startswith("192.168.") or ip.startswith("10.")
-                    or ip.startswith("172.")):
-                continue
-            name_lower = iface.lower()
-            if any(k in name_lower for k in
-                   ["virtual","vmware","hyper-v","wsl","docker","vethernet","loopback"]):
-                continue
-            candidates.append((iface, ip))
-    if preferred_iface:
-        for iface, ip in candidates:
-            if preferred_iface in iface: return ip
-    if candidates:
-        for iface, ip in candidates:
-            if any(k in iface.lower() for k in ["ethernet","以太网","local area"]):
-                return ip
-        return candidates[0][1]
-    # 兜底：UDP 连接法
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("8.8.8.8", 80)); return s.getsockname()[0]
-    finally:
-        s.close()
-```
-
-- **新增依赖**：`netifaces`，**配置项**：`preferred_iface`。
-- **心跳包 IP**：广播心跳时使用 `get_lan_ip()` 结果，确保显示端拿到可达的局域网 IP。
-
-### 20.8 副机端本机数据与远程数据的分流
-
-**问题**：副机端同时接收"本机数据（本地采集器直供）"与"远程节点数据（TCP 接收）"，需明确两者在 GUI 中的去向。
-
-**方案**：
-
-- **本机数据**：`LocalCollectorPack` 每秒 emit 到 GUI 主线程 → 更新**本机仪表盘**分区，node_id 固定 `"localhost"`。
-- **远程节点数据**：每节点 `NodeConnection.data_received(frame, node_id)` → GUI 主线程 → 仅更新**节点管理器列表摘要**（状态/RTT/评分），**不渲染详细数据**。
-- **交互边界**：点击远程节点列表项**不切换**右侧详情面板（面板固定显示本机仪表盘），仅保持摘要可见；悬停显示"该节点详情请在主机端查看"（详见 §6.1）。
-- **底部计数**：`已接入远程节点数 = len(remote_connections)`，不含本机。
-- **本机与远程的视觉区分（明确）**：本机节点（`node_id="localhost"`）在节点列表中**固定置顶显示**，且**别名旁加 [本机] 标签**（如 `本机 (localhost) [本机]`）或图标（如 🖥️），与远程节点一眼可区分；远程节点按接入顺序或别名排列。副机端节点管理器与主机端左侧列表均遵循该规则。
-
-### 20.9 自动发现与手动添加的混合场景
-
-**问题**：显示端（副机/主机）已手动添加某节点（IP/端口存配置），但该节点未广播心跳（广播被防火墙拦或节点关闭发现），此时列表如何显示？
-
-**方案**：手动添加的节点与自动发现的节点**独立管理**，互不覆盖：
-
-- **手动添加节点**：写入 `host_config.json.hosts`（或 `client_config.json.nodes`），状态由 TCP 连接结果决定，**与 UDP 心跳无关**：
+- **手动添加 Agent**：写入 `host_config.json.hosts`，状态由 WS 连接结果决定，**与 UDP 心跳无关**：
   - 连接成功 → "已连接"
-  - 连接失败/断开 → "离线"，**不从列表消失**，自动触发指数退避重连（§4.7）
+  - 连接失败/断开 → "离线"，**不从列表消失**，自动触发指数退避重连（§4.6）
   - 重连中 → "重连中(Ns)"
-  - 鉴权失败 → "鉴权失败"
-- **自动发现节点**：来自 UDP 心跳，仅在"自动发现弹窗"中临时显示，10 秒无心跳移除。用户批量添加后转为手动节点，此后即使心跳消失也保留。
+  - 鉴权失败 → "鉴权失败"（停止重连，需检查 token）
+- **自动发现 Agent**：来自 UDP 心跳/mDNS，仅在"自动发现弹窗"中临时显示，10 秒无心跳移除。用户批量添加后转为手动节点，此后即使心跳消失也保留。
 - **去重**：手动添加时，若 IP+端口已存在，提示"已添加过"。
-- **状态机**（每台手动节点）：
+- **状态机**（每台手动 Agent）：
   ```
-  离线 ──(重连线程)──> 重连中 ──(成功)──> 已连接
+  离线 ──(重连协程)──> 重连中 ──(成功)──> 已连接
     ▲                    │
     └────(失败/超时)─────┘
                           └──(鉴权失败)──> 鉴权失败（停止重连，需用户检查 token）
                           └──(断开)──> 离线（继续重连）
   ```
 
-- **结论**：手动节点"离线"显示并持续重连，永不因心跳消失而移除；自动发现仅用于便捷添加。
+### 19.8 GUI 刷新频率（可独立调节，预留）
 
-### 20.10 GUI 刷新频率（可独立调节，预留）
-
-**问题**：副机/主机 GUI 当前全部随 1 秒数据帧刷新；若后续需要更高/更低刷新频率（如游戏 FPS 想 0.5s 刷、大屏想看 2s 刷），应允许独立调节，不与节点采集频率耦合。
-
-**方案（预留）**：
-
-- 在 `client_config.json` / `host_config.json` 增加 **`gui_refresh_interval`**（秒，默认 `1.0`）。
+- 在 `host_config.json` 增加 **`gui_refresh_interval`**（秒，默认 `1.0`）。
 - GUI 主线程用 `QTimer` 驱动界面刷新，将数据帧缓存到 `dict[node_id] = latest_frame`，每 `gui_refresh_interval` 秒从缓存取最新帧重绘。
 - **帧率/评分不受影响**：接收线程与采集线程仍按各自频率运行，仅"界面重绘"节拍可调。
-- 待实现阶段（P2+）落地，文档先行明确字段与语义。
 
-### 20.11 FPS 降级日志的"源头"覆盖（节点与副机/主机本机节点统一）
+### 19.9 FPS 降级日志的"源头"覆盖
 
-**问题**：§11.1 的 PresentMon 降级提示日志目前只描述"采集节点"侧；但**副机端/主机端的本机节点**同样会跑帧率采集器（§11.8），它们走 DXGI 降级时**同样应打印该提示日志**，让本机用户也知晓帧率精度受限。
+- 该降级提示（"PresentMon.exe 未找到，已自动降级为 DXGI 截帧模式……"）由**帧率采集器本身**（`agent/collectors/fps_collector.py`）统一打印，日志写入当前运行端的日志文件（`logs/agent.log` / `logs/host.log`）。
+- 采集器实例被 Agent 与 Host 本机节点复用时，提示自然随各端日志出现。
 
-**方案（明确）**：
+## 20. REST API 与 WebSocket 参考
 
-- 该降级提示（"PresentMon.exe 未找到，已自动降级为 DXGI 截帧模式，如需更精准帧率请下载 PresentMon.exe 放入 tools/ 目录"）由**帧率采集器本身**（`node/collectors/fps_collector.py`）统一打印，日志写入当前运行端的日志文件（`logs/node.log` / `logs/client.log` / `logs/host.log`）。
-- 采集器实例被节点端、副机本机、主机本机复用时，提示自然随各端日志出现，无需各端额外处理。
+> 本章为 §4 协议的完整参考，供前后端联调直接对照。所有 REST 请求需携带 token：`Authorization: Bearer <token>` 或 `?token=<token>`。
 
----
+### 20.1 REST 接口
 
-## 21. 附录：实现优先级
+#### `GET /api/health` — 健康检查
 
-| 阶段 | 内容 | 验证点 |
-|------|------|--------|
-| **P0 骨架** | common/protocol + node 骨架（聚合假数据+TCP Server）+ client/host 骨架（连接+显示原始 JSON）+ 本机节点占位 | 双端连通，数据流可见；本机节点置顶显示 |
-| **P1 基础采集** | node 采集器（CPU/内存/磁盘/网络/进程/系统）+ client 本机仪表盘 + host 集中 GUI 分区 + 阈值变色 | 节点后台采集，副机本机显示 + 主机屏幕集中显示，变色正确 |
-| **P2 多节点管理** | client/host 多节点连接 + 节点管理器/自适应布局 + 自动发现弹窗 + 持久化 + 右键菜单 | 多节点列表切换，断线重连，本机节点始终在线 |
-| **P3 进阶采集** | GPU(pynvml/NVML，§9.3，含 usedGpuMemory 判空) + 温度(LHM) + 网络质量(RTT/评分滑动，§10 校准系数) | N 卡 GPU 全指标显示，AMD/Intel 降级 N/A，评分等级正确 |
-| **P4 帧率与运维** | 帧率(PresentMon CLI 主 + DXGI 降级，§11) + 日志轮转 + 单实例 + 开机自启(node schtasks / client+host 注册表) + .bat + 性能兜底 | 游戏 FPS 正常，窗口切换自动重绑，无 PresentMon 时降级 DXGI，资源 < 2% |
-| **P5 便捷连接** | mDNS 零配置发现(zeroconf) + 纯数字连接码 + .pcm 导入导出 + 剪贴板连接串 + 首屏引导 + 连接信息可复制 | 自动发现一键接入，连接码/剪贴板/导入均可添加节点 |
+```json
+{
+  "status": "ok",
+  "version": "5.0.0",
+  "hostname": "GAME-PC",
+  "ip": "192.168.1.100",
+  "uptime": 86400,
+  "subscribers": 2
+}
+```
 
----
+#### `GET /api/nodes` — 获取本机信息与节点管理结果
 
-## 22. 扩展方向（非必须，锦上添花）
+```json
+{
+  "self": {
+    "hostname": "GAME-PC",
+    "ip": "192.168.1.100",
+    "port": 12345,
+    "alias": "游戏主机"
+  },
+  "nodes": [
+    {"node_id":"a1b2c3","ip":"192.168.1.124","port":12345,
+     "alias":"副机B","status":"online"}
+  ]
+}
+```
 
-| 优化点 | 说明 | 建议方案 |
-|--------|------|----------|
-| **历史数据趋势图** | 当前为实时监控，无历史曲线 | 增加"最近 1 小时 CPU/GPU 趋势图"，用 **pyqtgraph**（高性能 Qt 绘图），对游戏性能分析很有价值 |
-| **告警规则自定义** | 当前阈值固定（§15.1） | 后续让用户在配置文件中自定义各指标阈值（`thresholds` 配置段），theme.py 读取参数化 |
-| **采集节点 Windows 服务化** | 当前用 schtasks + pythonw.exe 后台运行 | 后续可打包为 **Windows 服务**（`pywin32.win32serviceutil`），更符合企业运维规范；服务内需自行实现退出信号/自启管理。**若实现服务化，可替代 §14 的 schtasks 自启方案**（服务本身即开机自启，二者为替代关系，安装服务后应移除 schtasks 计划任务以免重复启动）；`--install-startup` 逻辑相应改为 `--install-service`/`--remove-service` |
-| **多语言国际化** | 当前中文硬编码 | 后续抽到 `i18n/` 目录（如 `i18n/zh_CN.json`、`i18n/en.json`），GUI 文案走 `tr()`/字典查找，支持多语言 |
+#### `POST /api/scan` — 触发自动发现扫描
 
----
+请求体（可选）：
 
-## 23. 便捷连接技术实现（mDNS / 连接码 / .pcm / 剪贴板）
+```json
+{"timeout": 3}
+```
 
-> 本章为 §2.5 各便捷连接方式的技术实现细节，供编码阶段直接参照。
+响应：
 
-### 23.1 mDNS 零配置发现
+```json
+{
+  "found": [
+    {"hostname":"GAME-PC-2","ip":"192.168.1.124","port":12345,
+     "token_hash":"a1b2c3d4"}
+  ]
+}
+```
 
-**依赖**：`zeroconf>=0.132.0`（§17.1）。未安装或启动失败时自动降级，仅保留 UDP 广播（§4.6），不影响原有功能。
+> `token_hash` 为 token 的 SHA-256 前 8 位，用于候选匹配（连接码/发现结果校验），不泄露完整 token。
 
-**服务类型**：`_pcmonitor._tcp.local.`，每台节点以 `{hostname}._pcmonitor._tcp.local.` 注册。
+#### `GET /api/config` — 读取配置
 
-**节点端注册**（`node/discovery.py`）：
+```json
+{
+  "http_port": 12345,
+  "udp_port": 12346,
+  "collectors": {"fps": "presentmon", "gpu": true, "temperature": true},
+  "log_level": "INFO",
+  "gpu_index": 0
+}
+```
+
+> **不返回 token**（敏感字段排除）。
+>
+> **token 修改方式（明确）**：token **不提供任何修改/重置 API**，仅通过本地配置文件 `agent_config.json` 手工修改（需重启 Agent 生效），防止经网络越权改凭据。
+
+#### `POST /api/config` — 更新配置
+
+```json
+{"alias": "新别名", "log_level": "DEBUG"}
+```
+
+```json
+{"ok": true}
+```
+
+> 支持更新节点别名、日志级别、采集器开关等；token 不可经此接口修改（防越权）。
+
+### 20.2 mDNS 自动发现
+
+**依赖**：`zeroconf>=0.132.0`。未安装或启动失败时自动降级，仅保留 UDP 广播。
+
+**服务类型**：`_pcmonitor._tcp.local.`，每台 Agent 以 `{hostname}._pcmonitor._tcp.local.` 注册。
+
+**Agent 端注册**：
 
 ```python
 from zeroconf import ServiceInfo, Zeroconf
 
 def register_mdns(ip, port, hostname, token):
-    # 注册 _pcmonitor._tcp.local. 服务
     service_info = ServiceInfo(
         "_pcmonitor._tcp.local.",
         f"{hostname}._pcmonitor._tcp.local.",
@@ -2011,9 +1760,9 @@ def register_mdns(ip, port, hostname, token):
     return zc  # 保持引用防止服务下线
 ```
 
-> token 仅广播 **SHA-256 前 8 位摘要**，不泄露完整 token；完整 token 仍需用户在"接入"时确认（自动填充后用户可校验）。
+> token 仅广播 **SHA-256 前 8 位摘要**，不泄露完整 token。
 
-**显示端发现**（`client/discovery.py` / `host/discovery.py`）：
+**Host 端发现**：
 
 ```python
 from zeroconf import ServiceListener, Zeroconf
@@ -2028,32 +1777,41 @@ class MonitorListener(ServiceListener):
             # 自动添加到节点列表，状态为"待连接"
 
     def remove_service(self, zc, type_, name):
-        # 服务下线 → 节点标记离线（不从列表移除，按 §20.9 规则）
+        # 服务下线 → Agent 标记离线（不从列表移除，按 §19.7 规则）
 
     def update_service(self, zc, type_, name):
         # IP 变化时实时更新节点地址
 ```
 
-- **自动填充**：启动后自动创建 `Zeroconf()` + 注册监听，在线节点在几秒内自动进入列表（状态"待连接"），用户点击"接入"即可（§2.5.1）。
-- **mDNS 与 UDP 广播并行运行**，互为备份：mDNS 优先用于同一子网内的零配置发现；UDP 广播作为兼容层，确保跨子网/老旧网络环境仍可工作。
-- **去重**：mDNS 发现与 UDP 扫描按 `ip:port` 去重，同一节点只保留一个列表项。
+- **自动填充**：启动后自动创建 `Zeroconf()` + 注册监听，在线 Agent 在几秒内自动进入列表（状态"待连接"），点击"接入"即可。
+- **mDNS 与 UDP 广播并行运行**，互为备份：mDNS 优先同一子网；UDP 广播作为兼容层。
+- **去重**：mDNS 发现与 UDP 扫描按 `ip:port` 去重。
 
-### 23.2 连接码接入（§2.5.2）
+### 20.3 UDP 自动发现
 
-**连接码格式**：6 位纯数字（如 `482913`），由节点启动时生成，编码 `ip:port:token` 的 SHA-256 摘要取数字部分前 6 位（不含明文地址）：
+Agent 每 2 秒广播心跳（UDP `255.255.255.255:12346`，或组播 `239.0.0.1`）：
+
+```json
+{"type":"agent_heartbeat","hostname":"GAME-PC","ip":"192.168.1.100",
+ "http_port":12345,"token":"abc123","ts":1722892800.0}
+```
+
+Host 端监听 UDP 12346，维护 `dict[ip] = {hostname, http_port, token, last_seen}`，**超过 10 秒无心跳**标记离线并移除。
+
+### 20.4 连接码接入
+
+**连接码格式**：6 位纯数字（如 `482913`），由 Agent 启动时生成，编码 `ip:port:token` 的 SHA-256 摘要取数字部分前 6 位：
 
 ```python
 import hashlib
 
 def make_connect_code(ip, port, token) -> str:
-    """生成纯数字连接码：6 位（例 482913）"""
     raw = f"{ip}:{port}:{token}"
     digest = hashlib.sha256(raw.encode()).hexdigest()
     digits = "".join(c for c in digest if c.isdigit())
     return (digits or "000000")[:6]
 
 def resolve_connect_code(code: str, candidates: dict) -> dict | None:
-    """在本地发现候选节点中反查匹配项（ip→{port, token}）"""
     code = code.strip()
     for ip, info in candidates.items():
         if make_connect_code(ip, info["port"], info["token"]) == code:
@@ -2061,11 +1819,30 @@ def resolve_connect_code(code: str, candidates: dict) -> dict | None:
     return None
 ```
 
-> **解析方式**：连接码不含明文地址，需结合本地 mDNS/UDP 发现的候选节点做摘要匹配（同网段有效）；跨网段场景提示用户改用 .pcm 配置导入。
->
-> **二维码（已省略）**：文档早期规划的 `qrcode` 二维码扫码接入未实现——用户明确选择**纯数字连接码**，故不引入 qrcode/opencv 依赖。二维码内容本为连接码字符串，若需扫码可在节点端用任意二维码工具生成连接码图片，副机/主机端"从剪贴板添加"粘贴连接码即可。
+> **解析方式**：连接码不含明文地址，需结合本地 mDNS/UDP 发现的候选 Agent 做摘要匹配（同网段有效）；跨网段场景提示用户改用 .pcm 配置导入。
 
-### 23.3 剪贴板连接串（§2.5.4）
+### 20.5 .pcm 配置文件
+
+**格式**：JSON 文本（UTF-8），token 做混淆（Base64 + XOR 简单加密，防明文泄露）：
+
+```json
+{
+  "format": "pcmonitor-config",
+  "version": 1,
+  "exported_at": "2026-08-10T20:00:00",
+  "agents": [
+    {"alias": "游戏主机", "ip": "192.168.1.100", "port": 12345,
+     "token_enc": "b2M6..."}
+  ]
+}
+```
+
+**导入导出流程**：
+- **导出**：`common/connect_code.py` 中 `export_config(agents, path)` → 序列化 + token 混淆 → 写入 `.pcm`。
+- **导入**：`import_config(path)` → 校验 `format`/`version` → 解密 token → 逐 Agent `upsert_host`。
+- **GUI**：Host 端"导出配置"按钮与"导入配置"按钮（或窗口拖放 `.pcm` 文件）。
+
+### 20.6 剪贴板连接串
 
 **格式**：`pcmonitor://<ip>:<port>?token=<token>&alias=<别名>`（URL 编码别名）。
 
@@ -2089,401 +1866,196 @@ def parse_connect_uri(text: str) -> dict | None:
         return None
 ```
 
-> 与 §4 协议一致，仅作为便捷入口，不引入新协议。
+### 20.7 首屏引导
 
-### 23.4 .pcm 配置文件（§2.5.3）
-
-**格式**：JSON 文本（UTF-8），token 做混淆（Base64 + XOR 简单加密，防明文泄露）：
-
-```json
-{
-  "format": "pcmonitor-config",
-  "version": 1,
-  "exported_at": "2026-08-07T20:00:00",
-  "nodes": [
-    {"alias": "游戏主机", "ip": "192.168.1.100", "port": 12345,
-     "token_enc": "b2M6..."}
-  ]
-}
-```
-
-**导入导出流程**：
-- **导出**：`common/connect_code.py` 中 `export_config(nodes, path)` → 序列化 + token 混淆 → 写入 `.pcm`。
-- **导入**：`import_config(path)` → 校验 `format`/`version` → 解密 token → 逐节点 `upsert_node`/`upsert_host`。
-- **GUI**：副机/主机端"导出配置"按钮与"导入配置"按钮（或窗口拖放 `.pcm` 文件），详见 §6.4 / §7.1。
-
-### 23.5 首屏引导（§2.5.5）
-
-- 副机/主机端**首次运行**（配置文件不存在或 `onboarded` 标记缺失）时，弹出引导对话框：
-  1. 提示"正在扫描局域网内的采集节点..."，后台启动 mDNS + UDP 扫描，展示进度。
-  2. 扫描完成展示发现的节点列表，按 **IP 段匹配度** 降序（与本机同网段优先，`ip1.split('.')[0:3] == ip2.split('.')[0:3]`）。
+- Host 端**首次运行**（配置文件不存在或 `onboarded` 标记缺失）时，弹出引导对话框：
+  1. 提示"正在扫描局域网内的 Agent..."，后台启动 mDNS + UDP 扫描，展示进度。
+  2. 扫描完成展示发现的 Agent 列表，按 **IP 段匹配度** 降序（与本机同网段优先）。
   3. 提供"一键接入全部"按钮批量接入；也可关闭引导手动添加。
 - 引导完成后写入 `onboarded: true`，下次启动不再弹出。
 
 ---
 
-## 24. 快速开始与自检脚本
+## 21. 功能实现的理论效果
 
-### 24.1 快速开始（三端部署）
+> 本章描述 v5.0 前后端分离架构下，各功能模块**实现后应达到的运行效果与用户可感知行为**，作为开发联调与验收的目标参照。与 §24 验收清单配合使用。
 
-1. **安装依赖**：
+### 21.1 整体运行效果
 
-   ```
-   pip install -r requirements.txt
-   ```
+- **被监控电脑**运行一个副机端 Agent（后台服务）：开机自动启动（`--install-startup` 装 schtasks 计划任务，管理员权限），静默采集本机硬件并每 1 秒推送；不弹任何窗口（`pythonw.exe` / 打包 exe 后台运行）。
+- **监控电脑**运行一个主机端 Host（PyQt5 桌面应用）：打开后自动出现在已配置 Agent 列表中的各节点，**1 秒内**刷新出各节点实时数据；集中大屏展示全部节点的 CPU/GPU/内存/温度/帧率/评分等指标，阈值三级变色。
+- 同一 Agent 可被**多台 Host 同时连接订阅**（WebSocket 多客户端广播）；Agent 之间互不通信。
+- 若在被监控电脑上执行 `python -m agent --gui`，则弹出一个**本机仪表盘**窗口——本地数据直供显示（不经网络），同时后台服务照常运行；关闭窗口即停服务。
 
-2. **启动采集节点**（被监控端，**建议管理员运行**，温度/GPU 需提权，见 §17.4）：
+### 21.2 副机端 Agent 各功能效果
 
-   ```
-   python -m node
-   ```
-   或双击 `start_node.bat` 选「1」。首次启动生成 `node_config.json`（含随机 token），
-   并行注册 mDNS（§5.6）+ UDP 广播（§4.6），并在控制台展示连接码（§23.2）。
-   或双击 `start_node.bat` 选「1」。首次启动生成 `node_config.json`（含随机 token）。启动后并行注册 mDNS（§5.6）+ UDP 广播（§4.6），并在控制台展示连接码（§23.2）。
+| 功能 | 实现后的理论效果 |
+|------|------------------|
+| **后台采集** | 每 1 秒采集 CPU/GPU/内存/磁盘/网络/帧率/进程/系统/网络质量，异常采集器降级为 N/A 不影响其他；监控程序自身 CPU 占用 < 2%，超限自动降级（采集频率 1s→2s + 关帧率） |
+| **WebSocket 推送** | 已订阅的 Host 每 1 秒收到一帧 `monitor_data`（JSON），首帧为 `auth_result`；鉴权失败立即关闭连接（close 1008 / 401） |
+| **REST API** | `/api/health` 返回服务状态；`/api/nodes` 返回本机信息；`/api/config` 可读配置（不含 token）且 token 不可经 API 修改 |
+| **本机仪表盘（`--gui`）** | 弹出 PyQt5 窗口：分区显示本机全部指标（阈值变色），顶部连接信息区（IP/端口/Token/连接串一键复制），底部显示 HTTP/WS 端口与订阅者数；关闭窗口停止后台服务 |
+| **自动发现** | 每 2 秒 UDP 广播 `agent_heartbeat`（含 http_port/token），并行注册 mDNS `_pcmonitor._tcp.local.`；Host 打开后几秒内自动发现并填入节点列表 |
+| **单实例 / 端口检测** | 二次启动提示"已有实例运行"并退出；端口被占用时报错退出 |
 
-3. **启动副机端**（本机仪表盘 + 节点管理）：
+### 21.3 主机端 Host 各功能效果
 
-   ```
-   python -m client
-   ```
-   或双击 `start_client.bat` 选「1」。
+| 功能 | 实现后的理论效果 |
+|------|------------------|
+| **节点列表（左侧）** | 显示所有已配置/已发现 Agent：别名、IP、状态（●在线/●重连中/●离线/鉴权失败）、RTT、评分摘要；离线节点保留并自动重连 |
+| **详情面板（右侧）** | 点击节点显示该节点全部指标分区（CPU/内存/GPU/磁盘/网络/网络质量/帧率/进程），数值每秒刷新，阈值三级变色（绿/橙/红），N/A 灰色 |
+| **概览视图** | 网格卡片展示各节点关键指标（CPU/GPU/内存/温度/FPS/评分），适合大屏；卡片超上限横向滚动 |
+| **红线告警** | 自定义红线阈值，越线时状态栏红色提示 + 日志 WARNING + 系统托盘气泡（去重：状态变化弹一次） |
+| **RTT / 丢包** | 每台 Host 独立经 WebSocket PING + loss_pong 精确测量各节点 RTT（<1ms 精度）与丢包率，注入评分 |
+| **节点管理** | 六种接入方式（mDNS 自动发现 / UDP 扫描 / 连接码 / .pcm 导入导出 / 剪贴板连接串 / 手动添加），配置持久化到 `host_config.json`，重启自动重连 |
 
-   - 顶部显示本机主机名/IP/uptime/"本机模式"；中部按分区显示本机全部数据
-   - 节点管理器（侧边栏/标签页）：显示已接入节点摘要（状态/RTT/评分），含本机
-   - **六种添加入口**（§6.4）：mDNS 零配置自动发现（节点自动出现在列表，点「接入」即可）→ 「扫描」UDP 批量添加 → 「连接码」→ 「导入 .pcm」/「导出配置」→ 「从剪贴板添加」→ 手动填 IP/端口/别名/token（兜底）
-   - 节点列表右键：移除 / 改别名 / 手动重连
-   - 节点列表保存在 `client_config.json`，重启自动重连
+### 21.4 通信链路效果
 
-4. **启动监控主机**（集中监控大屏）：
+- **实时性**：WebSocket 每秒推送，Host 端延迟 < 1 秒（局域网）。
+- **鉴权**：连接 Agent 时 URL 携带 `?token=`，握手阶段校验；错误 token 立即被拒（401/close 1008），日志记录。
+- **断线重连**：任一 Agent 断开，Host 独立指数退避重连（1s→60s 封顶），连上后数据流自动恢复；多 Agent 同时断线互不影响。
+- **数据完整性**：`monitor_data` 帧结构固定（§7 Schema），字段缺失/异常统一 `N/A`，GUI 显示 N/A 并跳过变色。
 
-   ```
-   python -m host
-   ```
-   或双击 `start_host.bat` 选「1」。
+### 21.5 运维与部署效果
 
-   - 顶部自动有"本机 (localhost)"节点（本地数据）
-   - 左侧节点列表（别名/IP/状态/RTT/评分），右侧详情面板显示该节点全部指标
-   - 六种添加入口与副机端一致（§7.1）
-   - 节点列表右键：移除 / 改别名 / 手动重连
-   - 「概览」按钮切换网格卡片视图
-   - 节点列表保存在 `host_config.json`，重启自动重连
+- **双端独立打包**：Agent 与 Host 各自产出独立 exe/安装包（`PC-Monitor-Agent-v5.0-win-x64.exe` / `PC-Monitor-Host-v5.0-win-x64.exe`），独立安装目录、独立配置、独立日志，互不混装（§16.5 红线）。
+- **开机自启**：Agent 用 schtasks（需管理员，`/RL HIGHEST` 提权）；Host 用注册表 Run（无需管理员）。
+- **日志轮转**：`logs/agent.log` / `logs/host.log`，单文件 10MB、保留 5 份，UTF-8。
+- **防火墙**：放行 TCP 12345（HTTP/WS）与 UDP 12346（自动发现，可选）。
 
-### 24.2 自检脚本
+---
 
-无 GUI 验证数据链路（帧协议 / 鉴权 / 完整链路 / RTT / 退出无噪声 / 配置持久化 / 采集器 / UDP 发现 / 评分器 / 便捷连接工具）：
+## 22. 扩展方向（非必须，锦上添花）
+
+| 优化点 | 说明 | 建议方案 |
+|--------|------|----------|
+| **历史数据趋势图** | 当前为实时监控，无历史曲线 | 增加"最近 1 小时 CPU/GPU 趋势图"，用 **pyqtgraph** 或前端图表库（ECharts/Chart.js），对游戏性能分析很有价值 |
+| **告警规则自定义** | 当前阈值固定（§14.1） | 第四篇红线告警已支持自定义；可进一步支持运行时热编辑 |
+| **Agent Windows 服务化** | 当前用 schtasks + pythonw.exe 后台运行 | 打包为 **Windows 服务**（`pywin32.win32serviceutil`），更符合企业运维规范；服务本身即开机自启，与 schtasks 为替代关系 |
+| **多语言国际化** | 中文硬编码 | 第三篇 i18n 已抽到 `i18n/`，GUI 文案走 `tr()`/字典查找 |
+| **TLS 加密** | token 明文传输（LAN 可信） | 可选自签名 TLS（`websockets`/`aiohttp` 支持 `ssl`），增强安全性 |
+| **Web 化（Electron）** | Host 当前为 PyQt5 原生 GUI | 未来若需 Web 化，再迁移到 Electron + Vue/React（§6.2 备选）；本版本不实施 |
+
+---
+
+## 23. 文档维护约定
+
+### 23.1 目的
+
+为避免文档碎片化，本项目统一以本文件为唯一主文档。后续所有新增需求、设计、规格均追加到对应篇章。
+
+### 23.2 命名与章节规划
+
+- 主文档：`README.md`（唯一主文档）
+- 篇章划分：
+  - **第一篇** 系统技术规格（架构 / 协议 / 数据格式 / 采集 / 部署 / 运维 / API）
+  - **第二篇** 需求增强说明（历史增强点与决策）
+  - **第三篇** 多语言 i18n
+  - **第四篇** 自定义红线告警
+  - **后续新需求** → 追加为新篇章（如「第五篇 · XX功能」「第六篇 · YY功能」），并更新目录
+
+### 23.3 新增需求规范
+
+1. 新需求先在对应篇章下新增小节（如 `### X.Y 需求名`）。
+2. 若需求为全新主题，新增篇章并更新本目录。
+3. 文档中代码示例与实现保持一致；实现变更时同步更新文档。
+4. 验收清单逐条可勾选，作为实施完成依据。
+
+---
+
+## 24. 自检脚本与验收
+
+### 24.1 自检脚本
 
 ```
-python tests/test_p0.py
+python tests/test_p0.py        # 协议/鉴权/链路/发现/评分器/采集器冒烟（42 通过/3 跳过，缺 PyQt5）
+python tests/test_api.py       # （v5.0 主测试）Agent REST /api/* + WebSocket 订阅端到端（14 项）
+python tests/test_connect.py   # v4.0 遗留，已弃用（SKIP，改用 test_api.py）
+python tests/test_p4.py        # v4.0 遗留，已弃用（SKIP，改用 test_api.py）
 ```
 
-**执行输出**：逐项打印测试名称与结果，最终输出 **PASS/FAIL 摘要**；任一项失败时以非零退出码结束并打印失败项详情，便于定位。**当前基线：63/63 全部通过**（无 PyQt5 环境时信号相关验证自动跳过）。
+> **v5.0 测试策略**：`test_api.py` 是当前主测试（覆盖 Agent REST + WebSocket 全链路）。`test_connect.py` / `test_p4.py` 为 v4.0 遗留（基于已删除的 `node/` TCP 架构），运行即 SKIP，保留仅作历史参考。
 
-双端连接端到端测试（真实采集器 + 模拟客户端，验证鉴权/数据帧/RTT/丢包/断线清理）：
+> **v5.0 状态**：`test_api.py` **14/14 通过**（M2 交付）；Host WS 客户端沙箱端到端 **8/8 通过**（M3 交付）；Agent 本机仪表盘 stub 验证通过（M2b）。`test_p0`/`test_connect` 因采集器迁至 `common/` 已保持通过（53/53、17/17）；`test_p4` 的 T1 段通过、T2 段需 PyQt5（当前环境缺）。后续 M4/M5 迁移时适配新协议（WS 替代 TCP）。
 
-```
-python tests/test_connect.py
-```
+### 24.2 v5.0 验收清单
 
-P4 集成测试（真实双端进程 / 断线重连 / 双客户端 / 双通道发现 / 性能兜底 / 帧率降级）：
-
-```
-python tests/test_p4.py
-```
-
-演示模式（一条命令启动采集节点 + 副机端 + 监控主机）：
-
-```
-python tests/test_p0.py --demo
-```
-
-### 24.3 实现进度
-
-- **P0 骨架**：✅ 完成
-- **P1 基础采集**：✅ 完成（CPU/内存/磁盘/网络/进程/系统 + 三端 GUI 分区变色）
-- **P2 多节点管理**：✅ 完成（多节点连接/断线重连/自适应三模式/右键菜单/持久化）
-- **P3 进阶采集**：✅ 完成（GPU pynvml/温度 LHM/网络质量评分/磁盘盘符映射/丢包测量）
-- **P4 帧率与运维**：✅ 完成（PresentMon + DXGI 降级/前台窗口绑定/性能兜底/端口检测/单实例/开机自启）
-- **P5 便捷连接**：✅ 完成（mDNS 零配置/纯数字连接码/.pcm 导入导出/剪贴板/首屏引导/连接信息复制）
-
-详见 §21 实现优先级。
+- [ ] **副机端 Agent** 可独立运行，提供 WebSocket（`/ws`）和 REST（`/api/*`）服务。
+- [ ] **主机端 Host** 通过 WebSocket 连接 Agent，实时显示数据，**延迟 < 1 秒**。
+- [ ] Host 同时连接多台 Agent，节点列表正确展示各节点状态。
+- [ ] 所有原有采集指标正常显示（CPU/GPU/内存/磁盘/网络/帧率/进程/温度/网络质量评分），阈值变色、告警生效。
+- [ ] REST API（health/nodes/scan/config）可用，token 鉴权生效。
+- [ ] mDNS 自动发现可用（可选）；手动添加支持。
+- [ ] **断线重连**：Agent 断开后 Host 自动重连（指数退避），重连后数据流恢复；多 Agent 同时断线时互不影响（§4.6 / §19.7）。
+- [ ] Agent 本机仪表盘（若有）正常工作。
+- [ ] 开机自启、单实例、日志轮转等运维功能正常。
+- [ ] 自检脚本覆盖核心通信和采集。
+- [ ] 旧 `node/`、`client/` 角色相关文档描述已移除（本文档已无 Node 角色）。
+- [ ] **Agent 与 Host 独立打包**：产出两个独立安装包（Agent-Setup / Host-Setup），默认安装目录分离（§16.5）。
+- [ ] 安装互不干扰：注册表/计划任务/快捷方式带角色后缀；同一台电脑可同时运行 Agent 与 Host（§16.5.3）。
 
 ---
 
-**实现总结**：项目已完成 P0-P5 全部阶段，三角色（采集节点 / 副机端 / 监控主机）架构落地。三端分别通过 `python -m node` / `python -m client` / `python -m host` 启动，依赖见 §17，自检见 §24。扩展方向（历史趋势图 / 告警自定义 / 服务化 / 多语言）见 §22。
+## 25. v5.0 迁移实施步骤
 
+### 25.1 M1 · 抽取采集器到公共位置 ✅
 
----
+- 将 `node/collectors/` 迁入 `common/collectors/`，供 Agent 与 Host 本机节点共用。
+- 修改各端 import 路径，运行 `test_p0.py` 确认采集器冒烟仍通过。
+- `SelfMonitor` 从 `host/` 提升至 `common/self_monitor.py`（`host/self_monitor.py` 保留为转发，消除 agent→host 反向依赖）。
 
-# 第二篇 · 需求增强说明与实现注意事项
+### 25.2 M2 · 实现 Agent 服务 ✅
 
+- 基于 `aiohttp` 单应用实现 REST + WebSocket（同端口 12345）。
+- `aggregator.py`：每秒聚合，写入线程安全的最新帧缓存（不再是直接 broadcast）。
+- `websocket_server.py`：`/ws` 多订阅推送 + 鉴权（查询参数 `?token=` 首选，首帧 auth 备选）+ PING/PONG + `loss_ping`/`loss_pong`。
+- `http_server.py`：`/api/health` `/api/nodes` `/api/scan` `/api/config`（token 不可经 API 修改）。
+- `discovery.py`：UDP/mDNS 广播与注册（Agent 自实现，不依赖 node/）。
+- `self_monitor.py`：性能兜底（复用 `common/self_monitor.py`）。
+- `main.py`：`python -m agent` 入口（单实例、端口检测、asyncio 事件循环、退出清理）。
+- **自测**：`tests/test_api.py` **14/14 通过**。
 
-> 本文档对应 v2.0 多设备架构，记录相对原始提示词的增强点、技术决策、风险与注意事项。
-> v1.0 为双机架构；v2.0 升级为"主机本地自显 + 副机多设备集中监控"双模式并存。
->
-> **注意**：当前版本基线为《技术文档.md》v4.0（采集节点 + 副机端 + 主机端三角色架构）。
-> 本文档为 v2.0 历史基线，其中的增强点（鉴权、RTT 精度、评分滑动平均、单实例、日志轮转、自启等）
-> 大部分已沿用/融入 v4.0，具体以《技术文档.md》v4.0 为准。
+### 25.2b M2b · Agent 本机仪表盘 ✅
 
----
+- 新增 `agent/gui/`：`main_window.py`（`AgentDashboardWindow`）——本机全部采集数据分区显示（复用 `host/gui/detail_panel.DetailPanel`）、连接信息区（IP/端口/Token/连接串一键复制）、后台服务状态（订阅者数）。
+- 本地采集直供 GUI（复用 `host/local_node.LocalCollectorPack`，不经网络），与推送数据同构。
+- `agent/main.py` 新增 `--gui` 参数：**默认后台模式**（无界面，pythonw 运行）；`--gui` 时 Qt 主循环 + 后台 asyncio 服务在 QThread 中运行，关闭窗口即停服务。
+- **自测**：stub PyQt5 验证导入/实例化/数据刷新通过。
 
-## 一、v2.0 架构升级要点（相对 v1.0）
+### 25.3 M3 · Host 前端改造 ✅
 
-| 维度 | v1.0 双机 | v2.0 多设备 |
-|------|----------|------------|
-| 主机端 | 仅采集+推送 | **采集+推送+本地仪表盘 GUI**（三合一） |
-| 主机 GUI | 无 | 启动自动弹出，最小化不退出，关闭确认 |
-| 副机端连接 | 单主机 | **多主机同时连接**（每主机独立线程+重连） |
-| 副机布局 | 单一详情 | **自适应：单机/多机/概览三模式** |
-| 主机管理 | 无 | 手动添加/自动扫描多选/别名/持久化/自动重连 |
-| 日志 | 基础 | **RotatingFileHandler(10MB/5) + host_id 标签** |
-| 单实例 | 无 | **命名互斥体检测**，防端口冲突 |
-| 开机自启 | 无 | **主机 schtasks /RL HIGHEST + 副机注册表 Run** |
-| 启动脚本 | 无 | **.bat 菜单**：启动/装自启/卸自启 |
-| 网络评分 | 瞬时 | **滑动平均**（平滑抖动） |
-| 帧率窗口 | 静态 | **前台窗口动态绑定** |
-| 鉴权 | 可选 token | **连接首帧 auth 校验**（必选流程） |
+- **`host/connection.py` 重写为 WebSocket 客户端**：`NodeConnection` 改用 `websocket-client` 连接 `ws://<ip>:<port>/ws?token=xxx`。
+  - 类名与信号（`data_received/status_changed/rtt_updated/loss_updated`）**与 v4.0 完全兼容**，`host/gui` 零改动装配。
+  - 鉴权：URL 查询参数（Agent 握手阶段校验，§4.4 推荐方式）。
+  - RTT：WS PING 保活 + `loss_ping`/`loss_pong` 回显 `perf_counter` 时间戳精确计算（精度 < 1ms）。
+  - 丢包：每 10 秒 3 个应用层 `loss_ping`（§4.7 低频补充）。
+  - 断线独立指数退避重连（1s→60s）。
+- 复用现有 GUI（节点列表/详情/概览/变色）、红线告警（`host/alerts.py`）、i18n——均未改动。
+- **自测**：沙箱端到端（stub PyQt5 + 真实 Agent）**8/8 通过**（连接/收帧/字段/RTT/鉴权失败）。
 
----
+### 25.4 M4 · 便捷连接与鉴权迁移
 
-## 二、增强需求点清单
+- mDNS/连接码/.pcm/剪贴板逻辑收敛到 `common/connect_code.py`（沿用）。
+- 鉴权改为 WS 查询参数/首帧 auth + REST Bearer 头。
+- RTT 改用 WebSocket PING/PONG 帧。
 
-### 2.1 主机端本地仪表盘（核心新增）
+### 25.5 M5 · 打包与验收（2 天）
 
-| # | 增强点 | 说明 |
-|---|--------|------|
-| 1 | **本地 GUI 与服务共生** | 主机端启动即弹本地仪表盘，无需副机连接。采集线程通过 `pyqtSignal` 同时喂本地 GUI 和 TCP 推送（双路输出）。 |
-| 2 | **关闭不退出** | 关闭窗口弹确认："是否仅关闭显示，后台服务继续运行？"——是→隐藏；否→退出。最小化同理不退出。 |
-| 3 | **顶部状态** | 显示主机名、IP、uptime、"本地模式"标识。 |
-| 4 | **底部副机计数** | 显示"当前 N 台副机远程查看"，主机用户知道谁在看。 |
-| 5 | **窗口几何持久化** | 记忆位置/大小到 host_config.json。 |
+> **强制双端分离**：Agent 和 Host **分别打包**，产出**两个独立安装包**。构建系统、输出产物、安装目录、发布命名等**全部规定集中在 §16.5**，本节只列 M5 的落地动作，不重复约束细节。
 
-### 2.2 副机端多设备集中管理（核心新增）
-
-| # | 增强点 | 说明 |
-|---|--------|------|
-| 6 | **多主机并发连接** | 每主机独立 `HostConnection`（接收线程+重连线程+信号），单台断开不影响其他。 |
-| 7 | **单机模式自动** | 连接=1台时隐藏左侧列表，全屏详情，简洁不浪费空间。 |
-| 8 | **多机模式自动** | 连接≥2台时左列表+右详情。列表项显示别名/IP/状态/RTT/评分摘要。 |
-| 9 | **概览模式手动** | 按钮切换网格卡片，每主机一张关键指标卡（CPU/GPU/内存/温度/FPS/评分），适合监控室大屏。 |
-| 10 | **主机管理** | 手动添加(IP+端口+别名+token)、自动扫描弹窗多选批量添加、移除、编辑别名。 |
-| 11 | **持久化自动重连** | 主机列表保存 client_config.json，下次启动自动重连所有已保存主机。 |
-| 12 | **状态记忆** | 记忆窗口几何、主机列表、当前选中主机、视图模式。 |
-| 13 | **按 host_id 分发** | 每主机信号带 host_id，GUI 按 host_id 路由更新对应面板。 |
-
-### 2.3 通信协议增强
-
-| # | 增强点 | 说明 |
-|---|--------|------|
-| 14 | **鉴权流程必选** | 副机连接后首帧 `auth`+token，主机校验通过才加入客户端列表并回 `auth_result`。防误连。 |
-| 15 | **socket 独立超时 30s** | 每主机 TCP `settimeout(30)`，避免某主机卡死阻塞接收线程。 |
-| 16 | **每主机独立重连** | 指数退避 1s→60s，各主机互不影响。 |
-| 17 | **控制帧 type 规范化** | monitor_data/ping/pong/loss_ping/loss_pong/auth/auth_result/host_heartbeat。 |
-
-### 2.4 采集增强
-
-| # | 增强点 | 说明 |
-|---|--------|------|
-| 18 | **GPU 库 pynvml** | 替代 GPUtil，支持温度/功耗/频率/引擎细分/显存进程。AMD 用 pyadl，Intel 降级 N/A。 |
-| 19 | **GPU Top3 取 NVML PID** | `nvmlDeviceGetComputeRunningProcesses` 取 PID → `psutil.Process(pid).name()`。 |
-| 20 | **温度 LibreHardwareMonitor** | WMI 读取，需管理员，失败 N/A。 |
-| 21 | **盘符↔物理盘 WMI 映射** | 否则 disk_io_counters 按物理盘展示而非 C:/D:。 |
-| 22 | **进程采集 2~3 秒** | process_iter 较重，与 1 秒数据帧解耦。 |
-| 23 | **网关 ping 兼容中英文** | 解析系统 ping 输出，正则兼容中文("时间=")/英文("time=")。 |
-| 24 | **帧率前台动态绑定** | `GetForegroundWindow` 取 PID/标题，窗口切换自动重绑 PresentMon。 |
-
-### 2.5 网络质量增强
-
-| # | 增强点 | 说明 |
-|---|--------|------|
-| 25 | **RTT 用 perf_counter** | 单调纳秒精度，pong 原样回 ts，无需时钟同步。 |
-| 26 | **评分滑动平均** | 最近 10 次评分均值，平滑无线网络抖动。 |
-
-### 2.6 运维与健壮性增强
-
-| # | 增强点 | 说明 |
-|---|--------|------|
-| 27 | **单实例检测** | Windows 命名互斥体（pywin32），已有实例提示退出，防端口冲突。 |
-| 28 | **日志轮转** | RotatingFileHandler 10MB/5 备份，UTF-8 编码。副机日志带 host_id 标签。 |
-| 29 | **端口占用检测** | 启动检测 12345/12346，占用提示并退出。 |
-| 30 | **采集项开关** | 配置文件可关闭某采集器（如关闭帧率），降低占用。 |
-
-### 2.7 开机自启动（核心新增）
-
-| # | 增强点 | 说明 |
-|---|--------|------|
-| 31 | **主机 schtasks** | `/SC ONLOGON /RL HIGHEST`，登录时以最高权限自动运行，满足温度/帧率提权。安装需管理员。 |
-| 32 | **副机注册表 Run** | `HKCU\...\Run` 键 `PC_Monitor_Client`，可用 pythonw.exe 静默。无需管理员。 |
-| 33 | **--install/remove-startup 参数** | 命令行安装/卸载，.bat 菜单封装。 |
-
----
-
-## 三、技术决策汇总
-
-| 决策项 | 选定方案 | 理由 |
-|--------|----------|------|
-| GUI 框架 | PyQt5 | 信号槽跨线程、QSS 主题、用户熟悉 |
-| 主机本地 GUI | 启动自动弹出 | 满足"主机屏幕看自己数据" |
-| 副机布局 | 自适应三模式 | 单机简洁、多机管理、概览大屏 |
-| GPU 库 | pynvml + pyadl | pynvml 全指标；GPUtil 不足 |
-| 温度/功耗 | LibreHardwareMonitor | 开源 WMI 可读 |
-| 帧率 | PresentMon + DXGI 降级 | 精准+保可用 |
-| TCP 帧 | 4 字节大端长度前缀 + JSON | 防粘包 |
-| 自动发现 | UDP 广播(默认)+组播(可选) | 兼容性 |
-| RTT 时钟 | perf_counter | 高精度无需时钟同步 |
-| 网关 Ping | 系统 ping 命令 | 免提权 |
-| 评分 | 滑动平均(10) | 平滑抖动 |
-| 多客户端 | broadcast | 一机多显 |
-| 单实例 | 命名互斥体 | 防端口冲突 |
-| 日志 | RotatingFileHandler | 轮转防膨胀 |
-| 主机自启 | schtasks /RL HIGHEST | 自动提权 |
-| 副机自启 | 注册表 Run | 免提权 |
-| 编码 | UTF-8 + ensure_ascii=False | 中文不乱码 |
-
----
-
-## 四、关键注意事项与风险
-
-### 4.1 权限风险
-
-- **主机端必须管理员运行**：温度(LibreHardwareMonitor)/功耗/PresentMon ETW/纯ICMP 均需提权。
-- schtasks `/RL HIGHEST` 解决开机自启的提权问题（登录时自动以管理员运行）。
-- README 显著提示：右键"以管理员身份运行" host_main.py。
-
-### 4.2 防火墙风险
-
-- TCP 12345（主机入站）、UDP 12346（主机出站+副机入站）需放行专用网络。
-- 首次运行 Windows 弹授权窗，勾选"专用网络"。
-- README 提供 PowerShell `New-NetFirewallRule` 命令。
-
-### 4.3 Qt 线程风险（重点）
-
-- **严禁**子线程直接操作 QWidget。主机采集线程、副机接收线程均须 `pyqtSignal` → GUI 主线程槽。
-- `pyqtSignal` 未连接会静默丢数据，需仔细检查连接。
-- 主机端聚合器在子线程 emit，GUI 主线程接收——注意 `DataAggregator` 继承 `QObject` 并在主线程创建（信号槽才能跨线程）。
-
-### 4.4 双路输出一致性
-
-- 主机聚合器每秒同时 `server.broadcast(frame)` 和 `local_data.emit(frame)`。
-- broadcast 失败（副机断开）不应影响本地 emit。
-- 本地 GUI 卡顿不应阻塞 broadcast（两者解耦）。
-
-### 4.5 多主机副机性能
-
-- 每主机一个接收+重连线程，连接 10 台主机≈20 线程，可控。
-- 概览模式卡片数量随主机增长，建议限制（如最多 16 卡片，超出滚动）。
-- 每主机独立 socket 超时 30s，避免单主机卡死影响全局。
-
-### 4.6 硬件兼容性
-
-- NVIDIA：pynvml 覆盖最全。
-- AMD：pyadl 随驱动可能失效，部分 N/A。
-- Intel 核显：GPU 区基本全 N/A，预期行为。
-- CPU/磁盘温度：视传感器，失败 N/A 不报错。
-
-### 4.7 编码与中文
-
-- 进程名/主机名含中文，全程 UTF-8。
-- 日志 handler 设 `encoding="utf-8"`。
-- .bat 设 `chcp 65001` 避免中文乱码。
-- JSON `ensure_ascii=False`。
-
-### 4.8 开机自启风险
-
-- schtasks 安装需管理员，非管理员运行 `--install-startup` 会失败，需捕获并提示。
-- 注册表 Run 仅当前用户生效，换用户需重装。
-- pythonw.exe 静默启动副机：需确认 pythonw 路径存在。
-- 路径含空格：schtasks /TR 和注册表值需正确加引号。
-
-### 4.9 单实例风险
-
-- 命名互斥体 `Global\` 前缀跨会话生效；`Local\` 仅当前会话。主机端用 `Global\` 防多实例。
-- mutex 对象必须保持引用（变量存活），否则被 GC 释放导致检测失效。
-
-### 4.10 性能
-
-- 监控程序自身 CPU < 2%。
-- process_iter 降频至 2~3 秒。
-- PresentMon 非游戏时可关闭。
-- GUI 仅更新变化字段，不全量重绘。
-- 日志级别生产环境 INFO（非 DEBUG）。
-
-### 4.11 安全（轻量）
-
-- token 明文，仅防误连，LAN 可信环境。
-- 不传敏感信息（密码/完整命令行），仅进程名+占用。
-- 如需更强可加 TLS（增加复杂度，LAN 一般无需）。
-
----
-
-## 五、实现优先级
-
-| 阶段 | 内容 | 验证点 |
-|------|------|--------|
-| **P0 骨架** | common/protocol + host 聚合假数据+TCP+本地GUI骨架 + client 连接+显示原始JSON | 主机本地GUI显示假数据，副机收到并显示 |
-| **P1 本地仪表盘** | host 各面板 + 基础采集(CPU/内存/磁盘/网络/进程/uptime) + 变色 | 主机自显完整，变色正确 |
-| **P2 多主机副机** | client HostConnection + 自适应三模式 + 自动发现弹窗 + 持久化 + 重连 | 多主机切换，断线重连，概览卡片 |
-| **P3 进阶采集** | GPU(pynvml) + 温度(LibreHardwareMonitor) + 网络质量(RTT/评分滑动) + 鉴权 | 进阶指标显示，N/A 正确，鉴权通过 |
-| **P4 帧率与运维** | 帧率(PresentMon+降级) + 日志轮转 + 单实例 + 开机自启 + .bat + README | FPS正常，自启可用，资源<2% |
-
----
-
-## 六、验收清单
-
-- [ ] 主机端启动自动弹出本地仪表盘，无需副机。
-- [ ] 本地仪表盘显示全部指标，1 秒刷新，变色正确。
-- [ ] 顶部显示主机名/IP/uptime/本地模式；底部显示副机连接数。
-- [ ] 关闭主机窗口弹确认，隐藏后后台服务继续。
-- [ ] 主机 UDP 广播心跳，副机自动发现。
-- [ ] 副机手动添加 + 自动扫描多选添加主机。
-- [ ] 副机单机模式(1台)隐藏列表全屏详情；多机模式(≥2台)左列表+右详情。
-- [ ] 副机概览模式网格卡片展示所有主机关键指标。
-- [ ] 副机每主机独立重连，单台断开不影响其他。
-- [ ] 主机列表持久化，重启自动重连。
-- [ ] 鉴权流程：token 错误拒绝连接。
-- [ ] RTT 精度 <1ms，显示小数；评分滑动平均+等级。
-- [ ] GPU 各指标(NVIDIA)正常；温度/功耗有传感器时显示，无则 N/A。
-- [ ] 帧率游戏中正常显示(FPS/帧时间/1% Low)，前台窗口动态绑定。
-- [ ] 不支持指标显示 N/A 不报错。
-- [ ] 中文主机名/进程名不乱码。
-- [ ] 主机管理员运行时温度/帧率可用。
-- [ ] 单实例检测：二次启动提示退出。
-- [ ] 日志轮转 10MB/5 备份，副机日志带 host_id。
-- [ ] `--install-startup`/`--remove-startup` 主机(schtasks)/副机(注册表)可用。
-- [ ] .bat 菜单启动/装自启/卸自启可用。
-- [ ] 监控程序自身 CPU < 2%。
-- [ ] 全部代码含详细中文注释。
-- [ ] requirements.txt 完整，README 含部署/防火墙/权限/自启/常见问题。
-
----
-
-## 七、相对原始提示词的明确修订
-
-1. **主机端三合一**：原"采集+推送" → 采集+推送+**本地仪表盘 GUI**。
-2. **副机多主机**：原单主机 → **多主机并发连接管理**。
-3. **副机布局**：原单一 → **自适应三模式**（单机/多机/概览）。
-4. **鉴权**：原可选 → **连接首帧 auth 必选流程**。
-5. **socket 超时**：补充 **30 秒独立超时**。
-6. **网络评分**：原瞬时 → **滑动平均**。
-7. **帧率窗口**：原静态 → **前台动态绑定**。
-8. **GPU Top3**：明确 **NVML PID** 取进程。
-9. **日志**：原基础 → **RotatingFileHandler + host_id 标签**。
-10. **单实例**：新增 **命名互斥体检测**。
-11. **开机自启**：新增 **schtasks(/RL HIGHEST) + 注册表 Run**。
-12. **启动脚本**：新增 **.bat 菜单**。
-13. **进程采集频率**：明确 **2~3 秒**解耦。
-14. **网关 ping**：明确 **系统命令解析，兼容中英文**。
-
----
-
-**结论**：v2.0 文档构成完整需求基线。下一步按 P0→P4 编码，先打通"主机本地自显 + 远程推送 + 副机多机接收"，再逐层补采集器、多机管理、运维功能。
-
+- **Agent 打包**：`build_agent.py` 基于 `agent.spec` 产出 `PC-Monitor-Agent-v5.0-win-x64.exe`，支持 `--install-startup`。
+- **Host 打包**：`build_host.py`（PyInstaller `host.spec`）产出 `PC-Monitor-Host-v5.0-win-x64.exe`。
+- **独立触发与发布**：两个构建脚本各自独立触发；CI/CD 分别产出两个制品，发布到不同目录/标签。
+- **更新部署文档**：分别说明 Agent 与 Host 的安装、防火墙放行、开机自启配置（§16.2 / §16.3 / §13）。
+- **提供独立 API 文档**：Swagger/OpenAPI 文件放 `docs/api.yaml`，供第三方前端集成（§20）。
+- **运行自检脚本**：`test_p0`、`test_connect`、`test_p4`、`test_api`（新增），确保各自模块通过（§24.1）。
+- **验收**：按 §16.5.4 打包期检查清单与 §24.2 验收清单逐项确认。
 
 ---
 
 # 第三篇 · 多语言支持（i18n）
 
-
-> 版本：v2.0　　日期：2026-08-09　　适用：局域网多级硬件监控系统（v4.0）
+> 版本：v5.0　　日期：2026-08-10　　适用：局域网硬件监控系统（v5.0 前后端分离版）
 > 状态：**设计稿 · 待评审**（评审通过后进入实施）
 
 ---
@@ -2494,20 +2066,20 @@ python tests/test_p0.py --demo
 
 当前系统 GUI 文案为**中文硬编码**，散布于各界面组件：
 
-- `client/gui/` — 副机端（主窗口 / 本机仪表盘 / 节点管理器）
 - `host/gui/` — 主机端（主窗口 / 节点列表 / 详情面板 / 概览网格 / 自动发现弹窗）
+- `agent/gui/main_window.py` — Agent 本机仪表盘（原生 PyQt5，`--gui` 模式）
 - `common/connect_dialog.py` — 便捷连接对话框（连接码 / 剪贴板 / 首屏引导）
 
-统计：约 **3800+ 中文字**分布在 9 个界面文件，约 150 条用户可见文案。
+统计：约 **3800+ 中文字**分布在界面文件中，约 150 条用户可见文案。
 
-### 1.2 需求（v2 更新）
+### 1.2 需求（v2 更新，v5.0 沿用）
 
 | 需求 | 说明 |
 |------|------|
 | **语言范围** | **中英双语**，支持切换 |
 | **语言选择方式** | **启动时弹窗**让用户选择（中文 / English），记忆选择 |
 | **覆盖范围** | 所有**用户可见**文案：按钮 / 标签 / 标题 / 提示框 / 状态栏 / 菜单 / 右键菜单 / tooltip |
-| **不翻译** | 程序内部标识（type 字段、config key）、技术名词（IP / TCP / GPU / CPU / Token / RTT） |
+| **不翻译** | 程序内部标识（type 字段、config key）、技术名词（IP / TCP / GPU / CPU / Token / RTT / API） |
 
 ### 1.3 设计原则
 
@@ -2515,7 +2087,7 @@ python tests/test_p0.py --demo
 2. **Key 化引用**：代码通过 `tr("key")` 取文案。
 3. **最小侵入**：只改 GUI 层文案引用，不动采集/网络逻辑。
 4. **启动选择 + 记忆**：首次启动弹语言选择窗，写入配置；后续启动读配置，不再弹。
-5. **可重选**：设置中提供"语言"入口（可选，本次至少支持改配置重启）。
+5. **可重选**：设置中提供"语言"入口（可选，至少支持改配置重启）。
 
 ---
 
@@ -2639,7 +2211,7 @@ def choose_language_dialog(parent=None) -> str:
 
 > **弹窗时序**（关键）：语言选择弹窗必须在 `load_language()` **之前**创建控件文案（按钮上写"中文/English"是固定的，不需要翻译），选定后 `load_language(lang)` 再创建主窗口。因此弹窗自身文案固定双语显示。
 
-### 2.5 启动流程（host / client 一致）
+### 2.5 启动流程（host / agent 一致）
 
 ```
 main()
@@ -2647,7 +2219,7 @@ main()
   ├─ 单实例检测
   ├─ 初始化日志
   ├─ 加载配置 cfg
-  ├─ app = QApplication(...)
+  ├─ app = QApplication(...)          # 仅 GUI 端；Agent 无 GUI 时跳过
   ├─ 语言处理：
   │     if "language" not in cfg:        # 首次启动
   │         lang = choose_language_dialog(app)   # 弹窗选择
@@ -2657,9 +2229,11 @@ main()
   │         lang = cfg["language"]
   │     load_language(lang)              # 加载文案资源
   ├─ app.setStyleSheet(DARK_QSS)
-  ├─ window = HostMainWindow(cfg) / ClientMainWindow(cfg)   # 主窗口用已加载语言
+  ├─ window = HostMainWindow(cfg) / AgentDashboard(cfg)   # 主窗口用已加载语言
   └─ window.show(); app.exec_()
 ```
+
+> Agent 默认无界面（后台服务）；仅当其启用本机仪表盘（Qt 版）时才需要接入 i18n。Web 版仪表盘在 HTML 内做前端 i18n（同 key 策略）。
 
 ---
 
@@ -2674,19 +2248,17 @@ main()
 | `host/gui/detail_panel.py` | 指标卡标签/头部 | ~15 |
 | `host/gui/overview_grid.py` | 卡片标签/计数 | ~8 |
 | `host/gui/discovery_dialog.py` | 扫描弹窗 | ~8 |
-| `client/gui/main_window.py` | 顶栏/按钮/右键/对话框/状态 | ~30 |
-| `client/gui/local_panel.py` | 连接信息区/仪表盘标签 | ~12 |
-| `client/gui/node_manager.py` | 节点管理器按钮 | ~8 |
+| `agent/gui/main_window.py` | 本机仪表盘（可选，PyQt5） | ~12 |
 | `common/connect_dialog.py` | 连接码/剪贴板/首屏引导 | ~18 |
 
 ### 3.2 迁移步骤
 
 1. 建 `i18n/en.json` + `i18n/zh_CN.json`（key 一致）。
 2. 建 `common/i18n.py`（含 `load_language`/`tr`/`choose_language_dialog`）。
-3. `host/main.py`、`client/main.py` 接入语言选择流程。
+3. `host/main.py`（及可选 `agent/gui/main_window.py`）接入语言选择流程。
 4. 逐个 GUI 文件把中文硬编码替换为 `tr("...")`。
 5. 全局扫描中文残留，确认用户可见文案全覆盖。
-6. 验证三端：首次启动弹语言选择、选后界面语言正确、配置记忆、重启不弹。
+6. 验证：首次启动弹语言选择、选后界面语言正确、配置记忆、重启不弹。
 
 ### 3.3 工具链辅助
 
@@ -2712,7 +2284,7 @@ main()
 ### 4.2 未来扩展（预留）
 
 - 加语言 → 新建 `i18n/xx.json` + 弹窗加按钮。
-- 运行时热切换 → 设置页下拉 + `load_language()` + 重建窗口（`QEvent.LanguageChange` 或重建 UI）。
+- 运行时热切换 → 设置页下拉 + `load_language()` + 重建窗口。
 
 ---
 
@@ -2724,10 +2296,8 @@ main()
 | **key 泄漏** | `tr` 未找到 key 回退显示 key 本身，不崩溃 |
 | **占位符** | 用 `{0}/{1}` 格式化，避免 `%s` 与 JSON 转义冲突 |
 | **弹窗时序** | 语言选择弹窗按钮固定双语，选定后才加载文案建主窗口 |
-| **首次启动 vs 已装用户** | 已运行过的配置无 `language` 字段 → 也会弹一次（可接受）；或默认 zh_CN 不弹 |
+| **Agent 无界面** | Agent 后台默认不建 QApplication，不触发语言弹窗；仅仪表盘启用时接入 |
 | **日志/协议** | 不翻译：type、日志、配置内容、内部中文注释保留 |
-
-> **设计决策（需确认）**：已运行用户升级后首次启动是否弹语言选择？方案 A：弹（尊重选择）；方案 B：默认 zh_CN 不弹（用户手动改配置）。
 
 ---
 
@@ -2737,7 +2307,7 @@ main()
 - [ ] 首次启动弹语言选择窗（中文/English）
 - [ ] 选择后界面语言立即生效
 - [ ] 语言写入配置，重启不弹，界面保持所选语言
-- [ ] 三端（host/client/node）界面无**另一种语言残留**
+- [ ] Host / Agent 仪表盘界面无**另一种语言残留**
 - [ ] 按钮/标签/标题/提示框/菜单/右键/tooltip 全部正确
 - [ ] 占位符文案（"Connected 3/4 nodes" / "已连接 3/4 节点"）格式正确
 - [ ] `tr` 无 key 泄漏
@@ -2750,24 +2320,15 @@ main()
 | 阶段 | 内容 | 相对工作量 |
 |------|------|-----------|
 | 1 | 建 `en.json` + `zh_CN.json` + `i18n.py` | 小 |
-| 2 | 语言选择弹窗 + 双端接入 | 小 |
-| 3 | 9 个 GUI 文件文案替换 | **主要**（约 150 处） |
+| 2 | 语言选择弹窗 + Host 接入 | 小 |
+| 3 | GUI 文件文案替换 | **主要**（约 150 处） |
 | 4 | 残留扫描 + 验证 + 测试 | 中 |
-
----
-
-**评审要点**：请确认
-1. 语言选择弹窗触发时机：仅首次启动弹，还是每次启动都弹？（建议首次）
-2. 已运行用户升级后：弹一次选语言，还是默认中文不弹？（建议弹一次）
-3. key 命名风格、弹窗样式是否认可？
-
 
 ---
 
 # 第四篇 · 自定义数值红线告警
 
-
-> 版本：v1.0　　日期：2026-08-09　　适用：局域网多级硬件监控系统（v4.0）
+> 版本：v5.0　　日期：2026-08-10　　适用：局域网硬件监控系统（v5.0 前后端分离版）
 > 状态：**设计稿 · 待评审**（评审通过后进入实施）
 
 ---
@@ -2789,7 +2350,8 @@ main()
 | **自定义红线** | 用户可配置任意指标的**红线阈值**，数值触及/超过即告警 |
 | **告警方式** | 状态栏横幅 + 日志 + 界面数值高亮（红/橙） |
 | **配置持久化** | 红线配置写入 `host_config.json`（或独立 `alerts.json`） |
-| **范围** | 监控主机端（集中大屏）为主；副机端可复用 |
+| **检测位置** | **Host 前端检测**为主（对收到的每帧数据本地判定）；也可由 Agent 后端推送告警（可选） |
+| **范围** | Host 端（集中大屏）为主；Agent 本机仪表盘可复用 `AlertEngine` |
 | **不强制** | 未配置红线的指标沿用内置阈值变色 |
 
 ### 1.3 设计原则
@@ -2797,7 +2359,9 @@ main()
 1. **配置驱动**：红线从配置文件读取，改配置重启生效（不做运行时热编辑）。
 2. **通用指标路径**：用 `section.key` 定位任意指标（如 `cpu.total_usage`、`gpu.core_temp_c`）。
 3. **内置默认**：未配置时行为与现在一致（内置阈值变色，无告警）。
-4. **轻量**：告警检测在主窗口数据更新时同步做，不增加独立线程。
+4. **轻量**：告警检测在数据更新时同步做，不增加独立线程/协程。
+
+> **v5.0 说明**：告警检测默认在 **Host 前端**对每帧 `monitor_data` 本地判定（`host/alerts.py`）。若希望多端告警一致，也可在 Agent 后端实现同一 `AlertEngine`，将告警随 WS 帧或独立 `alert` 消息推送；两种方式可并存，前端判定延迟更低、无需改协议。
 
 ---
 
@@ -2843,8 +2407,6 @@ main()
 | `disk[0].usage_percent` | 第一个盘符使用率 |
 
 ### 2.3 内置默认红线（参考行业监控标准）
-
-默认红线参考通用硬件监控行业建议（CPU/GPU 温度警戒 80-85°C、危险 90°C+；使用率 80-90% 警戒；内存 80-90%；磁盘 85-95%；GPU 热点 95°C 警戒）——与系统 §14.1 内置阈值一致，同时提供显式告警。可在 `host_config.json` 中覆盖或关闭：
 
 ```json
 {
@@ -2929,7 +2491,6 @@ class AlertEngine:
 
 def extract_path(frame: dict, path: str):
     """按 'section.key' 或 'disk[0].key' 提取指标值。"""
-    # 处理数组索引 disk[0].usage_percent
     if "[" in path:
         head, rest = path.split("]", 1)
         section = head.split("[")[0]
@@ -2954,7 +2515,7 @@ def extract_path(frame: dict, path: str):
 def _on_data(self, frame, node_id):
     # ... 现有更新逻辑 ...
 
-    # 红线告警检测（仅对当前选中节点或所有节点）
+    # 红线告警检测（对收到的每帧数据）
     alerts = self.alert_engine.check(frame)
     self._show_alerts(alerts, node_id)
 ```
@@ -3005,8 +2566,8 @@ def load_alerts(cfg) -> list:
 
 ## 5. 范围
 
-- **仅主机端实施**：`HostMainWindow` 集成告警检测与展示。
-- 副机端**预留**：`AlertEngine` 设计为通用（接收 frame + rules），未来可在副机端复用；本期不接入。
+- **Host 端实施**：`HostMainWindow` 集成告警检测与展示（前端检测）。
+- Agent 本机仪表盘**预留**：`AlertEngine` 设计为通用（接收 frame + rules），未来可在 Agent 端复用或后端推送告警；本期不强制接入。
 
 ---
 
@@ -3048,38 +2609,9 @@ def load_alerts(cfg) -> list:
 
 ---
 
-**评审要点（已按反馈确认）**：
-1. ✅ 告警方式：状态栏 + 日志 + 托盘弹窗，三种全开
-2. ✅ 默认红线：按行业监控标准查参考（温度 80/90°C、热点 95/105°C、使用率 80/95% 等）
-3. ✅ 范围：仅主机端，副机端预留
-
-
----
-
-# 第五篇 · 文档维护约定
-
-## 5.1 目的
-
-为避免文档碎片化（此前技术文档 / 需求增强 / i18n / 红线告警分散为多份），
-本项目统一以本文件为唯一主文档。后续所有新增需求、设计、规格均追加到对应篇章。
-
-## 5.2 命名与章节规划
-
-- 主文档：`docs/项目文档.md`（唯一主文档）
-- 篇章划分：
-  - **第一篇** 系统技术规格（架构 / 协议 / 数据格式 / 采集 / 部署 / 运维）
-  - **第二篇** 需求增强说明（历史增强点与决策）
-  - **第三篇** 多语言 i18n
-  - **第四篇** 自定义红线告警
-  - **后续新需求** → 追加为新篇章（如「第五篇 · XX功能」「第六篇 · YY功能」），并更新目录
-
-## 5.3 新增需求规范
-
-1. 新需求先在对应篇章下新增小节（如 `### X.Y 需求名`）。
-2. 若需求为全新主题，新增篇章并更新本目录。
-3. 文档中代码示例与实现保持一致；实现变更时同步更新文档。
-4. 验收清单逐条可勾选，作为实施完成依据。
+**实现总结**：v5.0 前后端分离架构下，Agent 为服务端（采集 + WebSocket/REST 推送 + 可选仪表盘），Host 为纯前端（订阅展示 + 节点管理 + 红线告警 + i18n）。数据帧格式沿用 v4.0 `monitor_data`，实现按 §25 M1-M5 逐步迁移。详见 §1-§25 与各篇章。
 
 ---
 
 > 文档结束。后续更新请在对应篇章内修改，勿另建文档。
+

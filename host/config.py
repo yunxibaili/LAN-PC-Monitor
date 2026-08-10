@@ -16,6 +16,8 @@ DEFAULT_CONFIG = {
     "max_cards_per_row": 4,     # 每行卡片数
     "last_selected_node": "",   # 上次选中的 node_id
     "alert_popup": True,        # 红线告警弹窗（系统托盘气泡）开关
+    "language": "",             # i18n 语言（zh_CN/en）；首次启动时由 ensure_language 弹窗设置
+    "onboarded": False,         # 首屏引导是否完成
 }
 
 # 内置默认红线（参考行业监控标准，见《README.md》第四篇 §2.3）

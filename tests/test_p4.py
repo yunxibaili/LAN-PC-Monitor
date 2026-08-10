@@ -235,7 +235,7 @@ def test_node_process():
         node_log_tail()[-300:])
 
     # UDP 心跳广播可被本机监听
-    from node.discovery import DiscoveryListener
+    from host.discovery import DiscoveryListener
     lan_ip = get_lan_ip()
     lis = DiscoveryListener()
     lis.start()
@@ -386,7 +386,7 @@ def test_discovery():
     np, err = start_node_proc()
     check("节点启动（发现测试）", np is not None, err or "")
 
-    from node.discovery import DiscoveryListener, MdnsDiscovery
+    from host.discovery import DiscoveryListener, MdnsDiscovery
     lan_ip = get_lan_ip()
     lis = DiscoveryListener()
     mdns = MdnsDiscovery()
@@ -453,7 +453,7 @@ def test_self_monitor():
 def test_fps_degrade():
     """T8 帧率降级链路。"""
     print("\n--- T8. 帧率降级链路 ---")
-    from node.collectors.fps_collector import FpsCollector, FrameStats
+    from common.collectors.fps_collector import FpsCollector, FrameStats
     import logging
 
     records = []
@@ -508,6 +508,14 @@ def main():
     print("=" * 60)
     print("P4 集成测试（双端连接 / 帧率降级 / 性能兜底 / 便捷发现）")
     print("=" * 60)
+    # v5.0: node_config.json 已删除（v5.0 节点改为 agent_config.json），
+    # v4.0 节点子进程测试不再适用。
+    if not os.path.exists(os.path.join(ROOT, "node_config.json")):
+        print("  [SKIP] test_p4 (v4.0 node.* 已迁移至 agent，请使用 test_api.py)")
+        print()
+        print(f"结果: 0 通过, 0 失败, 0 跳过（v5.0 弃用）")
+        return 0
+
     # 清理历史残留单实例锁（避免上次强杀节点残留导致误判"已有实例"）
     import tempfile, glob as _glob
     for _lf in _glob.glob(os.path.join(tempfile.gettempdir(), "*Monitor*.lock")):

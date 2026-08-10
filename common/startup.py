@@ -15,6 +15,7 @@ log = logging.getLogger("common.startup")
 
 # 任务/注册表名称
 NODE_TASK_NAME = "PC_Monitor_Node"
+AGENT_TASK_NAME = "PC_Monitor_Agent"
 CLIENT_RUN_NAME = "PC_Monitor_Client"
 HOST_RUN_NAME = "PC_Monitor_Host"
 
@@ -63,6 +64,43 @@ def remove_node_startup() -> bool:
         return True
     except subprocess.CalledProcessError as e:
         log.error("卸载节点自启失败: %s", e.stderr.strip())
+        return False
+
+
+def install_agent_startup() -> bool:
+    """
+    安装 Agent 开机自启（schtasks /SC ONLOGON /RL HIGHEST，需管理员）。
+    任务名 PC_Monitor_Agent，与节点任务互不覆盖（§16.5 双端分离）。
+    """
+    if sys.platform != "win32":
+        log.warning("非 Windows 平台，跳过开机自启安装")
+        return False
+    exe = _pythonw_path()
+    cmd = f'{exe} -m agent'
+    try:
+        subprocess.run(
+            ["schtasks", "/Create", "/TN", AGENT_TASK_NAME,
+             "/TR", f'"{cmd}"', "/SC", "ONLOGON",
+             "/RL", "HIGHEST", "/F"],
+            check=True, capture_output=True, text=True)
+        log.info("Agent 开机自启已安装: %s", cmd)
+        return True
+    except subprocess.CalledProcessError as e:
+        log.error("安装 Agent 自启失败（可能需要管理员权限）: %s", e.stderr.strip())
+        return False
+
+
+def remove_agent_startup() -> bool:
+    """卸载 Agent 开机自启。"""
+    if sys.platform != "win32":
+        return False
+    try:
+        subprocess.run(["schtasks", "/Delete", "/TN", AGENT_TASK_NAME, "/F"],
+                       check=True, capture_output=True, text=True)
+        log.info("Agent 开机自启已卸载")
+        return True
+    except subprocess.CalledProcessError as e:
+        log.error("卸载 Agent 自启失败: %s", e.stderr.strip())
         return False
 
 

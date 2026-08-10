@@ -130,22 +130,22 @@ def check_port_in_use(port: int, proto: str = "tcp") -> bool:
 
 def get_local_node_info() -> dict:
     """
-    读取本机采集节点配置（node_config.json），返回连接所需信息。
+    读取本机副机端 Agent 配置（agent_config.json），返回连接所需信息。
 
-    用于副机端/主机端"一键添加本机节点"，省去手动填 IP/端口/token。
+    用于主机端"一键添加本机节点"，省去手动填 IP/端口/token。
     :return: {"ip":..., "port":..., "token":..., "alias":...}；
              文件不存在或解析失败返回空 dict。
     """
     import json
     import os
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    cfg_file = os.path.join(root, "node_config.json")
+    cfg_file = os.path.join(root, "agent_config.json")
     try:
         with open(cfg_file, "r", encoding="utf-8") as f:
             cfg = json.load(f)
         return {
             "ip": get_lan_ip(cfg.get("preferred_iface", "")),
-            "port": cfg.get("tcp_port", 12345),
+            "port": cfg.get("http_port", 12345),
             "token": cfg.get("token", ""),
             "alias": socket.gethostname(),
         }

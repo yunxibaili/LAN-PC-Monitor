@@ -1,0 +1,159 @@
+# -*- coding: utf-8 -*-
+"""
+Agent WebSocket 服务端 —— /ws 多订阅推送 + 鉴权 + PING/PONG（见《README.md》§4）。
+
+基于 aiohttp 内置 WebSocket：
+- 连接 ws://<ip>:12345/ws?token=xxx（查询参数鉴权，§4.4 推荐方式）
+- 也支持首帧 {"type":"auth","token":xxx}（备选）
+- 鉴权通过后加入订阅者集合；推送协程每秒向所有订阅者广播 monitor_data
+- RTT：aiohttp 底层对 WS PING 自动回 PONG（RFC 6455），Host 本地测时延
+- loss_ping/loss_pong：应用层低频丢包测量（§4.7），收到 loss_ping 回 loss_pong
+"""
+import asyncio
+import json
+import logging
+
+from aiohttp import WSMsgType, web
+
+log = logging.getLogger("agent.websocket")
+
+# 默认每 10 秒发 3 个 loss_ping 的回应（Host 侧发起，Agent 侧只需回 pong）
+LOSS_INTERVAL = 10.0
+
+
+class WebSocketServer:
+    """WebSocket 服务端：管理订阅者集合，向所有订阅者广播数据帧。"""
+
+    def __init__(self, token: str = "", aggregator=None):
+        """
+        :param token:      鉴权 token（空串表示不鉴权，仅测试用）
+        :param aggregator: DataAggregator 实例（提供 latest_frame()）
+        """
+        self.token = token or ""
+        self.aggregator = aggregator
+        self._subscribers = set()   # 已鉴权 WebSocketResponse 集合
+        self._stopping = False
+
+    # ---------- 计数 ----------
+
+    def subscriber_count(self) -> int:
+        """当前 WS 订阅者数。"""
+        return len(self._subscribers)
+
+    # ---------- 路由处理 ----------
+
+    async def ws_handler(self, request: web.Request) -> web.WebSocketResponse:
+        """/ws 连接处理：鉴权 → 加入订阅者 → 循环接收消息/心跳。"""
+        ws = web.WebSocketResponse(max_msg_size=16 * 1024 * 1024,
+                                   heartbeat=30)  # 30s 服务端心跳保活
+        await ws.prepare(request)
+
+        # ---- 鉴权 ----
+        auth_ok = False
+        # 方式一：查询参数 ?token=xxx（推荐，握手阶段校验）
+        q_token = request.query.get("token")
+        if q_token is not None and self._check_token(q_token):
+            auth_ok = True
+        # 方式二：首帧 auth（备选）
+        if not auth_ok:
+            try:
+                first = await asyncio.wait_for(ws.receive(), timeout=5)
+                if first.type == WSMsgType.TEXT:
+                    msg = json.loads(first.data)
+                    if msg.get("type") == "auth" and self._check_token(
+                            msg.get("token")):
+                        auth_ok = True
+            except (asyncio.TimeoutError, json.JSONDecodeError, Exception):
+                pass
+
+        if not auth_ok:
+            log.warning("WS 鉴权失败: %s", request.remote)
+            try:
+                await ws.send_str(json.dumps(
+                    {"type": "auth_result", "ok": False, "reason": "token错误"}))
+            except Exception:
+                pass
+            await ws.close(code=1008, message=b"unauthorized")
+            return ws
+
+        self._subscribers.add(ws)
+        log.info("WS 客户端 %s 已连接，当前订阅者 %d",
+                 request.remote, self.subscriber_count())
+        try:
+            await ws.send_str(json.dumps(
+                {"type": "auth_result", "ok": True}, ensure_ascii=False))
+        except Exception:
+            pass
+
+        try:
+            async for msg in ws:
+                if msg.type == WSMsgType.TEXT:
+                    await self._handle_text(ws, msg.data)
+                elif msg.type == WSMsgType.ERROR:
+                    break
+        except Exception:
+            pass
+        finally:
+            self._subscribers.discard(ws)
+            log.info("WS 客户端 %s 断开，当前订阅者 %d",
+                     request.remote, self.subscriber_count())
+        return ws
+
+    # ---------- 内部实现 ----------
+
+    def _check_token(self, token) -> bool:
+        """校验 token。空 token 配置下放行（测试用）。"""
+        if not self.token:
+            return True
+        return token == self.token
+
+    async def _handle_text(self, ws, data: str) -> None:
+        """处理业务文本消息（loss_ping 等）。"""
+        try:
+            msg = json.loads(data)
+        except json.JSONDecodeError:
+            return
+        mtype = msg.get("type")
+        if mtype == "loss_ping":
+            try:
+                await ws.send_str(json.dumps({
+                    "type": "loss_pong",
+                    "seq": msg.get("seq"),
+                    "ts": msg.get("ts"),
+                }, ensure_ascii=False))
+            except Exception:
+                pass
+
+    # ---------- 广播 ----------
+
+    async def broadcast_frame(self, frame: dict) -> None:
+        """向所有订阅者广播一帧。失败连接剔除。"""
+        if not self._subscribers:
+            return
+        data = json.dumps(frame, ensure_ascii=False)
+        dead = []
+        for ws in list(self._subscribers):
+            try:
+                await ws.send_str(data)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self._subscribers.discard(ws)
+
+    async def push_loop(self) -> None:
+        """每秒从聚合器取最新帧广播（§4.2）。"""
+        while not self._stopping:
+            if self.aggregator is not None:
+                frame = self.aggregator.latest_frame()
+                if frame:
+                    await self.broadcast_frame(frame)
+            await asyncio.sleep(1.0)
+
+    def start_push_loop(self) -> None:
+        """在事件循环中启动推送协程（main 中调用）。"""
+        self._stopping = False
+        asyncio.ensure_future(self.push_loop())
+
+    def stop(self) -> None:
+        """标记停止推送循环。"""
+        self._stopping = True
