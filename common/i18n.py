@@ -101,24 +101,29 @@ def choose_language_dialog(parent=None) -> str:
 
 def ensure_language(cfg: dict, save_config_fn, parent=None) -> str:
     """
-    启动时确保语言已确定并加载。
+    启动时确保语言已确定并加载（v5.1：取消启动语言弹窗）。
 
     流程：
     1. 配置有 "language" → 直接 load_language。
-    2. 配置无 → 弹语言选择窗 → 写入配置（save_config_fn）→ load_language。
+    2. 配置无 → 默认 zh_CN，写入配置，**不弹窗**。
+       语言改由设置中心统一管理（首次初始化向导中可设置）。
 
     :param cfg:            配置字典（含/不含 language）
     :param save_config_fn: 回调 fn(cfg) 保存配置
-    :param parent:         弹窗父窗口（QApplication 即可）
+    :param parent:         保留参数（兼容旧调用）
     :return: 最终语言代码
     """
     lang = cfg.get("language")
     if lang and lang in LANGS:
         load_language(lang)
         return lang
-    # 首次启动：弹语言选择
-    lang = choose_language_dialog(parent)
+    # v5.1：无语言配置 → 默认 zh_CN，静默写入，不弹启动弹窗
+    lang = "zh_CN"
+    load_language(lang)
     cfg["language"] = lang
     if save_config_fn:
-        save_config_fn(cfg)
+        try:
+            save_config_fn(cfg)
+        except Exception:
+            pass
     return lang

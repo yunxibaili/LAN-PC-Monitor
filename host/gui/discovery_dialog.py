@@ -14,8 +14,8 @@ from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel,
                              QVBoxLayout)
 
 from common.i18n import tr
-from common.theme import COLOR_NA
 from common.utils import make_host_id
+from host.gui.theme.colors import ThemeColors as TC
 
 log = logging.getLogger("host.gui.discovery_dialog")
 
@@ -36,7 +36,7 @@ class DiscoveryDialog(QDialog):
         self.existing = existing
         self.on_add = on_add
         self.on_add_local = on_add_local
-        from common.theme import remove_help_button
+        from host.gui.theme.components import remove_help_button
         remove_help_button(self)   # 移除 Windows 标题栏问号按钮，防闪退
         self.setWindowTitle(tr("topbar.scan"))
         self.resize(480, 420)
@@ -48,7 +48,7 @@ class DiscoveryDialog(QDialog):
 
         hint = QLabel(tr("discovery.hint"))
         hint.setWordWrap(True)
-        hint.setStyleSheet(f"color: {COLOR_NA};")
+        hint.setStyleSheet(f"color: {TC.TEXT_DISABLED};")
         root.addWidget(hint)
 
         self.list_widget = QListWidget()

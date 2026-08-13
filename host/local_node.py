@@ -18,11 +18,9 @@ import time
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from common.collectors import create_collectors, start_all, stop_all
+from common.constants import LOCAL_NODE_ID
 
 log = logging.getLogger("host.local_node")
-
-# 本机节点固定 ID（§12.2）
-LOCAL_NODE_ID = "localhost"
 
 
 class LocalCollectorPack(QObject):

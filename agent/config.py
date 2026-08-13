@@ -27,7 +27,8 @@ DEFAULT_CONFIG = {
         "gpu": True,
         "temperature": True,
     },
-    "log_level": "INFO",      # 日志级别：DEBUG/INFO/WARNING/ERROR（§11.2）
+    "language": "",           # i18n 语言（zh_CN/en）；首次启动由 ensure_language 弹窗设置
+    "onboarded": False,       # 首屏引导是否完成
 }
 
 

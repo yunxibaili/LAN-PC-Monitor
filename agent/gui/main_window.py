@@ -81,10 +81,18 @@ class AgentDashboardWindow(QMainWindow):
         root.setContentsMargins(8, 8, 8, 8)
         root.setSpacing(6)
 
-        # 顶部标题
+        # 顶部标题行（标题 + 设置齿轮）
+        header_row = QHBoxLayout()
         self.header_label = QLabel()
         self.header_label.setObjectName("panel_title")
-        root.addWidget(self.header_label)
+        header_row.addWidget(self.header_label)
+        header_row.addStretch(1)
+        btn_settings = QPushButton("⚙")
+        btn_settings.setToolTip(tr("settings.title"))
+        btn_settings.setFixedWidth(36)
+        btn_settings.clicked.connect(self._open_settings)
+        header_row.addWidget(btn_settings)
+        root.addLayout(header_row)
 
         # 连接信息区（IP/端口/Token/连接串）
         root.addWidget(self._build_conninfo())
@@ -100,6 +108,12 @@ class AgentDashboardWindow(QMainWindow):
 
         self.setCentralWidget(central)
         self._update_header()
+
+    def _open_settings(self) -> None:
+        """打开设置中心（齿轮按钮入口）。Agent 侧主要管理采集/高级设置。"""
+        from common.settings_dialog import SettingsDialog
+        dialog = SettingsDialog(parent=self)
+        dialog.exec_()
 
     def _build_conninfo(self) -> QWidget:
         """连接信息区：IP/端口/Token/连接串 + 复制按钮（§5.4）。"""

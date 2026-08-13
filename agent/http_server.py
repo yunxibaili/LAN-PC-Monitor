@@ -15,12 +15,21 @@ Agent REST API 服务端 —— /api/* 辅助接口（见《README.md》§4.5 / 
 import json
 import logging
 import socket
+import time
 
 from aiohttp import web
 
 from common.utils import get_lan_ip
 
 log = logging.getLogger("agent.http")
+
+# Agent 进程启动时间（模块加载时记录，用于 agent_uptime）
+_AGENT_START_TS = time.time()
+
+# REST 鉴权失败日志限流
+_REST_AUTH_FAIL_WINDOW = 60
+_REST_AUTH_FAIL_THRESHOLD = 10
+_rest_auth_fail_state = {"ts": [], "count": 0}
 
 
 def _bearer_token(request: web.Request) -> str | None:
@@ -54,11 +63,27 @@ class RestServer:
         return supplied == token
 
     def _require_auth(self, request: web.Request) -> bool:
-        """鉴权失败时写 401 并返回 False。"""
+        """鉴权失败时写 401 并返回 False。失败日志限流，避免刷屏。"""
         if self._check_auth(request):
             return True
+        self._log_auth_fail(request.remote)
         raise web.HTTPUnauthorized(text=json.dumps(
             {"error": "unauthorized"}), content_type="application/json")
+
+    def _log_auth_fail(self, ip: str) -> None:
+        """REST 鉴权失败限流：普通失败 DEBUG，连续失败合并 WARNING。"""
+        now = time.time()
+        st = _rest_auth_fail_state
+        st["ts"] = [t for t in st["ts"] if now - t < _REST_AUTH_FAIL_WINDOW]
+        st["ts"].append(now)
+        st["count"] = len(st["ts"])
+        if st["count"] >= _REST_AUTH_FAIL_THRESHOLD:
+            if st["count"] == _REST_AUTH_FAIL_THRESHOLD:
+                log.warning(
+                    "REST 鉴权失败 %d 次（%ds 内，来自 %s），疑似探测，后续降级为 DEBUG",
+                    st["count"], _REST_AUTH_FAIL_WINDOW, ip)
+        else:
+            log.debug("REST 鉴权失败: %s（普通失败）", ip)
 
     # ---------- 路由 ----------
 
@@ -66,13 +91,16 @@ class RestServer:
         """GET /api/health —— 健康检查。"""
         self._require_auth(request)
         frame = self.aggregator.latest_frame() if self.aggregator else {}
+        system_uptime = frame.get("system", {}).get("uptime_seconds", 0)
         return web.json_response({
             "status": "ok",
             "version": "5.0.0",
             "hostname": socket.gethostname(),
             "ip": get_lan_ip(self.cfg.get("preferred_iface", "")),
             "port": self.cfg.get("http_port", 12345),
-            "uptime": frame.get("system", {}).get("uptime_seconds", 0),
+            # v5.0 稳定性优化：区分 Agent 进程 uptime 与系统开机 uptime，禁止混用
+            "agent_uptime": int(time.time() - _AGENT_START_TS),
+            "system_uptime": system_uptime,
             "subscribers": self.aggregator.connected_clients() if self.aggregator else 0,
         })
 

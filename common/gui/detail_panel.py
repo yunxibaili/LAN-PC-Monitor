@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-监控主机详情面板 —— 单个节点的完整指标展示（见《README.md》§6.3 / §18.3）。
+详情面板（common 自包含版本）—— 单个节点的完整指标展示。
 
+- 本模块为纯 Qt 通用组件，仅依赖 common（theme / i18n / utils），**不依赖 host**。
+- 供 Agent 本机仪表盘（agent/gui/main_window.py）使用；Host 侧另用
+  host/gui/widgets/detail_panel.py（基于 NodeDetailData + host.gui.theme）。
 - 分区展示：系统/CPU/内存/GPU/磁盘/网络/网络质量/帧率/进程。
-- 阈值变色：使用率/温度/评分/RTT 按 §14.1 变色，N/A 灰色。
+- 阈值变色：使用率/温度/评分/RTT 按阈值变色，N/A 灰色。
 - update_all(frame) 由主窗口在每秒数据帧到达时调用（GUI 主线程）。
 - get_summary() 提取关键指标供列表项/概览卡片使用。
 """

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>PC Monitor — Desktop Application</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#0F1117;color:#E6EDF3;overflow:hidden;height:100vh;-webkit-app-region:drag}
+.app{display:flex;height:100vh}
+
+/* === Title Bar (Desktop Window) === */
+.titlebar{height:32px;background:#161B26;display:flex;align-items:center;padding:0 12px;-webkit-app-region:drag;flex-shrink:0;border-bottom:1px solid #293449}
+.titlebar .logo{font-size:12px;font-weight:600;color:#4C8DFF;display:flex;align-items:center;gap:6px;-webkit-app-region:no-drag}
+.titlebar .page{margin-left:20px;font-size:12px;color:#8B949E}
+.titlebar .right{margin-left:auto;display:flex;align-items:center;gap:10px;-webkit-app-region:no-drag}
+.titlebar .status{font-size:11px;color:#22C55E;display:flex;align-items:center;gap:4px}
+.titlebar .dot{width:5px;height:5px;border-radius:50%;background:#22C55E}
+.titlebar .win-btn{width:30px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#8B949E}
+.titlebar .win-btn:hover{background:#293449}
+
+/* === Sidebar === */
+.sidebar{width:220px;background:#161B26;border-right:1px solid #293449;display:flex;flex-direction:column;flex-shrink:0}
+.sidebar .logo-area{padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #293449}
+.sidebar .logo-area .icon{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#4C8DFF,#3B82F6);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff}
+.sidebar .logo-area .text{font-size:13px;font-weight:600}
+.sidebar .nav-item{padding:9px 16px;cursor:pointer;color:#8B949E;font-size:13px;display:flex;align-items:center;gap:8px;border-left:3px solid transparent;transition:all 0.1s}
+.sidebar .nav-item:hover{background:#293449;color:#E6EDF3}
+.sidebar .nav-item.active{background:#1C2435;color:#E6EDF3;border-left-color:#4C8DFF;font-weight:600}
+.sidebar .nav-icon{width:16px;text-align:center;font-size:13px}
+.sidebar .nav-badge{background:#EF4444;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;margin-left:auto}
+.sidebar .section-title{padding:14px 16px 5px;font-size:10px;color:#484F58;text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
+.sidebar .node-item{padding:5px 16px;cursor:pointer;font-size:12px;color:#8B949E;display:flex;align-items:center;gap:8px}
+.sidebar .node-item:hover{background:#293449}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;display:inline-block}
+.dot-on{background:#22C55E}
+.dot-off{background:#EF4444}
+
+/* === Main === */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0F1117}
+.main-scroll{flex:1;overflow-y:auto;padding:0 20px 20px}
+
+/* === Cards === */
+.card{background:#1C2435;border:1px solid #293449;border-radius:12px;padding:14px;transition:all 0.12s}
+.card:hover{border-color:rgba(76,141,255,0.3)}
+.mc{background:#1C2435;border:1px solid #293449;border-radius:10px;padding:12px 14px}
+.mc .label{font-size:11px;color:#8B949E;margin-bottom:2px}
+.mc .value{font-size:28px;font-weight:700;line-height:1.1}
+.mc .sub{font-size:11px;color:#484F58;margin-top:3px}
+.mc .trend{font-size:11px;margin-top:4px}
+
+/* === Progress === */
+.prow{display:flex;align-items:center;gap:6px;margin:2px 0}
+.prow .nm{width:28px;font-size:10px;color:#8B949E}
+.prow .bar{flex:1;height:4px;background:#293449;border-radius:2px;overflow:hidden}
+.prow .fill{height:100%;border-radius:2px}
+.prow .val{width:44px;text-align:right;font-size:11px;font-weight:600}
+
+/* === Badge === */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:600}
+.badge.on{background:rgba(34,197,94,0.12);color:#22C55E}
+.badge.off{background:rgba(239,68,68,0.12);color:#EF4444}
+
+/* === Node Card (Desktop Monitoring Style) === */
+.ncard{background:#1C2435;border:1px solid #293449;border-radius:10px;padding:12px;transition:all 0.12s;cursor:pointer}
+.ncard:hover{border-color:rgba(76,141,255,0.4);background:#1E2A3E}
+.ncard.offline{opacity:0.4}
+.ncard .hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.ncard .hdr h4{font-size:14px;font-weight:600;margin:0}
+.ncard .info{font-size:11px;color:#8B949E;margin-bottom:6px}
+.ncard .mrow{display:flex;align-items:center;gap:5px;margin:2px 0}
+.ncard .mlbl{width:28px;font-size:10px;color:#8B949E}
+.ncard .mbar{flex:1;height:4px;background:#293449;border-radius:2px;overflow:hidden}
+.ncard .mfill{height:100%;border-radius:2px}
+.ncard .mval{width:42px;text-align:right;font-size:11px;font-weight:600}
+.ncard .mfull{display:flex;justify-content:space-between;font-size:10px;color:#8B949E;margin:1px 0}
+.ncard .sep{height:1px;background:#293449;margin:4px 0}
+
+/* === Chart === */
+.chart-box{background:#1C2435;border:1px solid #293449;border-radius:10px;padding:12px}
+.chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.chart-head h4{font-size:13px;font-weight:600;margin:0}
+.chart-head .meta{font-size:11px;color:#8B949E}
+.chart-canvas{height:180px;background:#0F1117;border-radius:6px;position:relative;overflow:hidden}
+
+/* === Grid === */
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+
+/* === Alert === */
+.alr{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-bottom:1px solid #293449;transition:background 0.1s}
+.alr:hover{background:#161B26}
+.alv{width:8px;height:8px;border-radius:2px;flex-shrink:0;margin-top:4px}
+.alv.cr{background:#EF4444}.alv.wa{background:#F59E0B}.alv.in{background:#4C8DFF}
+.alh{font-weight:600;font-size:12px}
+.ald{font-size:11px;color:#8B949E;margin-top:1px}
+.alm{margin-left:auto;text-align:right;font-size:10px;color:#484F58}
+
+/* === Settings === */
+.st-nav{width:180px;border-right:1px solid #293449;padding:10px 0}
+.st-item{padding:8px 14px;cursor:pointer;color:#8B949E;font-size:13px;border-radius:6px;display:flex;align-items:center;gap:6px}
+.st-item:hover{background:#293449}
+.st-item.on{color:#4C8DFF;background:#1C2435}
+.st-card{background:#1C2435;border:1px solid #293449;border-radius:10px;padding:14px;margin-bottom:10px}
+.st-card h4{font-size:13px;font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #293449}
+.st-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #293449}
+.st-row:last-child{border-bottom:none}
+.st-lbl{font-size:13px}
+.st-desc{font-size:11px;color:#8B949E}
+.tog{width:34px;height:18px;border-radius:9px;background:#293449;position:relative;cursor:pointer;transition:background 0.12s}
+.tog.on{background:#4C8DFF}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform 0.12s}
+.tog.on::after{transform:translateX(16px)}
+
+/* === Page === */
+.pg{display:none}.pg.active{display:block}
+
+/* === Tabs === */
+.tabs{display:flex;gap:0;border-bottom:1px solid #293449}
+.tab{padding:8px 14px;cursor:pointer;color:#8B949E;font-size:12px;border-bottom:2px solid transparent}
+.tab.on{color:#E6EDF3;border-bottom-color:#4C8DFF;font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+<!-- Title Bar -->
+<div style="display:flex;flex-direction:column;width:100%">
+<div class="titlebar">
+  <div class="logo"><div class="icon">🖥</div> PC Monitor</div>
+  <div class="page" id="hdr-title">Dashboard</div>
+  <div class="right">
+    <div class="status"><span class="dot"></span> 3/4 Connected</div>
+    <div class="win-btn">🔔</div>
+    <div class="win-btn">⚙</div>
+    <div class="win-btn" style="color:#EF4444">✕</div>
+  </div>
+</div>
+
+<div style="display:flex;flex:1;overflow:hidden">
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="section-title">NAVIGATION</div>
+  <div class="nav-item active" onclick="show('dashboard',this)"><span class="nav-icon">▣</span> Dashboard</div>
+  <div class="nav-item" onclick="show('nodes',this)"><span class="nav-icon">▣</span> Nodes</div>
+  <div class="nav-item" onclick="show('monitor',this)"><span class="nav-icon">▣</span> Monitor</div>
+  <div class="nav-item" onclick="show('alerts',this)"><span class="nav-icon">⚠</span> Alerts <span class="nav-badge">2</span></div>
+  <div class="nav-item" onclick="show('settings',this)"><span class="nav-icon">⚙</span> Settings</div>
+  <div class="section-title">Connected Computers</div>
+  <div class="node-item"><span class="dot dot-on"></span>Gaming-PC</div>
+  <div class="node-item"><span class="dot dot-on"></span>Workstation</div>
+  <div class="node-item"><span class="dot dot-on"></span>Design-Mac</div>
+  <div class="node-item"><span class="dot dot-off"></span>Offline-PC</div>
+</div>
+
+<!-- Content -->
+<div style="flex:1;overflow-y:auto;padding:16px 20px">
+
+<!-- === Dashboard === -->
+<div class="pg active" id="pg-dashboard">
+  <div style="margin-bottom:14px"><span style="font-size:18px;font-weight:700">Dashboard</span><div style="font-size:12px;color:#8B949E">System performance overview</div></div>
+  <div class="g5" style="margin-bottom:14px">
+    <div class="mc"><div class="label">Total Nodes</div><div class="value" style="color:#4C8DFF">4</div><div class="sub">All monitored PCs</div></div>
+    <div class="mc"><div class="label">Online</div><div class="value" style="color:#22C55E">3</div><div class="sub">75% online</div></div>
+    <div class="mc"><div class="label">Avg CPU</div><div class="value">42%</div><div class="sub" style="color:#22C55E">▲ 5%</div></div>
+    <div class="mc"><div class="label">Avg GPU</div><div class="value">56%</div><div class="sub">Stable</div></div>
+    <div class="mc"><div class="label">Alerts</div><div class="value" style="color:#F59E0B">2</div><div class="sub">1C 1W</div></div>
+  </div>
+  <div style="font-size:14px;font-weight:600;margin-bottom:10px">Node Monitor</div>
+  <div class="g4" style="margin-bottom:14px">
+    <!-- Gaming-PC -->
+    <div class="ncard">
+      <div class="hdr"><h4>Gaming-PC</h4><span class="badge on">● ONLINE</span></div>
+      <div class="info">192.168.1.100 · Windows 11 Pro</div>
+      <div class="mrow"><span class="mlbl">CPU</span><div class="mbar"><div class="mfill" style="width:45%;background:#22C55E"></div></div><span class="mval" style="color:#22C55E">45%</span></div>
+      <div class="mrow"><span class="mlbl">GPU</span><div class="mbar"><div class="mfill" style="width:65%;background:#4C8DFF"></div></div><span class="mval" style="color:#4C8DFF">65%</span></div>
+      <div class="mrow"><span class="mlbl">RAM</span><div class="mbar"><div class="mfill" style="width:53%;background:#22C55E"></div></div><span class="mval" style="color:#22C55E">53%</span></div>
+      <div class="sep"></div>
+      <div class="mfull"><span>FPS <b style="color:#E6EDF3">144</b></span><span>CPU <b>58°C</b></span><span>GPU <b>62°C</b></span></div>
+      <div class="mfull"><span>↑12.3 ↓45.6 MB/s</span><span>Ping <b>12ms</b></span></div>
+      <div class="mfull"><span>Quality <b style="color:#22C55E">98 A</b></span></div>
+    </div>
+    <!-- Workstation -->
+    <div class="ncard">
+      <div class="hdr"><h4>Workstation</h4><span class="badge on">● ONLINE</span></div>
+      <div class="info">192.168.1.102 · Windows 11 Pro</div>
+      <div class="mrow"><span class="mlbl">CPU</span><div class="mbar"><div class="mfill" style="width:28%;background:#22C55E"></div></div><span class="mval" style="color:#22C55E">28%</span></div>
+      <div class="mrow"><span class="mlbl">GPU</span><div class="mbar"><div class="mfill" style="width:35%;background:#22C55E"></div></div><span class="mval" style="color:#22C55E">35%</span></div>
+      <div class="mrow"><span class="mlbl">RAM</span><div class="mbar"><div class="mfill" style="width:42%;background:#22C55E"></div></div><span class="mval" style="color:#22C55E">42%</span></div>
+      <div class="sep"></div>
+      <div class="mfull"><span>FPS <b style="color:#E6EDF3">120</b></span><span>CPU <b>45°C</b></span><span>GPU <b>38°C</b></span></div>
+      <div class="mfull"><span>↑5.2 ↓22.1 MB/s</span><span>Ping <b>8ms</b></span></div>
+      <div class="mfull"><span>Quality <b style="color:#22C55E">88 B</b></span></div>
+    </div>
+    <!-- Design-Mac -->
+    <div class="ncard">
+      <div class="hdr"><h4>Design-Mac</h4><span class="badge on">● ONLINE</span></div>
+      <div class="info">192.168.1.103 · macOS Ventura</div>
+      <div class="mrow"><span class="mlbl">CPU</span><div class="mbar"><div class="mfill" style="width:18%;background:#22C55E"></div></div><span class="mval" style="color:#22C55E">18%</span></div>
+      <div class="mrow"><span class="mlbl">GPU</span><div class="mbar"><div class="mfill" style="width:22%;background:#22C55E"></div></div><span class="mval" style="color:#22C55E">22%</span></div>
+      <div class="mrow"><span class="mlbl">RAM</span><div class="mbar"><div class="mfill" style="width:43%;background:#22C55E"></div></div><span class="mval" style="color:#22C55E">43%</span></div>
+      <div class="sep"></div>
+      <div class="mfull"><span>FPS <b style="color:#E6EDF3">60</b></span><span>CPU <b>38°C</b></span><span>GPU <b>42°C</b></span></div>
+      <div class="mfull"><span>↑1.2 ↓5.8 MB/s</span><span>Ping <b>3ms</b></span></div>
+      <div class="mfull"><span>Quality <b style="color:#22C55E">92 A</b></span></div>
+    </div>
+    <!-- Offline -->
+    <div class="ncard offline">
+      <div class="hdr"><h4>Office-PC</h4><span class="badge off">● OFFLINE</span></div>
+      <div class="info">192.168.1.104 · Last seen 5 min ago</div>
+      <div class="mrow"><span class="mlbl">CPU</span><div class="mbar"><div class="mfill" style="width:0%"></div></div><span class="mval" style="color:#484F58">—</span></div>
+      <div class="mrow"><span class="mlbl">GPU</span><div class="mbar"><div class="mfill" style="width:0%"></div></div><span class="mval" style="color:#484F58">—</span></div>
+      <div class="mrow"><span class="mlbl">RAM</span><div class="mbar"><div class="mfill" style="width:0%"></div></div><span class="mval" style="color:#484F58">—</span></div>
+      <div class="sep"></div>
+      <div class="mfull"><span>FPS <b>—</b></span><span>CPU <b>—</b></span><span>GPU <b>—</b></span></div>
+      <div class="mfull"><span>↑ — ↓ —</span><span>Ping <b>—</b></span></div>
+      <div class="mfull"><span>Quality <b>—</b></span></div>
+    </div>
+  </div>
+  <div style="font-size:14px;font-weight:600;margin-bottom:10px">System Trend</div>
+  <div class="card">
+    <div class="chart-head"><h4>CPU + GPU Usage</h4><div class="meta">Gaming-PC · Last 30 minutes</div></div>
+    <div class="chart-canvas">
+      <svg viewBox="0 0 700 180" style="width:100%;height:100%">
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4C8DFF" stop-opacity="0.3"/><stop offset="100%" stop-color="#4C8DFF" stop-opacity="0.02"/></linearGradient></defs>
+        <line x1="35" y1="35" x2="680" y2="35" stroke="#293449" stroke-width="0.5"/>
+        <line x1="35" y1="85" x2="680" y2="85" stroke="#293449" stroke-width="0.5"/>
+        <line x1="35" y1="135" x2="680" y2="135" stroke="#293449" stroke-width="0.5"/>
+        <text x="2" y="39" fill="#484F58" font-size="8">70%</text>
+        <text x="2" y="89" fill="#484F58" font-size="8">35%</text>
+        <text x="2" y="139" fill="#484F58" font-size="8">0%</text>
+        <line x1="35" y1="55" x2="680" y2="55" stroke="#F59E0B" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
+        <line x1="35" y1="25" x2="680" y2="25" stroke="#EF4444" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
+        <path d="M35,110 C55,100 75,85 95,78 115,82 135,60 155,52 175,58 195,42 215,48 235,55 255,48 275,52 295,42 315,48 335,38 355,42 375,52 395,48 415,55 435,50 455,58 475,52 495,45 515,48 535,55 555,48 575,42 595,48 615,42 635,48 655,42 675,45 L675,170 L35,170 Z" fill="url(#g1)"/>
+        <path d="M35,110 C55,100 75,85 95,78 115,82 135,60 155,52 175,58 195,42 215,48 235,55 255,48 275,52 295,42 315,48 335,38 355,42 375,52 395,48 415,55 435,50 455,58 475,52 495,45 515,48 535,55 555,48 575,42 595,48 615,42 635,48 655,42 675,45" fill="none" stroke="#4C8DFF" stroke-width="1.5"/>
+        <path d="M35,100 C55,95 75,88 95,82 115,85 135,72 155,65 175,68 195,58 215,60 235,62 255,55 275,58 295,50 315,55 335,48 355,52 375,58 395,52 415,55 435,50 455,58 475,52 495,48 515,52 535,58 555,52 575,48 595,52 615,48 635,52 655,48 675,50" fill="none" stroke="#22C55E" stroke-width="1" opacity="0.6"/>
+        <text x="400" y="175" fill="#484F58" font-size="8">-30m</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- === Nodes === -->
+<div class="pg" id="pg-nodes">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><span style="font-size:18px;font-weight:700">Node Management</span><div style="display:flex;gap:6px"><button style="padding:6px 14px;border-radius:6px;border:1px solid #293449;background:#1C2435;color:#E6EDF3;font-size:12px;cursor:pointer">+ Add</button><button style="padding:6px 14px;border-radius:6px;border:1px solid #293449;background:#1C2435;color:#E6EDF3;font-size:12px;cursor:pointer">🔍 Scan</button></div></div>
+  <div style="display:flex;gap:14px">
+    <div style="width:220px;flex-shrink:0">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:8px 12px;border-bottom:1px solid #293449;font-size:10px;color:#8B949E;font-weight:600">ALL NODES (4)</div>
+        <div style="padding:7px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #293449;background:#1C2435;cursor:pointer"><span class="dot dot-on"></span><span style="font-weight:600;font-size:12px">Gaming-PC</span><span style="margin-left:auto;color:#8B949E;font-size:10px">96 A</span></div>
+        <div style="padding:7px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #293449;cursor:pointer"><span class="dot dot-on"></span><span style="font-size:12px">Workstation</span><span style="margin-left:auto;color:#8B949E;font-size:10px">88 B</span></div>
+        <div style="padding:7px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid #293449;cursor:pointer"><span class="dot dot-on"></span><span style="font-size:12px">Design-Mac</span><span style="margin-left:auto;color:#8B949E;font-size:10px">92 A</span></div>
+        <div style="padding:7px 12px;display:flex;align-items:center;gap:7px;cursor:pointer;opacity:0.4"><span class="dot dot-off"></span><span style="font-size:12px">Office-PC</span><span style="margin-left:auto;color:#484F58;font-size:10px">—</span></div>
+      </div>
+    </div>
+    <div style="flex:1">
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div><h4 style="margin:0;font-size:15px">Gaming-PC</h4><div style="font-size:11px;color:#8B949E">192.168.1.100 · Updated 2s ago</div></div>
+          <span class="badge on">● ONLINE</span>
+        </div>
+        <div class="tabs"><div class="tab on">Overview</div><div class="tab">Hardware</div><div class="tab">Processes</div><div class="tab">Network</div><div class="tab">History</div></div>
+      </div>
+      <div class="g3" style="margin-bottom:12px">
+        <div class="mc"><div class="label">CPU</div><div class="value" style="color:#22C55E">45%</div><div class="sub">i7-12700K · 58°C · 65W</div></div>
+        <div class="mc"><div class="label">GPU</div><div class="value" style="color:#4C8DFF">65%</div><div class="sub">RTX 3080 · 72°C · 185W</div></div>
+        <div class="mc"><div class="label">RAM</div><div class="value" style="color:#22C55E">53%</div><div class="sub">20GB / 32GB DDR4</div></div>
+      </div>
+      <div class="g3">
+        <div class="mc"><div class="label">FPS</div><div class="value">144</div><div class="sub">Frame time: 6.9ms · 1%Low: 118</div></div>
+        <div class="mc"><div class="label">Network</div><div class="value" style="color:#4C8DFF">128</div><div class="sub">↑45 ↓83 MB/s · Link 1Gbps</div></div>
+        <div class="mc"><div class="label">Quality</div><div class="value" style="color:#22C55E">96</div><div class="sub">Excellent · RTT 0.45ms</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- === Monitor === -->
+<div class="pg" id="pg-monitor">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <span style="font-size:18px;font-weight:700">Real-time Monitor</span>
+    <span style="margin-left:auto;display:flex;gap:6px">
+      <span style="padding:5px 12px;border-radius:12px;font-size:12px;cursor:pointer;background:#4C8DFF;color:#fff">CPU</span>
+      <span style="padding:5px 12px;border-radius:12px;font-size:12px;cursor:pointer;border:1px solid #293449;color:#8B949E">GPU</span>
+      <span style="padding:5px 12px;border-radius:12px;font-size:12px;cursor:pointer;border:1px solid #293449;color:#8B949E">RAM</span>
+      <span style="padding:5px 12px;border-radius:12px;font-size:12px;cursor:pointer;border:1px solid #293449;color:#8B949E">Network</span>
+      <span style="padding:5px 12px;border-radius:12px;font-size:12px;cursor:pointer;border:1px solid #293449;color:#8B949E">FPS</span>
+    </span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <span style="font-size:12px;color:#8B949E">Node:</span>
+    <span style="background:#1C2435;border:1px solid #293449;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer">Gaming-PC ▾</span>
+    <span style="margin-left:auto;display:flex;gap:6px">
+      <span style="padding:4px 10px;border-radius:10px;font-size:11px;border:1px solid #293449;color:#8B949E;cursor:pointer">1 min</span>
+      <span style="padding:4px 10px;border-radius:10px;font-size:11px;border:1px solid #293449;color:#8B949E;cursor:pointer">5 min</span>
+      <span style="padding:4px 10px;border-radius:10px;font-size:11px;background:#4C8DFF;color:#fff;cursor:pointer">30 min</span>
+      <span style="padding:4px 10px;border-radius:10px;font-size:11px;border:1px solid #293449;color:#8B949E;cursor:pointer">3 hr</span>
+    </span>
+  </div>
+  <div class="chart-box" style="margin-bottom:14px">
+    <div class="chart-head"><h4>CPU Usage</h4><div class="meta">Avg: 42% · Max: 78% · Min: 12%</div></div>
+    <div class="chart-canvas">
+      <svg viewBox="0 0 700 180" style="width:100%;height:100%">
+        <defs><linearGradient id="gc" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4C8DFF" stop-opacity="0.25"/><stop offset="100%" stop-color="#4C8DFF" stop-opacity="0.02"/></linearGradient></defs>
+        <line x1="35" y1="35" x2="680" y2="35" stroke="#293449" stroke-width="0.5"/>
+        <line x1="35" y1="85" x2="680" y2="85" stroke="#293449" stroke-width="0.5"/>
+        <line x1="35" y1="135" x2="680" y2="135" stroke="#293449" stroke-width="0.5"/>
+        <text x="2" y="39" fill="#484F58" font-size="8">70%</text>
+        <text x="2" y="89" fill="#484F58" font-size="8">35%</text>
+        <text x="2" y="139" fill="#484F58" font-size="8">0%</text>
+        <line x1="35" y1="55" x2="680" y2="55" stroke="#F59E0B" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
+        <line x1="35" y1="25" x2="680" y2="25" stroke="#EF4444" stroke-width="0.8" stroke-dasharray="3,3" opacity="0.4"/>
+        <path d="M35,110 C55,100 75,85 95,78 115,82 135,60 155,52 175,58 195,42 215,48 235,55 255,48 275,52 295,42 315,48 335,38 355,42 375,52 395,48 415,55 435,50 455,58 475,52 495,45 515,48 535,55 555,48 575,42 595,48 615,42 635,48 655,42 675,45 L675,170 L35,170 Z" fill="url(#gc)"/>
+        <path d="M35,110 C55,100 75,85 95,78 115,82 135,60 155,52 175,58 195,42 215,48 235,55 255,48 275,52 295,42 315,48 335,38 355,42 375,52 395,48 415,55 435,50 455,58 475,52 495,45 515,48 535,55 555,48 575,42 595,48 615,42 635,48 655,42 675,45" fill="none" stroke="#4C8DFF" stroke-width="1.5"/>
+        <text x="35" y="178" fill="#484F58" font-size="8">-30m</text>
+        <text x="300" y="178" fill="#484F58" font-size="8">-15m</text>
+        <text x="560" y="178" fill="#484F58" font-size="8">Now</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- === Alerts === -->
+<div class="pg" id="pg-alerts">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <span style="font-size:18px;font-weight:700">Alert Center</span>
+    <div style="display:flex;gap:6px">
+      <span style="padding:4px 12px;border-radius:12px;font-size:11px;background:#EF4444;color:#fff;cursor:pointer">Critical</span>
+      <span style="padding:4px 12px;border-radius:12px;font-size:11px;background:#F59E0B;color:#000;cursor:pointer">Warning</span>
+      <span style="padding:4px 12px;border-radius:12px;font-size:11px;background:#4C8DFF;color:#fff;cursor:pointer">Total</span>
+    </div>
+  </div>
+  <div class="g3" style="margin-bottom:14px">
+    <div class="mc" style="border-left:3px solid #EF4444"><div class="label">Critical</div><div class="value" style="color:#EF4444">1</div><div class="sub">Immediate attention</div></div>
+    <div class="mc" style="border-left:3px solid #F59E0B"><div class="label">Warning</div><div class="value" style="color:#F59E0B">1</div><div class="sub">Needs attention</div></div>
+    <div class="mc" style="border-left:3px solid #4C8DFF"><div class="label">Total</div><div class="value" style="color:#4C8DFF">2</div><div class="sub">Last 24 hours</div></div>
+  </div>
+  <div class="card" style="padding:0">
+    <div style="display:flex;padding:8px 14px;border-bottom:1px solid #293449;font-size:10px;color:#484F58;font-weight:600;letter-spacing:0.3px">
+      <span style="width:50px">LEVEL</span><span style="width:110px">NODE</span><span style="flex:1">EVENT</span><span style="width:70px">VALUE</span><span style="width:80px">TIME</span>
+    </div>
+    <div class="alr"><div class="alv cr"></div><span class="alh">Gaming-PC</span><span class="ald">CPU Temperature High — 95°C exceeds 90°C threshold</span><span class="alm">95°C<br>2 min ago</span></div>
+    <div class="alr"><div class="alv wa"></div><span class="alh">Workstation</span><span class="ald">GPU Memory Usage — 82% exceeds 80% warning</span><span class="alm">82%<br>15 min ago</span></div>
+    <div class="alr" style="opacity:0.5"><div class="alv in"></div><span class="alh">Design-Mac</span><span class="ald">Node Connected — Agent started successfully</span><span class="alm">Info<br>1 hour ago</span></div>
+  </div>
+</div>
+
+<!-- === Settings === -->
+<div class="pg" id="pg-settings">
+  <div style="display:flex;gap:16px">
+    <div class="st-nav">
+      <div class="st-item on">🔗 General</div>
+      <div class="st-item">🔔 Alerts</div>
+      <div class="st-item">🖥 Nodes</div>
+      <div class="st-item">🎨 Appearance</div>
+      <div class="st-item">⚙ Advanced</div>
+      <div class="st-item">ℹ About</div>
+    </div>
+    <div style="flex:1">
+      <div class="st-card"><h4>General Settings</h4>
+        <div class="st-row"><div><div class="st-lbl">Language</div><div class="st-desc">Interface language</div></div><div><span style="font-size:13px">English</span> ▾</div></div>
+        <div class="st-row"><div><div class="st-lbl">Start with Windows</div><div class="st-desc">Auto-start on boot</div></div><div><div class="tog on"></div></div></div>
+        <div class="st-row"><div><div class="st-lbl">Minimize to tray</div><div class="st-desc">Keep in system tray</div></div><div><div class="tog on"></div></div></div>
+      </div>
+      <div class="st-card"><h4>Data & Performance</h4>
+        <div class="st-row"><div><div class="st-lbl">Data retention</div><div class="st-desc">Historical data retention period</div></div><div><span>30 days</span> ▾</div></div>
+        <div class="st-row"><div><div class="st-lbl">Max history points</div><div class="st-desc">Per metric storage limit</div></div><div><span>300</span> ▾</div></div>
+        <div class="st-row"><div><div class="st-lbl">HW acceleration</div><div class="st-desc">GPU chart rendering</div></div><div><div class="tog on"></div></div></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+        <button style="padding:7px 20px;border-radius:6px;border:1px solid #293449;background:#1C2435;color:#E6EDF3;font-size:13px;cursor:pointer">Reset</button>
+        <button style="padding:7px 20px;border-radius:6px;border:none;background:#4C8DFF;color:#fff;font-size:13px;cursor:pointer">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+function show(id,el){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pg-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('hdr-title').textContent={dashboard:'Dashboard',nodes:'Node Management',monitor:'Real-time Monitor',alerts:'Alert Center',settings:'Settings'}[id];
+}
+</script>
+</body>
+</html>

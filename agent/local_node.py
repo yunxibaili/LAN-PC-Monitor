@@ -20,11 +20,10 @@ import time
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from common.collectors import create_collectors, start_all, stop_all
+# Agent 本机节点固定 ID（统一定义在 common.constants）
+from common.constants import AGENT_LOCAL_NODE_ID as LOCAL_NODE_ID
 
 log = logging.getLogger("agent.local_node")
-
-# Agent 本机节点固定 ID（v5.0，§12.2）
-LOCAL_NODE_ID = "agent-local"
 
 
 class LocalCollectorPack(QObject):

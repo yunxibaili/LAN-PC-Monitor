@@ -12,6 +12,7 @@ Agent WebSocket 服务端 —— /ws 多订阅推送 + 鉴权 + PING/PONG（见�
 import asyncio
 import json
 import logging
+import time
 
 from aiohttp import WSMsgType, web
 
@@ -19,6 +20,11 @@ log = logging.getLogger("agent.websocket")
 
 # 默认每 10 秒发 3 个 loss_ping 的回应（Host 侧发起，Agent 侧只需回 pong）
 LOSS_INTERVAL = 10.0
+
+# 鉴权失败日志限流（§5.5）：普通失败降级为 DEBUG，
+# 同一来源连续失败只记录一次 WARNING，避免刷屏。
+_AUTH_FAIL_LOG_WINDOW = 60   # 秒
+_AUTH_FAIL_LOG_THRESHOLD = 5 # 窗口内超过 N 次则降级为 INFO，并合并记录
 
 
 class WebSocketServer:
@@ -33,12 +39,42 @@ class WebSocketServer:
         self.aggregator = aggregator
         self._subscribers = set()   # 已鉴权 WebSocketResponse 集合
         self._stopping = False
+        # 鉴权失败限流状态
+        self._auth_fail_lock = asyncio.Lock()
+        self._auth_fail_ts = {}     # ip → [timestamps]
+        self._auth_fail_count = {}  # ip → 窗口内次数
 
     # ---------- 计数 ----------
 
     def subscriber_count(self) -> int:
         """当前 WS 订阅者数。"""
         return len(self._subscribers)
+
+    # ---------- 鉴权失败日志限流 ----------
+
+    async def _log_auth_fail(self, ip: str) -> None:
+        """
+        记录一次鉴权失败。普通失败打 DEBUG；
+        窗口内连续失败超过阈值，合并为一条 WARNING 提示可能存在恶意探测。
+        """
+        now = time.time()
+        async with self._auth_fail_lock:
+            # 清理过期窗口
+            ts_list = [t for t in self._auth_fail_ts.get(ip, [])
+                       if now - t < _AUTH_FAIL_LOG_WINDOW]
+            ts_list.append(now)
+            self._auth_fail_ts[ip] = ts_list
+            count = len(ts_list)
+            self._auth_fail_count[ip] = count
+
+        if count >= _AUTH_FAIL_LOG_THRESHOLD:
+            # 连续失败（疑似探测）→ 合并 WARNING（每窗口至多刷一次）
+            if count == _AUTH_FAIL_LOG_THRESHOLD:
+                log.warning(
+                    "%s 鉴权失败 %d 次（%ds 内），疑似恶意探测，后续降级为 DEBUG",
+                    ip, count, _AUTH_FAIL_LOG_WINDOW)
+        else:
+            log.debug("WS 鉴权失败: %s（普通失败）", ip)
 
     # ---------- 路由处理 ----------
 
@@ -67,7 +103,7 @@ class WebSocketServer:
                 pass
 
         if not auth_ok:
-            log.warning("WS 鉴权失败: %s", request.remote)
+            await self._log_auth_fail(request.remote)
             try:
                 await ws.send_str(json.dumps(
                     {"type": "auth_result", "ok": False, "reason": "token错误"}))

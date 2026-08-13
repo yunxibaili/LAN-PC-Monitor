@@ -23,7 +23,7 @@ from common.i18n import ensure_language
 from common.logger import setup_logger
 from common.single_instance import ensure_single_instance, release_single_instance
 from common.startup import install_host_startup, remove_host_startup
-from common.theme import DARK_QSS
+from host.gui.theme.style import ThemeStyle
 from host import config as host_config
 from host.gui.main_window import HostMainWindow
 
@@ -55,7 +55,7 @@ def main() -> int:
     cfg = host_config.load_config()
 
     app = QApplication(sys.argv)
-    app.setStyleSheet(DARK_QSS)
+    app.setStyleSheet(ThemeStyle.dark_qss())
 
     # 语言选择：首次启动弹窗，之后读配置
     ensure_language(cfg, host_config.save_config, parent=app)

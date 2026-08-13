@@ -33,29 +33,29 @@ SCORE_WARN = 60
 # RTT：<5ms 绿；5~20ms 橙；>20ms 红
 RTT_WARN, RTT_DANGER = 5, 20
 
-# 全局 QSS 深色主题
+# 全局 QSS 深色主题（common 自包含，不依赖 host.gui.theme）
 DARK_QSS = f"""
-* {{ font-family: 'Microsoft YaHei', Consolas, sans-serif; }}
-QMainWindow, QDialog, QWidget {{ background-color: {COLOR_BG}; color: {COLOR_TEXT}; }}
-QLabel {{ background: transparent; color: {COLOR_TEXT}; }}
-QLabel#panel_title {{
-    color: {COLOR_ACCENT}; font-weight: bold; font-size: 14px;
-    border-bottom: 1px solid #3e3e42; padding-bottom: 4px;
-}}
-QGroupBox {{
-    border: 1px solid #3e3e42; border-radius: 4px; margin-top: 8px;
-    color: {COLOR_TEXT};
-}}
-QGroupBox::title {{
-    subcontrol-origin: margin; left: 10px; padding: 0 4px; color: {COLOR_ACCENT};
-}}
-QListWidget, QPlainTextEdit {{ background-color: #252526; border: 1px solid #3e3e42; }}
-QPushButton {{ background-color: #3c3c3c; color: {COLOR_TEXT}; border: 1px solid #565656; padding: 6px 12px; border-radius: 3px; }}
-QPushButton:hover {{ background-color: #4a4a4a; }}
-QPushButton:pressed {{ background-color: #2d2d30; }}
-QScrollBar:vertical {{ background: #252526; width: 10px; }}
-QScrollBar::handle:vertical {{ background: #3f3f46; min-height: 24px; border-radius: 5px; }}
-"""
+    * {{ font-family: 'Microsoft YaHei', Consolas, sans-serif; }}
+    QMainWindow, QDialog, QWidget {{ background-color: {COLOR_BG}; color: {COLOR_TEXT}; }}
+    QLabel {{ background: transparent; color: {COLOR_TEXT}; }}
+    QLabel#panel_title {{
+        color: {COLOR_ACCENT}; font-weight: bold; font-size: 14px;
+        border-bottom: 1px solid #3e3e42; padding-bottom: 4px;
+    }}
+    QGroupBox {{
+        border: 1px solid #3e3e42; border-radius: 4px; margin-top: 8px;
+        color: {COLOR_TEXT};
+    }}
+    QGroupBox::title {{
+        subcontrol-origin: margin; left: 10px; padding: 0 4px; color: {COLOR_ACCENT};
+    }}
+    QListWidget, QPlainTextEdit {{ background-color: #252526; border: 1px solid #3e3e42; }}
+    QPushButton {{ background-color: #3c3c3c; color: {COLOR_TEXT}; border: 1px solid #565656; padding: 6px 12px; border-radius: 3px; }}
+    QPushButton:hover {{ background-color: #4a4a4a; }}
+    QPushButton:pressed {{ background-color: #2d2d30; }}
+    QScrollBar:vertical {{ background: #252526; width: 10px; }}
+    QScrollBar::handle:vertical {{ background: #3f3f46; min-height: 24px; border-radius: 5px; }}
+    """
 
 
 def usage_color(percent):

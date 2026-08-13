@@ -53,7 +53,9 @@ def parse_args():
     parser.add_argument("--remove-startup", action="store_true",
                         help="卸载开机自启动")
     parser.add_argument("--gui", action="store_true",
-                        help="弹出本机仪表盘 GUI（PyQt5），后台服务同进程运行")
+                        help="弹出本机仪表盘 GUI（PyQt5），后台服务同进程运行（管理员模式）")
+    parser.add_argument("--tray", action="store_true",
+                        help="系统托盘模式（默认后台无界面；--tray 增加托盘图标，可打开仪表盘/退出）")
     return parser.parse_args()
 
 
@@ -220,7 +222,12 @@ def main() -> int:
         release_single_instance(mutex)
         return rc
 
-    # ---- 后台模式 ----
+    if args.tray:
+        rc = _run_tray(cfg, log)
+        release_single_instance(mutex)
+        return rc
+
+    # ---- 后台模式（默认）----
     try:
         _run_background(cfg, log)
     except KeyboardInterrupt:
@@ -228,6 +235,87 @@ def main() -> int:
     finally:
         release_single_instance(mutex)
     return 0
+
+
+def _run_tray(cfg, log) -> int:
+    """托盘模式：后台服务 + 系统托盘图标（v5.1 Desktop Experience）。
+
+    无 QSystemTrayIcon 环境（无 PyQt5）时降级为纯后台。
+    托盘菜单：打开仪表盘 / 退出。
+    """
+    try:
+        from PyQt5.QtCore import QThread
+        from PyQt5.QtWidgets import QApplication, QMenu, QSystemTrayIcon
+    except ImportError:
+        log.warning("--tray 需要 PyQt5，降级为纯后台模式")
+        _run_background(cfg, log)
+        return 0
+
+    from common.i18n import ensure_language
+    from common.theme import DARK_QSS
+
+    app = QApplication(sys.argv)
+    app.setStyleSheet(DARK_QSS)
+    ensure_language(cfg, agent_config.save_config, parent=app)
+
+    # 后台服务线程
+    stop_event = asyncio.Event()
+    service_ref = {}
+
+    class _ServiceThread(QThread):
+        def run(self):
+            _run_service_blocking(cfg, log, stop_event, service_ref)
+
+    svc_thread = _ServiceThread()
+    svc_thread.start()
+
+    # 托盘图标
+    if not QSystemTrayIcon.isSystemTrayAvailable():
+        log.warning("系统托盘不可用，降级为纯后台")
+        _run_background(cfg, log)
+        return 0
+
+    tray = QSystemTrayIcon()
+    tray.setToolTip("LAN PC Monitor - Agent")
+    menu = QMenu()
+    act_open = menu.addAction(tr("tray.open_dashboard"))
+    menu.addSeparator()
+    act_exit = menu.addAction(tr("tray.exit"))
+    tray.setContextMenu(menu)
+
+    # 打开仪表盘：与 --gui 相同，但复用当前服务
+    dashboard_windows = {}
+
+    def _open_dashboard():
+        from agent.gui.main_window import AgentDashboardWindow
+        if "main" in dashboard_windows and dashboard_windows["main"].isVisible():
+            dashboard_windows["main"].raise_()
+            return
+        win = AgentDashboardWindow(
+            cfg,
+            service_info_getter=lambda: _service_status(service_ref),
+            on_close=stop_event.set)
+        win.show()
+        dashboard_windows["main"] = win
+
+    act_open.triggered.connect(_open_dashboard)
+    act_exit.triggered.connect(app.quit)
+
+    tray.show()
+    # 首次托盘提示
+    try:
+        tray.showMessage("LAN PC Monitor",
+                         tr("tray.agent_running"),
+                         QSystemTrayIcon.Information, 3000)
+    except Exception:
+        pass
+
+    log.info("Agent 托盘模式运行中")
+    ret = app.exec_()
+
+    stop_event.set()
+    svc_thread.wait(3000)
+    return ret
 
 
 def _run_background(cfg, log) -> None:
