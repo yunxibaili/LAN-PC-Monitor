@@ -133,7 +133,7 @@ def test_sidenav():
     nav = SideNav()
     check("SideNav 创建", nav is not None)
     check("宽度=220", nav.width() == 220 or nav.minimumWidth() == 220)
-    check("5 个导航按钮", len(nav._buttons) == 5)
+    check("6 个导航按钮", len(nav._buttons) == 6)
 
     nav.add_node("A", "NodeA")
     check("添加节点", len(nav._node_items) == 1)

@@ -44,12 +44,15 @@ from host.gui.pages.dashboard_page import DashboardPage
 from host.gui.pages.nodes_page import NodesPage
 from host.gui.pages.monitor_page import MonitorPage
 from host.gui.pages.alerts_page import AlertsPage
+from host.gui.pages.history_page import HistoryPage
 from host.gui.pages.settings_page import SettingsPage
 
 # ViewModels
 from host.viewmodels.dashboard_vm import DashboardViewModel
 from host.viewmodels.node_detail_vm import NodeDetailViewModel
 from host.viewmodels.settings_vm import SettingsViewModel
+from host.viewmodels.history_vm import HistoryViewModel
+from host.facade.history_facade import HistoryFacade
 
 # Controllers
 from host.gui.controllers.navigation_controller import NavigationController
@@ -170,17 +173,21 @@ class HostMainWindow(QMainWindow):
     # ---------- ViewModels + Pages ----------
 
     def _init_viewmodels(self) -> None:
-        """创建 5 个 ViewModel 并注入对应页面。"""
+        """创建 ViewModel 并注入对应页面。"""
         self.dashboard_vm = DashboardViewModel(
             node_store=self.node_store, frame_store=self.frame_store)
         self.node_detail_vm = NodeDetailViewModel(
             node_store=self.node_store, frame_store=self.frame_store)
         self.settings_vm = SettingsViewModel(self.settings)
 
+        # History Facade + VM（storage 初始化封装在 HistoryFacade.from_path）
+        self._history_facade = HistoryFacade.from_path("history.db")
+        self.history_vm = HistoryViewModel(self._history_facade)
+
         # Pages
         self._pages = {}
         for PageClass in (DashboardPage, NodesPage, MonitorPage,
-                          AlertsPage, SettingsPage):
+                          AlertsPage, HistoryPage, SettingsPage):
             page = PageClass()
             page.set_stores(frame=self.frame_store, node=self.node_store,
                             history=self.history_store, alert=self.alert_store)
@@ -199,6 +206,8 @@ class HostMainWindow(QMainWindow):
 
         self.monitor_page = self._pages["monitor"]
         self.alerts_page = self._pages["alerts"]
+        self.history_page = self._pages["history"]
+        self.history_page.set_view_model(self.history_vm)
         self.settings_page = self._pages["settings"]
         self.settings_page.set_view_model(self.settings_vm)
 

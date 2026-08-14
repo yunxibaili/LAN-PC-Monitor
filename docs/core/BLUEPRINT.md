@@ -1,8 +1,8 @@
 # Project Blueprint
 
-> **Version**: v5.2 (v5.2-stable)
+> **Version**: v5.2.1
 > **Generated**: 2026-08-13
-> **Status**: Stable — v5.2 Stabilization complete, Phase 5 in progress
+> **Status**: Stable — Phase 5 History UI complete
 > **Intended audience**: Developers, AI assistants, future maintainers
 
 ---
@@ -33,8 +33,8 @@ v5.2 是**架构重构 + UI 升级版本**，从 v5.0 的纯文字面板升级�
 
 | 维度 | 状态 |
 |------|------|
-| Version | v5.2 |
-| Git Tag | v5.2-stable |
+| Version | v5.2.1 |
+| Git Tag | v5.2.1 |
 | Architecture | ✅ MVVM 完整 |
 | Design System | ✅ ThemeColors/Spacing/Typography |
 | Dashboard | ✅ 完整 |
@@ -60,20 +60,20 @@ v5.2 是**架构重构 + UI 升级版本**，从 v5.0 的纯文字面板升级�
 | RC-7 | Theme Token Consolidation |
 | Phase 5-1 | Storage Foundation |
 | Phase 5-2 | Metrics Persistence |
+| Phase 5-3 | History Query API |
+| Phase 5-4 | History UI |
 
 ### 进行中
 
 | Phase | 内容 |
 |-------|------|
-| Phase 5-3 | History Query API |
+| Phase 5-5 | Retention / Cleanup |
 
 ### 未来（未实现）
 
 | Phase | 内容 | 标记 |
 |-------|------|------|
 | Phase 4-7 | Agent GUI 升级 | Future |
-| Phase 5-4 | History UI | Future |
-| Phase 5-5 | Retention / Cleanup | Future |
 | Phase 6 | 高级告警引擎 | Future |
 | Phase 7 | UX 优化 | Future |
 | Phase 8+ | 服务化架构 | Future |
@@ -191,6 +191,7 @@ host/
  │
  ├── facade/
  │   ├── settings_facade.py  # Settings 门面
+ │   ├── history_facade.py   # History 读取门面 (5-3)
  │   ├── alert_adapter.py    # AlertEngine → AlertStore 适配
  │   └── connection_factory.py # NodeConnection 惰性工厂
  │
@@ -220,6 +221,7 @@ host/
  │   ├── node_detail_vm.py   # 节点详情数据转换
  │   ├── monitor_vm.py       # Monitor 图表数据
  │   ├── alert_vm.py         # Alert 列表转换
+ │   ├── history_vm.py       # History 趋势数据 (5-4)
  │   └── settings_vm.py      # Settings 桥接
  │
  ├── manager/
@@ -243,12 +245,13 @@ host/
      │   ├── components.py   # 组件样式 + remove_help_button
      │   ├── style.py        # dark_qss
      │   ├── metrics.py / layout.py / icons.py / animation.py
-     ├── pages/              # 5 页面 + base_page
-     │   ├── dashboard_page.py
-     │   ├── nodes_page.py
-     │   ├── monitor_page.py
-     │   ├── alerts_page.py
-     │   └── settings_page.py
+      ├── pages/              # 6 页面 + base_page
+      │   ├── dashboard_page.py
+      │   ├── nodes_page.py
+      │   ├── monitor_page.py
+      │   ├── alerts_page.py
+      │   ├── history_page.py # 历史趋势 (5-4)
+      │   └── settings_page.py
      └── widgets/            # 20 活跃 + 4 归档
          ├── [Dashboard] node_card.py, resource_card.py
          ├── [Nodes] node_explorer.py, detail_dashboard.py, detail_panel.py, node_list.py
@@ -593,8 +596,8 @@ tests/
 |--------|------|------|
 | 5-1 | Storage Foundation (SQLite + schema + repository) | ✅ COMPLETE |
 | 5-2 | Metrics Persistence (Frame → Record 写入) | ✅ COMPLETE |
-| 5-3 | History Query API (range/latest/aggregate) | 🔄 NEXT |
-| 5-4 | History UI (图表 + 报表) | Future |
+| 5-3 | History Query API (range/latest/aggregate) | ✅ COMPLETE |
+| 5-4 | History UI (历史趋势页) | ✅ COMPLETE |
 | 5-5 | Retention / Cleanup | Future |
 
 **技术方向**:

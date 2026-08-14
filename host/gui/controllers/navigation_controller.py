@@ -20,7 +20,8 @@ log = logging.getLogger("host.gui.controllers.navigation")
 # 侧栏标题映射
 _PAGE_TITLES = {
     "dashboard": "总览", "nodes": "节点管理",
-    "monitor": "监控", "alerts": "告警中心", "settings": "设置",
+    "monitor": "监控", "alerts": "告警中心",
+    "history": "历史趋势", "settings": "设置",
 }
 
 

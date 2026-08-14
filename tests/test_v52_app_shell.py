@@ -51,7 +51,7 @@ def test_sidenav():
     nav = SideNav()
     check("SideNav 创建", nav is not None)
     check("宽度=220", nav.width() == 220 or nav.minimumWidth() == 220)
-    check("5 导航按钮", len(nav._buttons) == 5)
+    check("6 导航按钮", len(nav._buttons) == 6)
     check("add_node", hasattr(nav, 'add_node'))
     check("remove_node", hasattr(nav, 'remove_node'))
     check("update_node_status", hasattr(nav, 'update_node_status'))
@@ -90,18 +90,19 @@ def test_page_routing():
     from host.gui.pages.monitor_page import MonitorPage
     from host.gui.pages.alerts_page import AlertsPage
     from host.gui.pages.settings_page import SettingsPage
+    from host.gui.pages.history_page import HistoryPage
     from PyQt5.QtWidgets import QStackedWidget
 
     nav = SideNav()
     stack = QStackedWidget()
     pages = {}
-    for PageClass in (DashboardPage, NodesPage, MonitorPage, AlertsPage, SettingsPage):
+    for PageClass in (DashboardPage, NodesPage, MonitorPage, AlertsPage, HistoryPage, SettingsPage):
         page = PageClass()
         pages[PageClass.PAGE_ID] = page
         stack.addWidget(page)
 
-    check("5 个页面", len(pages) == 5)
-    check("stack 5 页", stack.count() == 5)
+    check("6 个页面", len(pages) == 6)
+    check("stack 6 页", stack.count() == 6)
 
     # 测试信号连接
     nav_page = [None]

@@ -81,6 +81,7 @@ class SideNav(QWidget):
         ("nodes",     "Nodes",     "▣"),
         ("monitor",   "Monitor",   "▣"),
         ("alerts",    "Alerts",    "⚠"),
+        ("history",   "History",   "📈"),
         ("settings",  "Settings",  "⚙"),
     ]
 

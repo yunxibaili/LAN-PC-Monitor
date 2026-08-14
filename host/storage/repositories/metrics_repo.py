@@ -56,6 +56,17 @@ class MetricsRepository:
         ).fetchall()
         return [MetricRecord(*row) for row in rows]
 
+    def latest(self, node_id: str, metric: str,
+               limit: int = 300) -> list[MetricRecord]:
+        """返回最近 N 条记录（时间倒序，newest → oldest）。"""
+        rows = self._db.execute(
+            "SELECT node_id, metric, value, timestamp FROM metrics "
+            "WHERE node_id = ? AND metric = ? "
+            "ORDER BY timestamp DESC LIMIT ?",
+            (node_id, metric, limit),
+        ).fetchall()
+        return [MetricRecord(*row) for row in rows]
+
     def count(self, node_id: str = None, metric: str = None) -> int:
         """计数。"""
         if node_id and metric:
