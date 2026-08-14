@@ -1,17 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-test_v52_detail_panel.py —— DetailPanel v5.2 接口测试（Phase 3-3D）。
+test_v52_detail_panel.py —— DetailPanel v5.2 接口测试（Phase 3-3D / RC-6）。
 
 验证 host/gui/widgets/detail_panel.py（基于 NodeDetailData）：
-1. update_data(NodeDetailData) 正确刷新 UI（稳定字段 + 精确格式）
+1. update_data(NodeDetailData) 正确刷新 UI（所有字段键唯一）
 2. update_data(None) / clear() → 全部置为 "—"
 3. 架构扫描：不直接依赖 monitor_data / Store / Connection
-
-已知遗留问题（RC-4 评审发现，本次不修，见 docs/reports/rc4_final_report.md）：
-- 字段键冲突：cpu/gpu 共用 name / usage_percent / core_freq_mhz / power_w，
-  后者覆盖前者，故本测试只覆盖不冲突字段。
-- None 数值字段直接 f-string 格式化会抛 TypeError（如 gpu.usage=None），
-  本测试不构造该路径。
 """
 import os
 import sys
@@ -47,7 +41,7 @@ def check(name, cond, detail=""):
 
 
 def _label_text(panel, field_key):
-    """从 DetailPanel 获取指定字段标签文字（_labels 为平铺 dict）。"""
+    """从 DetailPanel 获取指定字段标签文字。"""
     label = panel._labels.get(field_key)
     return label.text() if label else None
 
@@ -125,48 +119,68 @@ def test_full_update():
     panel = DetailPanel()
     panel.update_data(full_data())
 
-    # CPU（cpu 独占字段）
-    check("cpu.physical_cores", _label_text(panel, "physical_cores") == "8")
-    check("cpu.logical_cores", _label_text(panel, "logical_cores") == "16")
-    check("cpu.package_temp", _label_text(panel, "package_temp_c") == "65°C")
+    # CPU（组前缀 cpu_）
+    check("cpu.name", _label_text(panel, "cpu_name") == "Ryzen 9")
+    check("cpu.usage", _label_text(panel, "cpu_usage") == "45.2%")
+    check("cpu.physical_cores", _label_text(panel, "cpu_cores_phys") == "8")
+    check("cpu.logical_cores", _label_text(panel, "cpu_cores_logic") == "16")
+    check("cpu.freq", _label_text(panel, "cpu_freq_mhz") == "4500 MHz")
+    check("cpu.temp", _label_text(panel, "cpu_temp_c") == "65°C")
+    check("cpu.power", _label_text(panel, "cpu_power_w") == "65W")
 
-    # RAM
-    check("ram.total", _label_text(panel, "total_gb") == "32.0 GB")
-    check("ram.used", _label_text(panel, "used_gb") == "15.9 GB")
-    check("ram.avail", _label_text(panel, "available_gb") == "16.1 GB")
-    check("ram.swap", _label_text(panel, "swap_used_mb") == "1200 MB")
+    # RAM（组前缀 ram_）
+    check("ram.total", _label_text(panel, "ram_total_gb") == "32.0 GB")
+    check("ram.used", _label_text(panel, "ram_used_gb") == "15.9 GB")
+    check("ram.avail", _label_text(panel, "ram_avail_gb") == "16.1 GB")
+    check("ram.usage", _label_text(panel, "ram_usage") == "49.8%")
+    check("ram.swap", _label_text(panel, "ram_swap_mb") == "1200 MB")
 
-    # GPU（gpu 独占字段）
-    check("gpu.core_temp", _label_text(panel, "core_temp_c") == "71°C")
-    check("gpu.hotspot", _label_text(panel, "hotspot_temp_c") == "82°C")
-    check("gpu.vram_used", _label_text(panel, "vram_used_mb") == "8192 MB")
-    check("gpu.vram_total", _label_text(panel, "vram_total_mb") == "12288 MB")
+    # GPU（组前缀 gpu_）— 与 CPU 不再冲突
+    check("gpu.name", _label_text(panel, "gpu_name") == "RTX 4070")
+    check("gpu.usage", _label_text(panel, "gpu_usage") == "62.1%")
+    check("gpu.vram_used", _label_text(panel, "gpu_vram_used") == "8192 MB")
+    check("gpu.vram_total", _label_text(panel, "gpu_vram_total") == "12288 MB")
+    check("gpu.core_temp", _label_text(panel, "gpu_core_temp") == "71°C")
+    check("gpu.hotspot", _label_text(panel, "gpu_hotspot_temp") == "82°C")
+    check("gpu.freq", _label_text(panel, "gpu_freq_mhz") == "2400 MHz")
+    check("gpu.power", _label_text(panel, "gpu_power_w") == "185W")
 
-    # Disk
-    check("disk.drive", _label_text(panel, "drive") == "C:")
-    check("disk.read", _label_text(panel, "read_mb_s") == "120.0 MB/s")
-    check("disk.write", _label_text(panel, "write_mb_s") == "85.0 MB/s")
-    check("disk.free", _label_text(panel, "free_gb") == "45.0 GB")
+    # 验证 CPU 名字未被 GPU 覆盖（RC-6 核心修复）
+    check("cpu.name 未被 gpu.name 覆盖",
+          _label_text(panel, "cpu_name") == "Ryzen 9")
 
-    # Network
-    check("net.iface", _label_text(panel, "interface") == "以太网")
-    check("net.up", _label_text(panel, "upload_mb_s") == "12.3 MB/s")
-    check("net.down", _label_text(panel, "download_mb_s") == "45.6 MB/s")
-    check("net.link_speed", _label_text(panel, "link_speed_mbps") == "1000 Mbps")
+    # Disk（组前缀 disk_）
+    check("disk.drive", _label_text(panel, "disk_drive") == "C:")
+    check("disk.read", _label_text(panel, "disk_read") == "120.0 MB/s")
+    check("disk.write", _label_text(panel, "disk_write") == "85.0 MB/s")
+    check("disk.usage", _label_text(panel, "disk_usage") == "78%")
+    check("disk.free", _label_text(panel, "disk_free") == "45.0 GB")
 
-    # Quality
-    check("nq.rtt", _label_text(panel, "latency_to_client_ms") == "0.45 ms")
-    check("nq.gw_rtt", _label_text(panel, "latency_to_gateway_ms") == "1.20 ms")
-    check("nq.loss", _label_text(panel, "packet_loss_percent") == "0.0%")
+    # Network（组前缀 net_）
+    check("net.iface", _label_text(panel, "net_interface") == "以太网")
+    check("net.up", _label_text(panel, "net_upload") == "12.3 MB/s")
+    check("net.down", _label_text(panel, "net_download") == "45.6 MB/s")
+    check("net.speed", _label_text(panel, "net_speed") == "1000 Mbps")
+
+    # Quality（组前缀 quality_）
     check("nq.score", _label_text(panel, "quality_score") == "95")
     check("nq.grade", _label_text(panel, "quality_grade") == "优秀")
+    check("nq.rtt", _label_text(panel, "quality_rtt_client") == "0.45 ms")
+    check("nq.gw_rtt", _label_text(panel, "quality_rtt_gw") == "1.20 ms")
+    check("nq.loss", _label_text(panel, "quality_loss") == "0.0%")
 
-    # FPS
-    check("fps.window", _label_text(panel, "window_title") == "Game")
-    check("fps.value", _label_text(panel, "fps") == "142")
-    check("fps.frame_time", _label_text(panel, "frame_time_ms") == "7.04 ms")
-    check("fps.low1", _label_text(panel, "low_1_percent") == "118")
-    check("fps.source", _label_text(panel, "source") == "presentmon")
+    # FPS（组前缀 fps_）
+    check("fps.window", _label_text(panel, "fps_window") == "Game")
+    check("fps.value", _label_text(panel, "fps_value") == "142")
+    check("fps.frame_time", _label_text(panel, "fps_frame_time") == "7.04 ms")
+    check("fps.low1", _label_text(panel, "fps_low1") == "118")
+    check("fps.source", _label_text(panel, "fps_source") == "presentmon")
+
+    # 无裸字段键残留
+    check("无裸字段 name", panel._labels.get("name") is None)
+    check("无裸字段 usage_percent", panel._labels.get("usage_percent") is None)
+    check("无裸字段 core_freq_mhz", panel._labels.get("core_freq_mhz") is None)
+    check("无裸字段 power_w", panel._labels.get("power_w") is None)
 
 
 # ---------- 2. 空数据 ----------
@@ -175,9 +189,9 @@ def test_none_data():
     print("\n--- 2. 空数据 (None) ---")
     panel = DetailPanel()
     panel.update_data(None)
-    check("cpu.physical_cores = —", _label_text(panel, "physical_cores") == "—")
-    check("ram.total = —", _label_text(panel, "total_gb") == "—")
-    check("gpu.core_temp = —", _label_text(panel, "core_temp_c") == "—")
+    check("cpu物理核 = —", _label_text(panel, "cpu_cores_phys") == "—")
+    check("ram.total = —", _label_text(panel, "ram_total_gb") == "—")
+    check("gpu.core_temp = —", _label_text(panel, "gpu_core_temp") == "—")
 
 
 # ---------- 3. clear ----------
@@ -186,17 +200,16 @@ def test_clear():
     print("\n--- 3. clear ---")
     panel = DetailPanel()
     panel.update_data(full_data())
-    check("更新后 cpu 有值", _label_text(panel, "physical_cores") != "—")
+    check("更新后 cpu 有值", _label_text(panel, "cpu_cores_phys") != "—")
 
     panel.clear()
-    check("clear 后 cpu = —", _label_text(panel, "physical_cores") == "—")
+    check("clear 后 cpu = —", _label_text(panel, "cpu_cores_phys") == "—")
     check("clear 后 quality = —", _label_text(panel, "quality_score") == "—")
 
 
 # ---------- 4. 架构扫描 ----------
 
 def _scan_file(filepath, patterns, label):
-    """扫描文件中是否包含禁止的模式。"""
     if not os.path.isfile(filepath):
         return True, f"文件不存在: {filepath}"
     with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
@@ -211,7 +224,6 @@ def _scan_file(filepath, patterns, label):
 
 
 def test_no_monitor_data_in_detail_panel():
-    """架构扫描：host DetailPanel 不直接解析 monitor_data。"""
     print("\n--- 4a. host DetailPanel 无 monitor_data 依赖 ---")
     dp = os.path.join(ROOT, "host", "gui", "widgets", "detail_panel.py")
     with open(dp, "r", encoding="utf-8", errors="ignore") as f:
@@ -225,7 +237,6 @@ def test_no_monitor_data_in_detail_panel():
 
 
 def test_no_monitor_data_in_nodes_page():
-    """架构扫描：NodesPage 不直接解析 monitor_data。"""
     print("\n--- 4b. NodesPage 无 monitor_data 依赖 ---")
     np = os.path.join(ROOT, "host", "gui", "pages", "nodes_page.py")
     with open(np, "r", encoding="utf-8", errors="ignore") as f:
@@ -236,7 +247,6 @@ def test_no_monitor_data_in_nodes_page():
 
 
 def test_no_monitor_data_in_main_window():
-    """架构扫描：MainWindow 无直接 frame 解析（DetailPanel 相关）。"""
     print("\n--- 4c. MainWindow 无 detail_panel.get_summary(frame) ---")
     mw = os.path.join(ROOT, "host", "gui", "main_window.py")
     with open(mw, "r", encoding="utf-8", errors="ignore") as f:
@@ -250,7 +260,6 @@ def test_no_monitor_data_in_main_window():
 
 
 def test_vm_is_primary_data_source():
-    """架构扫描：NodesPage 使用 VM 作为主数据源。"""
     print("\n--- 4d. NodesPage 使用 VM ---")
     np = os.path.join(ROOT, "host", "gui", "pages", "nodes_page.py")
     source = open(np, "r", encoding="utf-8").read()
@@ -261,7 +270,7 @@ def test_vm_is_primary_data_source():
 def main():
     global PASS, FAIL
     print("=" * 55)
-    print("  DetailPanel v5.2 测试 (Phase 3-3D)")
+    print("  DetailPanel v5.2 测试 (Phase 3-3D / RC-6)")
     print("=" * 55)
 
     test_full_update()

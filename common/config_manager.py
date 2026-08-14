@@ -100,6 +100,10 @@ class ConfigManager:
 
     # ---------- 告警设置 ----------
 
+    def get_alerts(self) -> list:
+        """返回告警规则列表（读 host_cfg，不含默认回退）。"""
+        return list(self.host_cfg.get("alerts") or [])
+
     def get_alert(self, path: str) -> dict | None:
         """按指标路径取红线规则。"""
         alerts = self.host_cfg.get("alerts") or []

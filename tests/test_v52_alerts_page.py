@@ -1,4 +1,19 @@
-import sys, os, time
+# -*- coding: utf-8 -*-
+"""
+test_v52_alerts_page.py —— AlertsPage v5.2 测试（Phase 4-5 / 4-5.1）。
+
+验证：
+1. VM 注入
+2. 空状态 / 有告警
+3. alerts_changed 自动刷新
+4. level 过滤
+5. node 过滤
+6. 生命周期
+7. 架构扫描（无 Store/Engine 导入）
+"""
+import sys
+import os
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
@@ -13,6 +28,7 @@ _app = QApplication.instance() or QApplication(_sys.argv)
 from host.store.alert_store import AlertStore
 from host.viewmodels.alert_vm import AlertViewModel, AlertItem
 from host.gui.pages.alerts_page import AlertsPage
+from host.gui.widgets.alert_card import AlertCard
 
 PASS = 0
 FAIL = 0
@@ -28,22 +44,10 @@ def check(name, cond, detail=""):
         print(f"  [FAIL] {name}  {detail}")
 
 
-def push_alert(store, **kw):
-    kw.setdefault("timestamp", time.time())
-    kw.setdefault("node_id", "A")
-    kw.setdefault("node_alias", "NodeA")
-    kw.setdefault("name", "test")
-    kw.setdefault("path", "test.path")
-    kw.setdefault("value", 1)
-    kw.setdefault("threshold", 1)
-    kw.setdefault("level", "red")
-    store.push(kw)
-
-
-def make_items(store, vm, page, items_data):
-    """直接填充 VM 缓存 + 刷新表格（绕过信号时序）。"""
+def make_items(vm, page, items_data):
+    """直接填充 VM 缓存 + 刷新列表。"""
     vm._items = [AlertItem(d) for d in items_data]
-    page._refresh_table()
+    page._refresh_list()
 
 
 # ---- 1. VM 注入 ----
@@ -67,31 +71,27 @@ def test_empty_state():
     page.set_view_model(vm)
     page.show()
     check("空状态提示可见", page._empty_label.isVisible())
-    check("表格隐藏", not page._table.isVisible())
     check("统计=0", page._card_active._val.text() == "0")
 
 
-# ---- 3. 有告警显示表格 ----
+# ---- 3. 有告警显示卡片 ----
 
 def test_with_alerts():
-    print("\n--- 3. 有告警显示表格 ---")
+    print("\n--- 3. 有告警显示卡片 ---")
     store = AlertStore()
     vm = AlertViewModel(store)
     page = AlertsPage()
     page.set_view_model(vm)
     page.show()
 
-    make_items(store, vm, page, [
+    make_items(vm, page, [
         {"timestamp": time.time(), "node_id": "A", "node_alias": "N1",
          "name": "CPU high", "path": "cpu", "value": 95, "threshold": 90, "level": "red"},
         {"timestamp": time.time(), "node_id": "B", "node_alias": "N2",
          "name": "MEM high", "path": "ram", "value": 85, "threshold": 80, "level": "warn"},
     ])
-    check("表格可见", page._table.isVisible())
     check("空状态隐藏", not page._empty_label.isVisible())
-    check("表格行数=2", page._table.rowCount() == 2)
-    check("第0行有值", page._table.item(0, 2) is not None)
-    check("第1行有值", page._table.item(1, 2) is not None)
+    check("卡片数=2", page._card_count() == 2)
 
 
 # ---- 4. alerts_changed 自动刷新 ----
@@ -103,21 +103,21 @@ def test_auto_refresh():
     page = AlertsPage()
     page.set_view_model(vm)
     page.show()
-    check("初始 0 行", page._table.rowCount() == 0)
+    check("初始 0 卡片", page._card_count() == 0)
 
-    make_items(store, vm, page, [
+    make_items(vm, page, [
         {"timestamp": time.time(), "node_id": "A", "name": "t1",
          "path": "p", "value": 1, "threshold": 1, "level": "red"},
     ])
-    check("push 后 1 行", page._table.rowCount() == 1)
+    check("push 后 1 卡片", page._card_count() == 1)
 
-    make_items(store, vm, page, [
+    make_items(vm, page, [
         {"timestamp": time.time(), "node_id": "A", "name": "t1",
          "path": "p", "value": 1, "threshold": 1, "level": "red"},
         {"timestamp": time.time(), "node_id": "B", "name": "t2",
          "path": "p", "value": 2, "threshold": 2, "level": "warn"},
     ])
-    check("再 push 后 2 行", page._table.rowCount() == 2)
+    check("再 push 后 2 卡片", page._card_count() == 2)
 
 
 # ---- 5. level 过滤 ----
@@ -130,24 +130,24 @@ def test_level_filter():
     page.set_view_model(vm)
     page.show()
 
-    make_items(store, vm, page, [
+    make_items(vm, page, [
         {"timestamp": time.time(), "node_id": "A", "name": "r1", "level": "red"},
         {"timestamp": time.time(), "node_id": "A", "name": "r2", "level": "red"},
         {"timestamp": time.time(), "node_id": "B", "name": "w1", "level": "warn"},
     ])
-    check("全部: 3 行", page._table.rowCount() == 3)
+    check("全部: 3 卡片", page._card_count() == 3)
 
-    page._level_combo.setCurrentIndex(1)
+    page._toolbar._level_combo.setCurrentIndex(1)  # Critical
     page._on_filter_changed()
-    check("仅红线: 2 行", page._table.rowCount() == 2)
+    check("仅红线: 2 卡片", page._card_count() == 2)
 
-    page._level_combo.setCurrentIndex(2)
+    page._toolbar._level_combo.setCurrentIndex(2)  # Warning
     page._on_filter_changed()
-    check("仅预警: 1 行", page._table.rowCount() == 1)
+    check("仅预警: 1 卡片", page._card_count() == 1)
 
-    page._level_combo.setCurrentIndex(0)
+    page._toolbar._level_combo.setCurrentIndex(0)  # All
     page._on_filter_changed()
-    check("全部: 3 行", page._table.rowCount() == 3)
+    check("全部: 3 卡片", page._card_count() == 3)
 
 
 # ---- 6. node 过滤 ----
@@ -160,25 +160,25 @@ def test_node_filter():
     page.set_view_model(vm)
     page.show()
 
-    make_items(store, vm, page, [
+    make_items(vm, page, [
         {"timestamp": time.time(), "node_id": "A", "name": "a1", "level": "red"},
         {"timestamp": time.time(), "node_id": "B", "name": "b1", "level": "warn"},
         {"timestamp": time.time(), "node_id": "A", "name": "a2", "level": "red"},
     ])
-    check("全部: 3 行", page._table.rowCount() == 3)
+    check("全部: 3 卡片", page._card_count() == 3)
 
     page.update_node_list([("A", "NA"), ("B", "NB")])
-    page._node_combo.setCurrentIndex(1)
+    page._toolbar._node_combo.setCurrentIndex(1)  # A
     page._on_filter_changed()
-    check("节点A: 2 行", page._table.rowCount() == 2)
+    check("节点A: 2 卡片", page._card_count() == 2)
 
-    page._node_combo.setCurrentIndex(2)
+    page._toolbar._node_combo.setCurrentIndex(2)  # B
     page._on_filter_changed()
-    check("节点B: 1 行", page._table.rowCount() == 1)
+    check("节点B: 1 卡片", page._card_count() == 1)
 
-    page._node_combo.setCurrentIndex(0)
+    page._toolbar._node_combo.setCurrentIndex(0)  # All
     page._on_filter_changed()
-    check("全部: 3 行", page._table.rowCount() == 3)
+    check("全部: 3 卡片", page._card_count() == 3)
 
 
 # ---- 7. 生命周期 ----
@@ -193,16 +193,14 @@ def test_lifecycle():
     check("on_show OK", True)
     page.on_hide()
     check("on_hide OK", True)
-    # cleanup 前有数据
-    make_items(store, vm, page, [
+    make_items(vm, page, [
         {"timestamp": time.time(), "name": "x", "level": "red"},
     ])
-    check("cleanup 前有数据", page._table.rowCount() == 1)
+    check("有数据", page._card_count() == 1)
     page.cleanup()
     check("cleanup OK", True)
-    # cleanup 后手动刷新不应影响（信号已断开，但手动刷新仍会更新）
-    make_items(store, vm, page, [])
-    check("cleanup 后清空", page._table.rowCount() == 0)
+    make_items(vm, page, [])
+    check("cleanup 后清空", page._card_count() == 0)
 
 
 # ---- 8. 源码扫描 ----
@@ -225,7 +223,7 @@ def test_no_store_import():
 def main():
     global PASS, FAIL
     print("=" * 55)
-    print("  AlertsPage 前端测试 (Phase 3-4B)")
+    print("  AlertsPage v5.2 测试 (Phase 4-5 / 4-5.1)")
     print("=" * 55)
 
     test_vm_injection()

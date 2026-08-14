@@ -6,6 +6,7 @@ v5.2 组件库（widgets）—— 页面可复用 UI 组件。
     NodeCard, ResourceCard, ChartWidget, ChartPanel
     NodeExplorer, DetailDashboard, MonitorHeader, MetricSelector
     HeaderBar, DetailPanel, NodeListWidget
+    AlertSummaryCard, AlertCard, AlertToolbar, AlertDetail
 
 保留组件（测试引用，待后续清理）：
     StatusBadge, QualityBadge, EmptyState, PageHeader, MetricBar
@@ -24,6 +25,12 @@ from host.gui.widgets.header_bar import HeaderBar                   # noqa: F401
 from host.gui.widgets.detail_panel import DetailPanel               # noqa: F401
 from host.gui.widgets.node_list import NodeListWidget               # noqa: F401
 
+# Alert widgets (Phase 4-5)
+from host.gui.widgets.alert_summary_card import AlertSummaryCard    # noqa: F401
+from host.gui.widgets.alert_card import AlertCard                   # noqa: F401
+from host.gui.widgets.alert_toolbar import AlertToolbar             # noqa: F401
+from host.gui.widgets.alert_detail import AlertDetail               # noqa: F401
+
 # 保留组件（测试引用）
 from host.gui.widgets.status_badge import StatusBadge               # noqa: F401
 from host.gui.widgets.quality_badge import QualityBadge             # noqa: F401
@@ -41,5 +48,6 @@ __all__ = [
     "NodeCard", "ResourceCard", "ChartWidget", "ChartPanel",
     "NodeExplorer", "DetailDashboard", "MonitorHeader", "MetricSelector",
     "HeaderBar", "DetailPanel", "NodeListWidget",
+    "AlertSummaryCard", "AlertCard", "AlertToolbar", "AlertDetail",
     "StatusBadge", "QualityBadge", "EmptyState", "PageHeader", "MetricBar",
 ]

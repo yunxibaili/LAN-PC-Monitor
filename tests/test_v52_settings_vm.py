@@ -173,8 +173,7 @@ def test_signal():
 def test_facade_isolation():
     print("\n--- 9. Facade 隔离 ---")
     vm, mgr = _make_vm()
-    check("vm.facade 存在", vm.facade is not None)
-    check("vm.facade 是 SettingsFacade", type(vm.facade).__name__ == "SettingsFacade")
+    check("vm 不暴露 facade", not hasattr(vm, "facade"))
 
 
 def main():

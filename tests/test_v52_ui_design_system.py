@@ -129,8 +129,8 @@ def test_no_hardcoded_colors():
                 stripped = line.strip()
                 if stripped.startswith('#') or stripped.startswith('import') or stripped.startswith('from '):
                     continue
-                for m in re.finditer(r'"(#[0-9a-fA-F]{6})"', stripped):
-                    c = m.group(1)
+                for m in re.finditer(r'#[0-9a-fA-F]{3,8}', stripped):
+                    c = m.group(0)
                     if 'ThemeColors' in stripped and c in stripped:
                         continue
                     violations.append(f"{os.path.basename(p)}:{i}")

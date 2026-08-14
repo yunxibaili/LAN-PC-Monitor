@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-通用主题与阈值变色模块（见《README.md》§14.1 / §18.3）。
+Legacy Theme System — Agent GUI 兼容层。
 
-主机端本地仪表盘与副机端均引用本模块，保证颜色/阈值一致。
-变色方式：QLabel.setStyleSheet 动态切换文字颜色。
+状态: legacy
+用途: Agent GUI 当前依赖此模块（DARK_QSS / COLOR_* / helper functions）
+迁移: Phase 4-7 Agent GUI Upgrade 时决定
+
+Host GUI 不使用此模块。新开发应使用 host/gui/theme。
+
+注意: 本模块的 COLOR_* 常量与 host/gui/theme/colors.py 的 ThemeColors
+存在色值差异（Agent 使用旧色板 #1e1e1e / #007acc，Host 使用新色板 #0F1117 / #3B82F6）。
+这是有意设计，不是 bug。Agent 视觉统一属于 Phase 4-7 范围。
 """
 from PyQt5.QtWidgets import QLabel
 

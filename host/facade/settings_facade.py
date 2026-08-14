@@ -158,6 +158,14 @@ class SettingsFacade:
 
     # ---------- 告警规则 ----------
 
+    def get_alerts(self) -> list:
+        """告警规则列表；未配置时回退内置默认。"""
+        alerts = self._mgr.get_alerts()
+        if not alerts:
+            from host.config import DEFAULT_ALERTS
+            return list(DEFAULT_ALERTS)
+        return alerts
+
     def get_alert(self, path: str) -> dict | None:
         return self._mgr.get_alert(path)
 

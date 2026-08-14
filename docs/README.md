@@ -50,6 +50,7 @@ Theme (设计系统)
 
 | 文档 | 说明 |
 |------|------|
+| [core/BLUEPRINT.md](core/BLUEPRINT.md) | ⭐ 项目总蓝图（唯一入口） |
 | [core/ARCHITECTURE.md](core/ARCHITECTURE.md) | 当前最终架构 |
 | [core/DATA_FLOW.md](core/DATA_FLOW.md) | 数据流说明 |
 | [core/UI_SYSTEM.md](core/UI_SYSTEM.md) | 唯一 UI 设计规范 |
@@ -95,7 +96,7 @@ docs/
 
 如果你是 AI 助手，只需阅读以下文件即可理解整个项目：
 
-1. **docs/README.md**（本文件）— 项目概览
+1. **docs/core/BLUEPRINT.md**（项目总蓝图）— 唯一入口
 2. **docs/core/ARCHITECTURE.md** — 架构和目录
 3. **docs/core/DATA_FLOW.md** — 数据流
 4. **docs/core/UI_SYSTEM.md** — UI 规范

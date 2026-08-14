@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-SettingsViewModel —— Settings 页面数据桥接层（v5.2 Phase 3-6A）。
+SettingsViewModel —— Settings 页面数据桥接层（v5.2 Phase 3-6A / 4-6A）。
 
 职责：
   - 包装 SettingsFacade，提供页面友好的读写接口
-  - 配置即时生效（set → Facade → 磁盘）
+  - 配置写入只改内存 + 标 dirty，持久化统一走 save()
   - 通知页面配置变更
   - 不持有 UI 状态
+  - 不暴露 Facade（Page 不允许获取 Facade 实例）
 """
 import logging
 
@@ -25,6 +26,19 @@ class SettingsViewModel:
         :param facade: SettingsFacade 实例（MainWindow 传入）
         """
         self._facade = facade
+        self._dirty = False
+
+    # ---------- Dirty State ----------
+
+    def is_dirty(self) -> bool:
+        """是否有未保存的变更。"""
+        return self._dirty
+
+    def _mark_dirty(self):
+        self._dirty = True
+
+    def _clear_dirty(self):
+        self._dirty = False
 
     # ---------- 基础配置 ----------
 
@@ -33,15 +47,20 @@ class SettingsViewModel:
         return self._facade.get(key, default)
 
     def set(self, key: str, value) -> None:
-        """即时写入配置（Facade 内存 + 磁盘）。"""
+        """写入配置内存（不持久化；保存统一走 save()）。"""
         self._facade.set(key, value)
-        self._facade.save()
+        self._mark_dirty()
         self.settings_changed.emit(key)
 
-    def reset(self, key: str | None = None) -> None:
-        """重置配置（单字段或全量）。"""
-        self._facade.reset(key)
+    def save(self) -> None:
+        """持久化全部配置（一次写盘）。"""
         self._facade.save()
+        self._clear_dirty()
+
+    def reset(self, key: str | None = None) -> None:
+        """重置配置（单字段或全量；保存走 save()）。"""
+        self._facade.reset(key)
+        self._mark_dirty()
         self.settings_changed.emit(key or "*")
 
     def get_all(self) -> dict:
@@ -57,24 +76,22 @@ class SettingsViewModel:
     # ---------- 告警配置 ----------
 
     def get_alerts(self) -> list:
-        """获取告警规则列表。"""
-        # 从 ConfigManager 的 host_cfg 读取 alerts 字段
-        mgr = self._facade._mgr
-        alerts = getattr(mgr, 'host_cfg', {}).get("alerts", [])
-        if not alerts:
-            # 回退到内置默认告警（host/config.py DEFAULT_ALERTS）
-            from host.config import DEFAULT_ALERTS
-            alerts = list(DEFAULT_ALERTS)
-        return alerts
+        """获取告警规则列表（走 Facade）。"""
+        return self._facade.get_alerts()
+
+    def get_alert(self, path: str):
+        """按指标路径取单条告警规则。"""
+        return self._facade.get_alert(path)
 
     def set_alert(self, path: str, **kwargs) -> None:
-        """更新单条告警规则。"""
+        """更新单条告警规则（内存；保存走 save()）。"""
         self._facade.set_alert(path, **kwargs)
+        self._mark_dirty()
 
     def reset_alerts(self) -> None:
-        """恢复默认告警规则。"""
+        """恢复默认告警规则（内存；保存走 save()）。"""
         self._facade.reset()
-        self._facade.save()
+        self._mark_dirty()
         self.settings_changed.emit("alerts")
 
     # ---------- 节点配置 ----------
@@ -84,18 +101,11 @@ class SettingsViewModel:
         return self._facade.get_hosts()
 
     def add_host(self, node_id, ip, port, token, alias="") -> None:
-        """添加节点。"""
+        """添加节点（内存；保存走 save()）。"""
         self._facade.add_host(node_id, ip, port, token, alias)
-        self._facade.save()
+        self._mark_dirty()
 
     def remove_host(self, node_id) -> None:
-        """移除节点。"""
+        """移除节点（内存；保存走 save()）。"""
         self._facade.remove_host(node_id)
-        self._facade.save()
-
-    # ---------- Facade 直通 ----------
-
-    @property
-    def facade(self):
-        """直接访问 Facade（MainWindow 需要）。"""
-        return self._facade
+        self._mark_dirty()
