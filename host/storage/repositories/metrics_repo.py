@@ -119,3 +119,11 @@ class MetricsRepository:
         else:
             self._db.execute("DELETE FROM metrics")
         self._db.commit()
+
+    def delete_before(self, timestamp: float) -> int:
+        """删除 timestamp < 给定值 的记录，返回删除数量（严格小于，保留边界）。"""
+        cursor = self._db.execute(
+            "DELETE FROM metrics WHERE timestamp < ?", (timestamp,)
+        )
+        self._db.commit()
+        return cursor.rowcount if cursor.rowcount else 0

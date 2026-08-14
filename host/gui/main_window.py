@@ -53,6 +53,7 @@ from host.viewmodels.node_detail_vm import NodeDetailViewModel
 from host.viewmodels.settings_vm import SettingsViewModel
 from host.viewmodels.history_vm import HistoryViewModel
 from host.facade.history_facade import HistoryFacade
+from host.service.storage_service import StorageService
 
 # Controllers
 from host.gui.controllers.navigation_controller import NavigationController
@@ -136,7 +137,16 @@ class HostMainWindow(QMainWindow):
         self.discovery.start()
         if self.cfg.get("auto_discovery", True):
             self.data.auto_discover()
+        self._run_startup_retention()
         log.info("监控主机主窗口已创建（v5.2）")
+
+    def _run_startup_retention(self) -> None:
+        """应用启动时执行一次数据保留清理（不轮询、不后台线程）。"""
+        try:
+            result = self._storage.run_retention()
+            log.info("Startup retention: %s", result)
+        except Exception as e:
+            log.warning("Startup retention failed: %s", e)
 
     # ---------- UI 骨架 ----------
 
@@ -180,8 +190,9 @@ class HostMainWindow(QMainWindow):
             node_store=self.node_store, frame_store=self.frame_store)
         self.settings_vm = SettingsViewModel(self.settings)
 
-        # History Facade + VM（storage 初始化封装在 HistoryFacade.from_path）
-        self._history_facade = HistoryFacade.from_path("history.db")
+        # Storage Service（统一管理 SQLite 连接 + Repository）
+        self._storage = StorageService("history.db")
+        self._history_facade = self._storage.history_facade()
         self.history_vm = HistoryViewModel(self._history_facade)
 
         # Pages
@@ -306,4 +317,6 @@ class HostMainWindow(QMainWindow):
         if self.local_pack:
             self.local_pack.stop()
         self.alert.shutdown()
+        if getattr(self, "_storage", None):
+            self._storage.close()
         event.accept()

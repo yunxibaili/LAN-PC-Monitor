@@ -62,18 +62,20 @@ v5.2 是**架构重构 + UI 升级版本**，从 v5.0 的纯文字面板升级�
 | Phase 5-2 | Metrics Persistence |
 | Phase 5-3 | History Query API |
 | Phase 5-4 | History UI |
+| Phase 5-5 | Retention (5-5A Foundation + 5-5B Startup Trigger) |
 
 ### 进行中
 
 | Phase | 内容 |
 |-------|------|
-| Phase 5-5 | Retention / Cleanup |
+| （无） | — |
 
 ### 未来（未实现）
 
 | Phase | 内容 | 标记 |
 |-------|------|------|
 | Phase 4-7 | Agent GUI 升级 | Future |
+| Phase 5-5C | Retention Settings Integration | Future |
 | Phase 6 | 高级告警引擎 | Future |
 | Phase 7 | UX 优化 | Future |
 | Phase 8+ | 服务化架构 | Future |
@@ -205,12 +207,14 @@ host/
  ├── service/
  │   ├── alert_service.py    # AlertEngine + AlertStore 管线
  │   ├── discovery_service.py # UDP + mDNS 服务封装
- │   └── metric_persistence.py # Runtime Frame → Storage Record (Phase 5-2)
+ │   ├── metric_persistence.py # Runtime Frame → Storage Record (Phase 5-2)
+ │   └── storage_service.py  # Storage 组装 + 生命周期 (5-5B)
  │
  ├── storage/               # SQLite 持久化 (Phase 5-1)
  │   ├── database.py         # SQLite connection + lifecycle
  │   ├── schema.py           # 表定义 + 版本管理
  │   ├── records.py          # MetricRecord / AlertHistoryRecord / SessionRecord
+ │   ├── retention.py        # RetentionPolicy + RetentionService (5-5A)
  │   └── repositories/
  │       ├── metrics_repo.py
  │       ├── alerts_repo.py
@@ -552,7 +556,7 @@ tests/
 | 2 | Storage schema migration path | P2 | schema v2 出现时需要迁移机制 |
 | 3 | common/protocol.py 遗留 | P2 | v4 TCP 协议残留，标记为 legacy |
 | 4 | common/gui/detail_panel.py | P2 | Agent 侧自包含实现，与 host 版本功能重复 |
-| 5 | History retention | P2 | 数据保留策略，留给 Phase 5-5 |
+| 5 | Retention Settings 集成 | P2 | 保留策略 UI 配置，留给 Phase 5-5C |
 | 6 | Agent GUI 未升级 | P3 | 仍为 v5.1 旧风格仪表盘 |
 | 7 | i18n 未统一 | P3 | common/i18n + zh_CN.json/en.json，host/agent 分别引用 |
 
@@ -598,7 +602,7 @@ tests/
 | 5-2 | Metrics Persistence (Frame → Record 写入) | ✅ COMPLETE |
 | 5-3 | History Query API (range/latest/aggregate) | ✅ COMPLETE |
 | 5-4 | History UI (历史趋势页) | ✅ COMPLETE |
-| 5-5 | Retention / Cleanup | Future |
+| 5-5 | Retention (5-5A Foundation + 5-5B Startup) | ✅ COMPLETE |
 
 **技术方向**:
 - SQLite 时间序列存储

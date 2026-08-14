@@ -64,3 +64,11 @@ class SessionsRepository:
         else:
             self._db.execute("DELETE FROM sessions")
         self._db.commit()
+
+    def delete_before(self, timestamp: float) -> int:
+        """删除 timestamp < 给定值 的快照，返回删除数量。"""
+        cursor = self._db.execute(
+            "DELETE FROM sessions WHERE timestamp < ?", (timestamp,)
+        )
+        self._db.commit()
+        return cursor.rowcount if cursor.rowcount else 0

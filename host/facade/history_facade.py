@@ -13,7 +13,6 @@ HistoryFacade —— 历史指标读取门面（v5.2 Phase 5-3）。
 """
 import logging
 
-from host.storage.database import Database
 from host.storage.records import MetricRecord
 from host.storage.repositories.metrics_repo import MetricsRepository
 
@@ -25,13 +24,6 @@ class HistoryFacade:
 
     def __init__(self, metrics_repo: MetricsRepository):
         self._repo = metrics_repo
-
-    @classmethod
-    def from_path(cls, db_path: str) -> "HistoryFacade":
-        """从数据库路径创建（内部封装 Database + Repository 生命周期）。"""
-        db = Database(db_path)
-        db.connect()
-        return cls(MetricsRepository(db))
 
     # ---------- 参数校验 ----------
 

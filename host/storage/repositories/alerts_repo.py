@@ -76,3 +76,11 @@ class AlertsRepository:
         """清空告警历史。"""
         self._db.execute("DELETE FROM alerts")
         self._db.commit()
+
+    def delete_before(self, timestamp: float) -> int:
+        """删除 timestamp < 给定值 的告警，返回删除数量。"""
+        cursor = self._db.execute(
+            "DELETE FROM alerts WHERE timestamp < ?", (timestamp,)
+        )
+        self._db.commit()
+        return cursor.rowcount if cursor.rowcount else 0
