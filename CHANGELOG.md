@@ -1,6 +1,9 @@
 # Changelog
 
-## v5.2.3（2026-08）— Architecture Stabilization Release
+## v5.2.3（2026-08-15）— Architecture Stabilization Release
+
+> **里程碑**：本项目从"开发阶段"进入"稳定维护阶段"的分界点（Release 发布日）。
+> 发布后 v5.2.x 冻结，进入 v5.3 开发周期。
 
 ### Added
 
