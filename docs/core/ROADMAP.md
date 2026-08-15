@@ -38,23 +38,26 @@
 
 | Phase | 内容 | 优先级 |
 |-------|------|--------|
-| v5.3 | history.db 路径统一 | P2 |
-| v5.3 | Settings dirty 双模型收敛 | P2 |
+| v5.3-1 | netifaces 替换（psutil.net_if_addrs / ifaddr） | P2 |
+| v5.3-2 | history.db 路径统一 | P2 |
+| v5.3-3 | Settings dirty 双模型收敛 | P2 |
+| v5.3-4 | Agent/Host Theme 统一（common/theme.py 迁移） | P2 |
 | 5-5C | Retention Settings 集成 | P2 |
-| 4-7 | Agent GUI 升级 | P3 |
 | 6 | 高级告警引擎 | P2 |
 | 7 | UX 优化 | P3 |
 
+> v5.2.x 已冻结（见 `docs/releases/v5.2.x_freeze.md`），仅修崩溃/安全/发布阻塞缺陷。
 > 已登记问题清单见 `docs/issues/v5.2.3_known_issues.md`。
 
 ## 未来计划
 
-### 短期（v5.3）
+### 短期（v5.3 P2 Cleanup Sprint）
 
-- history.db 路径统一（P2）
-- Settings dirty 双模型收敛（P2）
+- v5.3-1: netifaces 替换（CI 已暴露无 cp310+ wheel）
+- v5.3-2: history.db 路径统一（storage_service / config / 用户数据目录）
+- v5.3-3: Settings dirty 双模型合并
+- v5.3-4: Agent/Host Theme 统一（含 common/theme.py 迁移）
 - Phase 5-5C: Retention Settings 集成
-- Phase 4-7: Agent GUI 升级（含 common/theme.py 迁移）
 
 ### 中期
 
