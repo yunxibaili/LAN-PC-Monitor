@@ -1,0 +1,34 @@
+name: Feature Request
+description: 请求新功能（请先阅读 docs/core/BLUEPRINT.md，遵守分层规则）
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        新功能请说明业务价值，并标注影响层。注意：v5.2.x 已冻结，新功能进入 v5.3 及以后。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题
+      description: 背景与动机（为什么需要）
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提议方案
+      description: 功能行为描述
+    validations:
+      required: true
+  - type: input
+    id: layer
+    attributes:
+      label: 影响层
+      description: Page / ViewModel / Facade / Service / Storage / Agent / CI / Docs
+      placeholder: Storage
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 备选方案（可选）
+      description: 其他可行做法

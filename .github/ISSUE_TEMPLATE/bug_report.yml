@@ -1,0 +1,65 @@
+name: Bug Report
+description: 报告缺陷（请完整填写，缺失信息可能导致无法复现）
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢报告问题。请先确认版本与复现环境，日志见 `logs/`（agent.log 等）或控制台输出。
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: 版本号 / tag（如 v5.2.3）
+      placeholder: v5.2.3
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - Windows 10
+        - Windows 11
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python
+      description: Python 版本（`python --version`）
+      placeholder: 3.12.10
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: 复现步骤
+      placeholder: |
+        1. 启动 Agent / Host
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: 期望行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: 实际行为（错误信息 / 崩溃现象）
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: 相关日志或输出（logs/agent.log、控制台、CI 链接等）
+      render: shell
