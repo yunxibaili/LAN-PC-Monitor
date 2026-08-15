@@ -18,41 +18,9 @@ from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.pages.base_page import PageBase
 from host.gui.widgets.node_card import NodeCard
+from host.gui.widgets.chart_panel import SummaryCard
 
 log = logging.getLogger("host.gui.dashboard_page")
-
-
-# ---------- SummaryCard ----------
-
-class SummaryCard(QFrame):
-    """KPI 统计卡片。"""
-
-    def __init__(self, title="", value="0", color=None, parent=None):
-        super().__init__(parent)
-        self.setFixedHeight(90)
-        self.setStyleSheet(f"""
-            SummaryCard {{
-                background-color: {TC.BG_CARD};
-                border: 1px solid {TC.BORDER_DEFAULT};
-                border-radius: 12px;
-            }}
-        """)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(S.MD, 10, S.MD, 10)
-        layout.setSpacing(2)
-        self._lbl = QLabel(title)
-        self._lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 11px; background: transparent;")
-        layout.addWidget(self._lbl)
-        self._val = QLabel(value)
-        self._val.setStyleSheet(
-            f"color: {color or TC.TEXT_PRIMARY}; font-size: 28px; font-weight: bold; background: transparent;")
-        layout.addWidget(self._val)
-
-    def set_value(self, value, color=None):
-        self._val.setText(str(value))
-        if color:
-            self._val.setStyleSheet(
-                f"color: {color}; font-size: 28px; font-weight: bold; background: transparent;")
 
 
 # ---------- AlertPreview ----------
@@ -167,11 +135,11 @@ class DashboardPage(PageBase):
         # Summary Cards
         summary_row = QHBoxLayout()
         summary_row.setSpacing(S.SM)
-        self._card_total = SummaryCard("Total Nodes", "0")
-        self._card_online = SummaryCard("Online", "0", TC.SUCCESS)
-        self._card_cpu = SummaryCard("Avg CPU", "0%")
-        self._card_gpu = SummaryCard("Avg GPU", "0%")
-        self._card_alerts = SummaryCard("Alerts", "0", TC.WARNING)
+        self._card_total = SummaryCard("Total Nodes", "0", size=28)
+        self._card_online = SummaryCard("Online", "0", TC.SUCCESS, size=28)
+        self._card_cpu = SummaryCard("Avg CPU", "0%", size=28)
+        self._card_gpu = SummaryCard("Avg GPU", "0%", size=28)
+        self._card_alerts = SummaryCard("Alerts", "0", TC.WARNING, size=28)
         summary_row.addWidget(self._card_total)
         summary_row.addWidget(self._card_online)
         summary_row.addWidget(self._card_cpu)
@@ -260,10 +228,10 @@ class DashboardPage(PageBase):
 
     def _update_summary(self, total, online, offline, alerts=0):
         self._card_total.set_value(total)
-        self._card_online.set_value(online, TC.SUCCESS)
+        self._card_online.set_value(online, color=TC.SUCCESS)
         self._card_cpu.set_value("--%")
         self._card_gpu.set_value("--%")
-        self._card_alerts.set_value(alerts, TC.WARNING)
+        self._card_alerts.set_value(alerts, color=TC.WARNING)
 
     def _update_summary_from_vm(self):
         if not self._vm: return

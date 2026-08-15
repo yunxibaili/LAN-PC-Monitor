@@ -35,6 +35,11 @@ ENV/
 logs/
 *.log
 
+# 数据库文件（运行时生成，不提交）
+*.db
+*.sqlite
+*.sqlite3
+
 # Agent / IDE
 .claude/
 

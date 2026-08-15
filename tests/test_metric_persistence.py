@@ -21,7 +21,7 @@ if ROOT not in sys.path:
 
 from host.storage.database import Database
 from host.storage.repositories.metrics_repo import MetricsRepository
-from host.services.metric_persistence import MetricPersistenceService
+from host.service.metric_persistence import MetricPersistenceService
 
 PASS = 0
 FAIL = 0
@@ -160,7 +160,7 @@ def test_failure_resilience():
 
 def test_architecture():
     print("\n--- 7. 架构边界 ---")
-    p = os.path.join(ROOT, "host", "services", "metric_persistence.py")
+    p = os.path.join(ROOT, "host", "service", "metric_persistence.py")
     with open(p, "r", encoding="utf-8", errors="ignore") as f:
         content = f.read()
     check("无 import host.gui", "import host.gui" not in content and "from host.gui" not in content)

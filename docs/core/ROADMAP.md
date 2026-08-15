@@ -1,68 +1,62 @@
 # 当前阶段和未来计划
 
-> **Version**: v5.2 Phase4
+> **Version**: v5.2.2
 > **Status**: CURRENT
 
 ## 当前阶段
 
-**Phase 4: UI Upgrade**
+**Phase 5: Data Lifecycle — 已完成主线**
 
 ### 已完成
 
 | Phase | 内容 | 状态 |
 |-------|------|------|
-| Phase 3-3 | NodeDetailViewModel | ✅ COMPLETE |
-| Phase 3-4 | AlertsPage | ✅ COMPLETE |
-| Phase 3-5 | MonitorPage | ✅ COMPLETE |
-| Phase 3-6 | SettingsPage | ✅ COMPLETE |
-| Phase 3-7 | Widget Migration | ✅ COMPLETE |
-| Phase 3-8 | MainWindow Refactor | ✅ COMPLETE |
-| Phase 3-9 | Theme System | ✅ COMPLETE |
+| Phase 3-3~3-9 | MVVM 架构迁移 | ✅ COMPLETE |
 | Phase 4-1 | Design System | ✅ COMPLETE |
 | Phase 4-2 | App Shell | ✅ COMPLETE |
 | Phase 4-3 | NodesPage Redesign | ✅ COMPLETE |
 | Phase 4-4 | MonitorPage Redesign | ✅ COMPLETE |
-| Phase 4-5 | Audit | ✅ COMPLETE |
-| Phase RC-1 | 文档体系整理 | ✅ COMPLETE |
-| Phase RC-2 | 文档体系重构 | ✅ COMPLETE |
+| Phase 4-5 | AlertsPage Redesign + Final Polish | ✅ COMPLETE |
+| Phase 4-6 | SettingsPage Redesign (A/B/C) | ✅ COMPLETE |
+| Phase RC-1~6 | 文档整理 + 代码清理 + 基线冻结 | ✅ COMPLETE |
+| RC-7 | Theme Token Consolidation | ✅ COMPLETE |
+| Phase 5-1 | Storage Foundation (SQLite + schema + repository) | ✅ COMPLETE |
+| Phase 5-2 | Metrics Persistence | ✅ COMPLETE |
+| Phase 5-3 | History Query API | ✅ COMPLETE |
+| Phase 5-4 | History UI | ✅ COMPLETE |
+| Phase 5-5 | Retention (5-5A Foundation + 5-5B Startup Trigger) | ✅ COMPLETE |
 
 ### 进行中
 
 | Phase | 内容 | 状态 |
 |-------|------|------|
-| Phase 4-5 | AlertsPage Redesign | 🔄 待开始 |
-| Phase 4-6 | SettingsPage Redesign | 🔄 待开始 |
+| Project Cleanup | 发布前工程整理 | 🔄 进行中 |
 
 ### 待完成
 
 | Phase | 内容 | 优先级 |
 |-------|------|--------|
-| 硬编码颜色清理 (25处) | P1 |
-| common/theme 迁移 (8处) | P1 |
-| Alerts UI Redesign | P2 |
-| Settings UI Redesign | P2 |
-| Performance Optimization | P3 |
-| Agent GUI 升级 | P3 |
+| 5-5C | Retention Settings 集成 | P2 |
+| 4-7 | Agent GUI 升级 | P3 |
+| 6 | 高级告警引擎 | P2 |
+| 7 | UX 优化 | P3 |
 
 ## 未来计划
 
-### v5.3 (短期)
+### 短期
 
-- 完成所有页面 UI Redesign
-- 清理硬编码颜色
-- 迁移 common/theme 到 host/gui/theme
-- 性能优化
+- Phase 5-5C: Retention Settings 集成
+- Phase 4-7: Agent GUI 升级（含 common/theme.py 迁移）
 
-### v6.0 (中期)
+### 中期
 
 | 模块 | 说明 |
 |------|------|
-| storage/ | 历史存储 (SQLite) |
 | event/ | 事件系统 |
-| history/ | 历史查询 API |
-| manager/ | 节点状态 / watchdog |
+| 高级告警 | 告警恢复检测 / 多级告警 |
+| Storage migration | schema v2 迁移机制 |
 
-### v7.0 (长期)
+### 长期
 
 - Electron/Qt6 迁移
 - 多用户权限
@@ -71,9 +65,8 @@
 
 ## 测试状态
 
-| 指标 | 值 |
-|------|-----|
-| 测试文件 | 27 个 |
-| 测试项 | 600+ |
-| 通过率 | 100% |
-| 最后验证 | 2026-08-12 |
+- 框架：自定义 check runner（非 pytest）
+- 最新全量回归：**PASS**（929+ 项）
+- 覆盖：VM / Page / Widget / Storage / Retention / Flow / Theme / 架构扫描
+
+> 测试项数量随环境与阶段变化，精确数字见各 Phase 报告。

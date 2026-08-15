@@ -25,14 +25,15 @@ class DataController:
     """WS 数据入口 + 节点生命周期控制器。"""
 
     def __init__(self, cfg: dict, frame_store, node_store, history_store,
-                 discovery: DiscoveryService, on_node_added=None,
-                 on_node_removed=None):
+                 discovery: DiscoveryService, persistence=None,
+                 on_node_added=None, on_node_removed=None):
         """
         :param cfg:           host_config 字典
         :param frame_store:   FrameStore
         :param node_store:    NodeStore
         :param history_store: HistoryStore
         :param discovery:     DiscoveryService
+        :param persistence:   可选 MetricPersistenceService（持久化到 SQLite）
         :param on_node_added:   回调(node_id, conn) —— 页面同步
         :param on_node_removed: 回调(node_id) —— 页面同步
         """
@@ -41,6 +42,7 @@ class DataController:
         self.node_store = node_store
         self.history_store = history_store
         self.discovery = discovery
+        self.persistence = persistence
         self.on_node_added = on_node_added
         self.on_node_removed = on_node_removed
         self.nodes = {}          # node_id → NodeConnection
@@ -142,10 +144,12 @@ class DataController:
     # ---------- WS 数据入口 ----------
 
     def _on_data(self, frame: dict, node_id: str) -> None:
-        """monitor_data → Store + 回调。"""
+        """monitor_data → Store + 持久化 + 回调。"""
         self._inject_net_quality(frame, node_id)
         self.frame_store.push(node_id, frame)
         self.history_store.push_frame(node_id, frame)
+        if self.persistence is not None:
+            self.persistence.persist_frame(node_id, frame)
         if self._on_data_cb:
             self._on_data_cb(frame, node_id)
 

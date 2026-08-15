@@ -21,9 +21,10 @@ from host.gui.widgets.chart_widget import ChartWidget
 class SummaryCard(QFrame):
     """汇总卡片：Current / Average / Peak / Status。"""
 
-    def __init__(self, title="", parent=None):
+    def __init__(self, title="", value="—", color=None, size=20, parent=None):
         super().__init__(parent)
         self._title = title
+        self._size = size
         self.setFixedHeight(72)
         self.setStyleSheet(f"""
             SummaryCard {{
@@ -42,9 +43,9 @@ class SummaryCard(QFrame):
             f"letter-spacing: 0.5px; background: transparent;")
         layout.addWidget(self._title_lbl)
 
-        self._value_lbl = QLabel("—")
+        self._value_lbl = QLabel(str(value))
         self._value_lbl.setStyleSheet(
-            f"color: {TC.TEXT_PRIMARY}; font-size: 20px; font-weight: bold; "
+            f"color: {color or TC.TEXT_PRIMARY}; font-size: {size}px; font-weight: bold; "
             f"background: transparent;")
         layout.addWidget(self._value_lbl)
 
@@ -55,12 +56,9 @@ class SummaryCard(QFrame):
 
     def set_value(self, value, sub="", color=None):
         self._value_lbl.setText(str(value))
-        if color:
-            self._value_lbl.setStyleSheet(
-                f"color: {color}; font-size: 20px; font-weight: bold; background: transparent;")
-        else:
-            self._value_lbl.setStyleSheet(
-                f"color: {TC.TEXT_PRIMARY}; font-size: 20px; font-weight: bold; background: transparent;")
+        c = color or TC.TEXT_PRIMARY
+        self._value_lbl.setStyleSheet(
+            f"color: {c}; font-size: {self._size}px; font-weight: bold; background: transparent;")
         self._sub_lbl.setText(sub)
 
 

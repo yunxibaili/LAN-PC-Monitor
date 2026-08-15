@@ -34,6 +34,7 @@ host/
  ├── self_monitor.py          # 自监控（转发 common.self_monitor）
  ├── facade/
  │   ├── settings_facade.py   # Settings 门面
+ │   ├── history_facade.py    # History 读取门面 (5-3)
  │   ├── alert_adapter.py     # 告警适配器
  │   └── connection_factory.py# 连接工厂（惰性导入）
  ├── store/
@@ -44,17 +45,29 @@ host/
  │   └── alert_store.py       # 告警存储
  ├── service/
  │   ├── alert_service.py     # 告警服务
- │   └── discovery_service.py # 发现服务
+ │   ├── discovery_service.py # 发现服务
+ │   ├── metric_persistence.py # Runtime Frame → Storage Record (5-2)
+ │   └── storage_service.py   # Storage 组装 + 生命周期 (5-5B)
+ ├── storage/                 # SQLite 持久化 (5-1)
+ │   ├── database.py          # SQLite connection + lifecycle
+ │   ├── schema.py            # 表定义 + 版本管理
+ │   ├── records.py           # MetricRecord / AlertHistoryRecord / SessionRecord
+ │   ├── retention.py         # RetentionPolicy + RetentionService (5-5A)
+ │   └── repositories/
+ │       ├── metrics_repo.py
+ │       ├── alerts_repo.py
+ │       └── sessions_repo.py
  ├── viewmodels/
  │   ├── dashboard_vm.py      # Dashboard 数据转换
  │   ├── node_detail_vm.py    # 节点详情数据转换
  │   ├── monitor_vm.py        # Monitor 数据转换
  │   ├── alert_vm.py          # Alert 数据转换
+ │   ├── history_vm.py        # History 趋势数据 (5-4)
  │   └── settings_vm.py       # Settings 数据转换
  ├── manager/
  │   └── tray_manager.py      # 托盘管理
  └── gui/
-     ├── main_window.py       # 主窗口 (300行)
+     ├── main_window.py       # 主窗口
      ├── discovery_dialog.py  # 节点添加对话框
      ├── controllers/
      │   ├── navigation_controller.py
@@ -79,6 +92,7 @@ host/
      │   ├── nodes_page.py
      │   ├── monitor_page.py
      │   ├── alerts_page.py
+     │   ├── history_page.py  # 历史趋势 (5-4)
      │   └── settings_page.py
      └── widgets/             # UI 组件（16 个 + archive/ 4 个）
          ├── node_card.py     # 节点概览卡（Dashboard）

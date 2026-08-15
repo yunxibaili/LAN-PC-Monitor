@@ -19,7 +19,7 @@ import logging
 from host.storage.records import MetricRecord
 from host.storage.repositories.metrics_repo import MetricsRepository
 
-log = logging.getLogger("host.services.metric_persistence")
+log = logging.getLogger("host.service.metric_persistence")
 
 # 帧字段 → Metric 名映射
 _FRAME_METRICS = {

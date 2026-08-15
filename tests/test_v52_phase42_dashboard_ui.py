@@ -72,7 +72,7 @@ def test_empty_state():
     page._rebuild_grid()
     check("空状态提示可见", page._empty.isVisible())
     check("滚动区域隐藏", not page._scroll.isVisible())
-    check("total=0", page._card_total._val.text() == "0")
+    check("total=0", page._card_total._value_lbl.text() == "0")
 
 
 # ---------- 3. 多节点渲染 ----------
@@ -93,7 +93,7 @@ def test_multi_node():
     check("4 cards", len(page._cards) == 4)
     check("空状态隐藏", not page._empty.isVisible())
     check("滚动区域显示", page._scroll.isVisible())
-    check("total=4", page._card_total._val.text() == "4")
+    check("total=4", page._card_total._value_lbl.text() == "4")
 
 
 # ---------- 4. card 点击 ----------

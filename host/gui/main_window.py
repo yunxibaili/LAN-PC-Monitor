@@ -54,6 +54,7 @@ from host.viewmodels.settings_vm import SettingsViewModel
 from host.viewmodels.history_vm import HistoryViewModel
 from host.facade.history_facade import HistoryFacade
 from host.service.storage_service import StorageService
+from host.service.metric_persistence import MetricPersistenceService
 
 # Controllers
 from host.gui.controllers.navigation_controller import NavigationController
@@ -194,6 +195,8 @@ class HostMainWindow(QMainWindow):
         self._storage = StorageService("history.db")
         self._history_facade = self._storage.history_facade()
         self.history_vm = HistoryViewModel(self._history_facade)
+        self._metric_persistence = MetricPersistenceService(
+            self._storage.metrics_repo)
 
         # Pages
         self._pages = {}
@@ -233,6 +236,7 @@ class HostMainWindow(QMainWindow):
         self.data = DataController(
             self.cfg, self.frame_store, self.node_store, self.history_store,
             self.discovery,
+            persistence=self._metric_persistence,
             on_node_added=self._on_node_ui_added,
             on_node_removed=self._on_node_ui_removed)
         self.data.set_callbacks(

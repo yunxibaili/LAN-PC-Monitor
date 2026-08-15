@@ -94,10 +94,24 @@ docs/         文档
 | 禁止 | 原因 |
 |------|------|
 | Page 直接访问 Store | 违反分层 |
+| Page 直接访问 Storage / sqlite3 | 违反分层 |
 | Widget 处理业务逻辑 | 职责混乱 |
 | ViewModel 导入 PyQt5 | 耦合 UI |
+| ViewModel 直接访问 sqlite3 | 应走 Facade |
 | 硬编码颜色 | 破坏主题 |
 | QTimer 轮询 | 性能浪费 |
+
+## 6.1 Storage 层规范
+
+数据流：`Collector → PersistenceService → Repository → SQLite`
+
+| 规则 | 说明 |
+|------|------|
+| sqlite3 只在 host/storage/ | 其他层禁止 import sqlite3 |
+| 删除走 Repository | 禁止 Service 直接执行 DELETE SQL |
+| Record 与 Runtime 分离 | MetricRecord ≠ MonitorFrame |
+| 查询走 Facade | VM 不直接碰 Repository |
+| Storage 生命周期走 StorageService | MainWindow 不直接碰 Database |
 
 ## 7. 运行测试
 
