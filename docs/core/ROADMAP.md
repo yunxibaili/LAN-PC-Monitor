@@ -57,7 +57,7 @@
 
 ### 短期（v5.3 P2 Cleanup Sprint）
 
-- v5.3-0: Repository hygiene（CHANGELOG / README badge / Release 流程固定 / Issue & PR 模板）
+- v5.3-0: Repository hygiene（CHANGELOG / README badge / Release 流程固定 / Issue & PR 模板 / **Release 文档统一：tag 与 main 的 release note 不长期漂移**）
 - v5.3-1: netifaces 替换（CI 已暴露无 cp310+ wheel）
 - v5.3-2: history.db 路径统一（storage_service / config / 用户数据目录）
 - v5.3-3: Settings dirty 双模型合并
