@@ -52,6 +52,9 @@
 
 ## 未来计划
 
+> **发布后节奏**：v5.2.3 发布后先**观察 1~2 周**收集 Issue（平台期，稳定 API 优先），
+> 再开工 v5.3-0 hygiene，最后进入 v5.3 feature。不要发布后立即堆功能。
+
 ### 短期（v5.3 P2 Cleanup Sprint）
 
 - v5.3-0: Repository hygiene（CHANGELOG / README badge / Release 流程固定 / Issue & PR 模板）
