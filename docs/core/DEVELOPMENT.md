@@ -1,7 +1,7 @@
 # 开发规范
 
-> **Version**: v5.2
-> **Status**: CURRENT
+> **Version**: v5.2.3
+> **Status**: STABLE
 
 ## 1. 环境
 
@@ -122,6 +122,18 @@ python tests/test_v52_*.py
 # 单个测试
 python tests/test_v52_dashboard_vm.py
 ```
+
+### 测试基线
+
+测试项数量随环境与阶段变化，**不在文档中写死具体数字**。
+
+```
+Latest verified baseline:
+  docs/reports/v5.2.3_release_audit.md  (§四 测试基线冻结)
+  logs/baseline_v5.2.3.txt              (逐文件明细)
+```
+
+> 新增/删除测试后，不要修改文档中的数字，只更新基线文件。
 
 ## 8. 打包
 

@@ -1,11 +1,11 @@
 # 当前阶段和未来计划
 
-> **Version**: v5.2.2
-> **Status**: CURRENT
+> **Version**: v5.2.3
+> **Status**: STABLE（v5.2.x 已发布，v5.3 规划中）
 
 ## 当前阶段
 
-**Phase 5: Data Lifecycle — 已完成主线**
+**v5.2.3 — Architecture Stabilization Release（已发布）**
 
 ### 已完成
 
@@ -25,26 +25,34 @@
 | Phase 5-3 | History Query API | ✅ COMPLETE |
 | Phase 5-4 | History UI | ✅ COMPLETE |
 | Phase 5-5 | Retention (5-5A Foundation + 5-5B Startup Trigger) | ✅ COMPLETE |
+| v5.2 Stabilization | 架构冻结 + Release 发布 | ✅ COMPLETE |
+| v5.2.3 Storage & History Infrastructure | 发布文档闭环 + 基线冻结（988/988） | ✅ COMPLETE |
 
 ### 进行中
 
 | Phase | 内容 | 状态 |
 |-------|------|------|
-| Project Cleanup | 发布前工程整理 | 🔄 进行中 |
+| （无） | v5.2.x 已冻结，仅修 P0 缺陷 | — |
 
-### 待完成
+### 待完成（v5.3 及以后）
 
 | Phase | 内容 | 优先级 |
 |-------|------|--------|
+| v5.3 | history.db 路径统一 | P2 |
+| v5.3 | Settings dirty 双模型收敛 | P2 |
 | 5-5C | Retention Settings 集成 | P2 |
 | 4-7 | Agent GUI 升级 | P3 |
 | 6 | 高级告警引擎 | P2 |
 | 7 | UX 优化 | P3 |
 
+> 已登记问题清单见 `docs/issues/v5.2.3_known_issues.md`。
+
 ## 未来计划
 
-### 短期
+### 短期（v5.3）
 
+- history.db 路径统一（P2）
+- Settings dirty 双模型收敛（P2）
 - Phase 5-5C: Retention Settings 集成
 - Phase 4-7: Agent GUI 升级（含 common/theme.py 迁移）
 
@@ -66,7 +74,8 @@
 ## 测试状态
 
 - 框架：自定义 check runner（非 pytest）
-- 最新全量回归：**PASS**（929+ 项）
 - 覆盖：VM / Page / Widget / Storage / Retention / Flow / Theme / 架构扫描
+- 最新全量回归：**PASS（v5.2.3 基线 988/988）**
 
-> 测试项数量随环境与阶段变化，精确数字见各 Phase 报告。
+> 测试项数量随环境与阶段变化，不在此固化数字。精确基线见：
+> `docs/reports/v5.2.3_release_audit.md` §四 与 `logs/baseline_v5.2.3.txt`。

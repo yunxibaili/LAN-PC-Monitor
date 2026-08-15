@@ -1,8 +1,8 @@
 # Project Blueprint
 
-> **Version**: v5.2.1
-> **Generated**: 2026-08-13
-> **Status**: Stable — Phase 5 History UI complete
+> **Version**: v5.2.3
+> **Generated**: 2026-08-21
+> **Status**: Stable — v5.2.3 Stable Release（Architecture Stabilization）
 > **Intended audience**: Developers, AI assistants, future maintainers
 
 ---
@@ -33,8 +33,8 @@ v5.2 是**架构重构 + UI 升级版本**，从 v5.0 的纯文字面板升级�
 
 | 维度 | 状态 |
 |------|------|
-| Version | v5.2.1 |
-| Git Tag | v5.2.1 |
+| Version | v5.2.3 |
+| Git Tag | v5.2.3 |
 | Architecture | ✅ MVVM 完整 |
 | Design System | ✅ ThemeColors/Spacing/Typography |
 | Dashboard | ✅ 完整 |
@@ -42,8 +42,10 @@ v5.2 是**架构重构 + UI 升级版本**，从 v5.0 的纯文字面板升级�
 | Monitor | ✅ 完整 |
 | Alerts | ✅ Phase 4-5 重构完成 |
 | Settings | ✅ Phase 4-6 重构完成 |
+| History | ✅ Phase 5-4 重构完成 |
+| Storage | ✅ Phase 5-1 ~ 5-5 完整 |
 | Documentation | ✅ core/ 8 篇权威文档 |
-| Tests | ✅ 全量回归 PASS |
+| Tests | ✅ 全量回归 PASS（988/988，见 §10） |
 
 ### 已完成
 
@@ -182,7 +184,7 @@ Host (监控大屏)
 
 ```
 host/
- ├── main.py                 # 入口 (52 行)
+ ├── main.py                 # 入口 (67 行)
  ├── config.py               # host_config.json 读写
  ├── connection.py           # NodeConnection (Qt Signal 适配)
  ├── connection_core.py      # ConnectionCore (纯 Python WS 客户端)
@@ -232,7 +234,7 @@ host/
  │   └── tray_manager.py     # 系统托盘
  │
  └── gui/
-     ├── main_window.py      # 主窗口 (242 行)
+     ├── main_window.py      # 主窗口 (326 行)
      ├── discovery_dialog.py # 自动发现弹窗
      ├── controllers/
      │   ├── navigation_controller.py
@@ -282,7 +284,7 @@ host/
 只负责：
 - 创建 Store / Service / Manager
 - 创建 ViewModel
-- 注册 5 个页面（VM 注入）
+- 注册 6 个页面（VM 注入）
 - 创建 Controllers
 - 连接全局 Signal
 
@@ -530,16 +532,16 @@ tests/
  ├── test_v52_detail_panel.py
  ├── test_v52_ui_design_system.py  # Theme + 硬编码扫描
  ├── test_v52_ui_polish.py
- └── ... (28 files total)
+ └── ... (32 v52 files total)
 ```
 
 ### 当前测试状态
 
 - 自定义 check runner（非 pytest）
 - 覆盖：单元测试 / 架构扫描 / 存储测试 / UI 一致性检查
-- 最新全量回归：**PASS**
+- 最新全量回归：**PASS（v5.2.3 基线 988/988，见 `docs/reports/v5.2.3_release_audit.md` §四）**
 
-> 测试项数量随环境与阶段变化，不在此固化数字。精确数字见各 RC/Phase 报告。
+> 测试项数量随环境与阶段变化，不在此固化数字。精确数字见各 RC/Phase 报告与基线文件（`logs/baseline_v5.2.3.txt`）。
 
 ### 已知环境问题
 
@@ -592,7 +594,7 @@ tests/
 - 通过 common/theme_tokens 实现跨端 token 共享
 - 迁移 common/theme.py legacy 色板
 
-### Phase 5: Storage Expansion（进行中）
+### Phase 5: Storage Expansion（COMPLETE ✅）
 
 **目标**: 持久化历史数据，支持趋势分析
 

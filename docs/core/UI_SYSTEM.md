@@ -1,6 +1,6 @@
 # 唯一 UI 设计规范
 
-> **Version**: v5.2 Phase4
+> **Version**: v5.2.3
 > **Status**: CURRENT — 所有 GUI 开发以此为准
 
 ## 1. Color Palette

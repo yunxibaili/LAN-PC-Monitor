@@ -1,7 +1,7 @@
 # PC Monitor — 文档总入口
 
-> **Version**: v5.2 + Phase4 UI Upgrade
-> **Status**: CURRENT
+> **Version**: v5.2.3
+> **Status**: STABLE（Architecture Stabilization Release）
 
 ## 项目介绍
 
@@ -12,19 +12,21 @@ PC Monitor 是一套**局域网远程电脑监控系统**，采用双角色架�
 
 ## 当前版本
 
-**v5.2 + Phase4 UI Upgrade**
+**v5.2.3（Architecture Stabilization Release）**
 
 | 模块 | 版本 | 状态 |
 |------|------|------|
-| Agent | v5.0 | ✅ COMPLETE |
-| Host Backend | v5.2 | ✅ COMPLETE |
-| Host Architecture | v5.2 | ✅ COMPLETE |
-| Design System | v5.2 Phase4 | ✅ COMPLETE |
-| Dashboard UI | v5.2 Phase4 | ✅ COMPLETE |
-| Nodes UI | v5.2 Phase4 | ✅ COMPLETE |
-| Monitor UI | v5.2 Phase4 | ✅ COMPLETE |
-| Alerts UI | v5.2 Phase4 | 🔄 IN PROGRESS |
-| Settings UI | v5.2 Phase4 | 🔄 IN PROGRESS |
+| Agent | v5.2.3 | ✅ COMPLETE |
+| Host Backend | v5.2.3 | ✅ COMPLETE |
+| Host Architecture | v5.2.3 | ✅ COMPLETE |
+| Design System | v5.2.3 | ✅ COMPLETE |
+| Dashboard UI | v5.2.3 | ✅ COMPLETE |
+| Nodes UI | v5.2.3 | ✅ COMPLETE |
+| Monitor UI | v5.2.3 | ✅ COMPLETE |
+| Alerts UI | v5.2.3 | ✅ COMPLETE |
+| Settings UI | v5.2.3 | ✅ COMPLETE |
+| History UI | v5.2.3 | ✅ COMPLETE |
+| Storage / SQLite | v5.2.3 | ✅ COMPLETE |
 
 ## 核心架构
 
@@ -80,6 +82,7 @@ Theme (设计系统)
 docs/
 ├── README.md              ← 你在这里
 ├── core/                  ⭐ 开发必读
+│   ├── BLUEPRINT.md       项目总蓝图（唯一入口）
 │   ├── PRODUCT.md
 │   ├── ARCHITECTURE.md
 │   ├── UI_SYSTEM.md
@@ -87,6 +90,8 @@ docs/
 │   ├── API_PROTOCOL.md
 │   ├── DEVELOPMENT.md
 │   └── ROADMAP.md
+├── releases/              Release Notes
+├── issues/                已知问题登记
 ├── phases/                Phase 迁移历史
 ├── reports/               审计/清理报告
 └── archive/               归档旧文档（含旧 architecture/protocol/api/installation/ui_design 等）

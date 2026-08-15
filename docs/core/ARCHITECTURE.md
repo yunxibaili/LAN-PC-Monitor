@@ -1,7 +1,7 @@
 # 当前最终架构
 
-> **Version**: v5.2 Phase4
-> **Status**: CURRENT
+> **Version**: v5.2.3
+> **Status**: STABLE
 
 ## 1. 总体架构
 
@@ -94,18 +94,22 @@ host/
      │   ├── alerts_page.py
      │   ├── history_page.py  # 历史趋势 (5-4)
      │   └── settings_page.py
-     └── widgets/             # UI 组件（16 个 + archive/ 4 个）
+     └── widgets/             # UI 组件（20 个 + archive/ 4 个）
          ├── node_card.py     # 节点概览卡（Dashboard）
          ├── resource_card.py # 资源圆环卡（DetailDashboard）
          ├── chart_widget.py  # 折线图
-         ├── chart_panel.py   # 图表面板（MonitorPage）
+         ├── chart_panel.py   # 图表面板（MonitorPage）+ SummaryCard（Dashboard/History）
          ├── node_explorer.py # 节点探索面板（NodesPage）
          ├── detail_dashboard.py # 节点详情仪表盘（NodesPage）
          ├── monitor_header.py   # 监控页头部（MonitorPage）
          ├── metric_selector.py  # 指标选择器（MonitorPage）
          ├── header_bar.py    # 顶部导航栏（MainWindow）
          ├── detail_panel.py  # 节点详情面板（NodeDetailData + host.gui.theme）
-          ├── node_list.py     # NodeListWidget（旧版列表组件）
+         ├── node_list.py     # NodeListWidget（旧版列表组件）
+         ├── alert_card.py    # 告警卡片（AlertsPage）
+         ├── alert_summary_card.py # 告警汇总卡（AlertsPage）
+         ├── alert_toolbar.py # 告警工具栏（AlertsPage）
+         ├── alert_detail.py  # 告警详情面板（AlertsPage）
          ├── status_badge.py  # 状态徽章（测试引用）
          ├── quality_badge.py # 网络质量徽章（测试引用）
          ├── empty_state.py   # 空状态占位（测试引用）
@@ -133,6 +137,7 @@ host/
 | NodeDetailViewModel | NodeStore + FrameStore | 节点详情数据 | data_changed |
 | MonitorViewModel | HistoryStore + NodeStore | 图表数据点 | data_changed |
 | AlertViewModel | AlertStore | 告警列表 | alerts_changed |
+| HistoryViewModel | HistoryFacade | 历史趋势数据 | data_changed |
 | SettingsViewModel | SettingsFacade | 配置数据 | settings_changed |
 
 ### Page 层
@@ -143,6 +148,7 @@ host/
 | NodesPage | NodeExplorer + DetailDashboard | NodeDetailVM |
 | MonitorPage | MonitorHeader + MetricSelector + ChartPanel | MonitorVM |
 | AlertsPage | SummaryCards + AlertTable | AlertVM |
+| HistoryPage | 指标选择 + ChartPanel + SummaryCard | HistoryVM |
 | SettingsPage | 5-Tab 设置 | SettingsVM |
 
 ## 4. 依赖规则
@@ -169,13 +175,13 @@ ViewModel → PyQt5 ❌
 
 ## 5. MainWindow 职责
 
-`main_window.py` (300行) 只负责：
+`main_window.py` (326行) 只负责：
 
 | ✅ 允许 | ❌ 禁止 |
 |---------|---------|
-| 创建 Store / Service | 创建 Card / Button |
+| 创建 Store / Service / Facade | 创建 Card / Button |
 | 创建 ViewModel | 创建 Table |
-| 注册 5 个页面 | 数据转换 |
+| 注册 6 个页面 | 数据转换 |
 | 创建 Controllers | 业务逻辑 |
 | 连接 Signal | UI 渲染 |
 
@@ -187,6 +193,27 @@ ViewModel → PyQt5 ❌
 NodeConnection.data_received → DataController → Store.push
   → Store.frame_updated → VM.data_changed → Page._refresh
 ```
+
+## 6.1 持久化数据流（Phase 5）
+
+```
+Collector (Agent 帧)
+  ↓
+DataController._on_data() → MetricPersistenceService.write_frame()
+  ↓
+StorageService (Database + Repositories + RetentionService)
+  ├── MetricsRepository    → metrics 表
+  ├── AlertsRepository     → alert_history 表
+  └── SessionsRepository   → sessions 表
+  ↓
+HistoryFacade (查询边界：range / latest / aggregate)
+  ↓
+HistoryViewModel
+  ↓
+HistoryPage (图表)
+```
+
+约束：`sqlite3` 只在 `host/storage/`；VM 不直接碰 Repository，一律走 Facade；Storage 生命周期由 StorageService 管理（MainWindow 不直接碰 Database）。
 
 ## 7. 设计系统
 

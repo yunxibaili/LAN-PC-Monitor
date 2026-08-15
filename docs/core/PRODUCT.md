@@ -1,6 +1,6 @@
 # 产品定位与功能说明
 
-> **Version**: v5.2
+> **Version**: v5.2.3
 > **Status**: CURRENT
 
 ## 1. 产品定位

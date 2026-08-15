@@ -2,7 +2,7 @@
 
 轻量级局域网硬件监控平台，支持多节点实时监控、历史趋势分析、事件告警。
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)]() [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey.svg)]()
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)]() [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey.svg)]() [![Version](https://img.shields.io/badge/Version-v5.2.3-green.svg)]()
 
 > 实时查看多台 Windows 电脑的 CPU / GPU / 内存 / 磁盘 / 网络 / FPS / 进程，并逐步演进为带历史分析、事件告警的轻量级监控平台。纯局域网运行，不依赖云服务。
 
@@ -10,11 +10,12 @@
 
 ## Current Version
 
-- **版本**：v5.2 + Phase4 UI Upgrade
-- **状态**：Current（已实现）
+- **版本**：v5.2.3（Architecture Stabilization Release）
+- **状态**：Stable（已冻结）
 - **架构**：前后端分离（Agent 服务端 + Host 监控端）
 - **通信**：WebSocket + REST API
 - **UI**：SaaS 深色风格，Design System 统一主题
+- **存储**：SQLite 持久化（指标 / 告警 / 会话 + 保留策略）
 
 ## Architecture
 
@@ -23,38 +24,85 @@ Agent (采集+推送)
   ↓ WebSocket
 Connection (WS 客户端)
   ↓ Signal
-Store (数据存储)
-  ↓
-ViewModel (数据转换)
-  ↓
-Page (页面容器)
-  ↓
-Widget (UI 组件)
-  ↓
-Theme (设计系统)
+DataController
+  ├── Store (FrameStore / NodeStore / HistoryStore / AlertStore)
+  ├── MetricPersistenceService → StorageService → Repository / Retention → SQLite
+  └── ViewModel → Page → Widget → Theme
+```
+
+持久化数据路径：
+
+```
+Collector
+   ↓
+DataController
+   ↓
+MetricPersistenceService
+   ↓
+StorageService
+   ↓
++----------------+
+|                |
+v                v
+Repository      Retention
+   ↓
+HistoryFacade
+   ↓
+HistoryVM
+   ↓
+HistoryPage
 ```
 
 详细架构见 [docs/core/ARCHITECTURE.md](docs/core/ARCHITECTURE.md)。
 
 ## Features
 
-### Host 5 个页面
+### Real-time Monitoring
+
+- ✅ Collector architecture（CPU / GPU / 内存 / 磁盘 / 网络 / FPS / 进程）
+- ✅ Multi-node monitoring（零配置自动发现 mDNS + UDP）
+- ✅ Live dashboard（Dashboard / Nodes / Monitor 实时大屏）
+
+### Alert System
+
+- ✅ Alert rules（红线阈值，30s 去重）
+- ✅ Alert state tracking（AlertStore + AlertEngine）
+- ✅ Alert persistence（SQLite 告警历史）
+
+### Settings Redesign
+
+- ✅ MVVM isolation（VM/Facade 边界，set 不落盘）
+- ✅ Sidebar navigation（5 分区布局）
+- ✅ Dirty tracking（统一 dirty/save 模型）
+- ✅ Save feedback（✓ Saved 反馈）
+
+### Storage Infrastructure
+
+- ✅ SQLite storage layer（`host/storage`）
+- ✅ Repository abstraction（metrics / alerts / sessions）
+- ✅ Versioned schema（schema 版本管理）
+
+### History System
+
+- ✅ History Query API（range / latest / aggregate）
+- ✅ History charts（HistoryPage 趋势图）
+- ✅ Metrics persistence（Frame → Record 写入）
+
+### Data Lifecycle
+
+- ✅ Retention policy（保留策略）
+- ✅ Startup cleanup（启动清理）
+
+### 页面（6 页全部 COMPLETE）
 
 | 页面 | 功能 | 状态 |
 |------|------|------|
 | Dashboard | 节点总览、KPI 统计、趋势图 | ✅ COMPLETE |
 | Nodes | 节点管理、搜索过滤、详情仪表盘 | ✅ COMPLETE |
 | Monitor | 单节点深度监控、实时图表 | ✅ COMPLETE |
-| Alerts | 告警列表、筛选过滤 | 🔄 IN PROGRESS |
-| Settings | 通用/告警/节点/外观/高级 | 🔄 IN PROGRESS |
-
-### 核心能力
-
-- 实时监控：CPU / GPU / 内存 / 磁盘 / 网络 / FPS / 进程
-- 多节点管理：零配置自动发现（mDNS + UDP）
-- 高性能通信：WebSocket 每秒推送
-- 红线告警：指标超阈值自动告警
-- Design System：统一颜色/字体/间距
+| Alerts | 告警列表、筛选过滤 | ✅ COMPLETE |
+| History | 历史趋势查询、图表 | ✅ COMPLETE |
+| Settings | 通用/告警/节点/外观/高级 | ✅ COMPLETE |
 
 ## Quick Start
 
@@ -75,11 +123,14 @@ python -m host               # 集中监控大屏
 docs/
 ├── README.md              文档总入口
 ├── core/                  ⭐ 开发必读
-│   ├── ARCHITECTURE.md    最终架构
-│   ├── UI_SYSTEM.md       UI 设计规范（唯一权威）
-│   ├── DATA_FLOW.md       数据流
-│   ├── DEVELOPMENT.md     开发规范
-│   └── ROADMAP.md         路线图
+│   ├── BLUEPRINT.md        项目总蓝图（唯一入口）
+│   ├── ARCHITECTURE.md     最终架构
+│   ├── UI_SYSTEM.md        UI 设计规范（唯一权威）
+│   ├── DATA_FLOW.md        数据流
+│   ├── DEVELOPMENT.md      开发规范
+│   └── ROADMAP.md          路线图
+├── releases/               Release Notes
+├── issues/                 已知问题登记
 ├── phases/                Phase 迁移历史
 ├── reports/               审计/清理报告
 └── archive/               历史归档
@@ -102,26 +153,34 @@ python tests/test_api.py    # REST + WebSocket 端到端
 python tests/test_p0.py     # 协议/采集器冒烟
 ```
 
+测试基线（不写死数量，见审计报告）：
+
+```
+Latest verified baseline:
+  docs/reports/v5.2.3_release_audit.md  (§四 测试基线冻结)
+```
+
 开发指南见 [docs/core/DEVELOPMENT.md](docs/core/DEVELOPMENT.md)。
 
 ## Roadmap
 
-### v5.2（当前）
+### v5.2（已发布：v5.2.3）
 
 - [x] Design System 统一主题
 - [x] App Shell (HeaderBar + SideNav)
-- [x] Dashboard UI 升级
-- [x] Nodes UI 升级
-- [x] Monitor UI 升级
-- [ ] Alerts UI 升级
-- [ ] Settings UI 升级
-- [ ] 硬编码颜色清理
+- [x] Dashboard / Nodes / Monitor UI 升级
+- [x] Alerts UI 升级（Phase 4-5）
+- [x] Settings UI 升级（Phase 4-6）
+- [x] SQLite 持久化（Phase 5-1 ~ 5-5）
+- [x] History 查询与图表（Phase 5-3 / 5-4）
+- [x] Retention 清理（Phase 5-5）
 
-### v6.0（规划中）
+### v5.3（规划中）
 
-- [ ] 历史数据库（SQLite）
-- [ ] 事件规则系统
-- [ ] WebSocket 订阅模式
+- [ ] history.db 路径统一（P2）
+- [ ] Settings dirty 双模型收敛（P2）
+- [ ] Agent GUI 升级（Phase 4-7，含 common/theme.py 迁移）
+- [ ] 高级告警引擎（Phase 6）
 
 详细路线图见 [docs/core/ROADMAP.md](docs/core/ROADMAP.md)。
 
