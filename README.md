@@ -2,7 +2,8 @@
 
 轻量级局域网硬件监控平台，支持多节点实时监控、历史趋势分析、事件告警。
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)]() [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey.svg)]() [![Version](https://img.shields.io/badge/Version-v5.2.3-green.svg)]()
+[![Windows Tests](https://github.com/yunxibaili/LAN-PC-Monitor/actions/workflows/windows-tests.yml/badge.svg)](https://github.com/yunxibaili/LAN-PC-Monitor/actions/workflows/windows-tests.yml)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)]() [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey.svg)]() [![Version](https://img.shields.io/badge/Version-v5.2.3-green.svg)]() [![License](https://img.shields.io/badge/License-MIT-blue.svg)]()
 
 > 实时查看多台 Windows 电脑的 CPU / GPU / 内存 / 磁盘 / 网络 / FPS / 进程，并逐步演进为带历史分析、事件告警的轻量级监控平台。纯局域网运行，不依赖云服务。
 
@@ -158,6 +159,7 @@ python tests/test_p0.py     # 协议/采集器冒烟
 ```
 Latest verified baseline:
   docs/reports/v5.2.3_release_audit.md  (§四 测试基线冻结)
+  docs/reports/baseline_v5.2.3.txt      (逐文件明细)
 ```
 
 开发指南见 [docs/core/DEVELOPMENT.md](docs/core/DEVELOPMENT.md)。

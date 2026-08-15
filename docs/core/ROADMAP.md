@@ -38,6 +38,7 @@
 
 | Phase | 内容 | 优先级 |
 |-------|------|--------|
+| v5.3-0 | Repository hygiene（CHANGELOG / README badge / Release 流程固定 / Issue & PR 模板） | P2 |
 | v5.3-1 | netifaces 替换（psutil.net_if_addrs / ifaddr） | P2 |
 | v5.3-2 | history.db 路径统一 | P2 |
 | v5.3-3 | Settings dirty 双模型收敛 | P2 |
@@ -53,6 +54,7 @@
 
 ### 短期（v5.3 P2 Cleanup Sprint）
 
+- v5.3-0: Repository hygiene（CHANGELOG / README badge / Release 流程固定 / Issue & PR 模板）
 - v5.3-1: netifaces 替换（CI 已暴露无 cp310+ wheel）
 - v5.3-2: history.db 路径统一（storage_service / config / 用户数据目录）
 - v5.3-3: Settings dirty 双模型合并
@@ -81,4 +83,4 @@
 - 最新全量回归：**PASS（v5.2.3 基线 988/988）**
 
 > 测试项数量随环境与阶段变化，不在此固化数字。精确基线见：
-> `docs/reports/v5.2.3_release_audit.md` §四 与 `logs/baseline_v5.2.3.txt`。
+> `docs/reports/v5.2.3_release_audit.md` §四 与 `docs/reports/baseline_v5.2.3.txt`。

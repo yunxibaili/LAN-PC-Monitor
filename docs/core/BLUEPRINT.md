@@ -541,7 +541,7 @@ tests/
 - 覆盖：单元测试 / 架构扫描 / 存储测试 / UI 一致性检查
 - 最新全量回归：**PASS（v5.2.3 基线 988/988，见 `docs/reports/v5.2.3_release_audit.md` §四）**
 
-> 测试项数量随环境与阶段变化，不在此固化数字。精确数字见各 RC/Phase 报告与基线文件（`logs/baseline_v5.2.3.txt`）。
+> 测试项数量随环境与阶段变化，不在此固化数字。精确数字见各 RC/Phase 报告与基线文件（`docs/reports/baseline_v5.2.3.txt`）。
 
 ### 已知环境问题
 
