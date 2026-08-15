@@ -27,10 +27,13 @@ except ImportError:
     _HAS_NVML = False
 
 # pyadl 惰性导入（AMD 后备）
+# 注意：pyadl 在无 AMD 驱动时于 import 阶段直接 raise ADLError("Driver not found!")
+# （非 ImportError），因此必须捕获 Exception 而非仅 ImportError，
+# 否则非 AMD 机器上 import 本模块即崩溃（CI 实测：Agent 启动秒退）。
 try:
     from pyadl import ADLManager
     _HAS_ADL = True
-except ImportError:
+except Exception:  # noqa: BLE001 — 导入失败即视为无 ADL，降级 N/A
     _HAS_ADL = False
 
 
