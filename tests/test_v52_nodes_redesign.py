@@ -19,6 +19,7 @@ _app = QApplication.instance() or QApplication(_sys.argv)
 from host.store.frame_store import FrameStore
 from host.store.node_store import NodeStore
 from host.viewmodels.node_detail_vm import NodeDetailViewModel
+from host.viewmodels.devices_vm import DevicesViewModel
 from host.gui.pages.nodes_page import NodesPage
 from host.gui.widgets.node_explorer import NodeExplorer
 from host.gui.widgets.detail_dashboard import DetailDashboard
@@ -111,11 +112,11 @@ def test_detail_dashboard():
 def test_nodes_page():
     print("\n--- 4. NodesPage ---")
     ns = NodeStore(); fs = FrameStore()
-    vm = NodeDetailViewModel(ns, fs)
+    vm = DevicesViewModel(ns, fs)
     page = NodesPage()
     page.set_view_model(vm)
-    check("explorer 存在", hasattr(page, '_explorer'))
-    check("dashboard 存在", hasattr(page, '_dashboard'))
+    check("vm 已注入", page._vm is vm)
+    check("scroll 存在", hasattr(page, '_scroll'))
     check("on_show 不崩溃", True)
     page.on_hide()
     check("on_hide 不崩溃", True)

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-test_v52_nodes_page.py —— NodesPage 组装测试（v5.2 Phase 3-3B）。
+test_v52_nodes_page.py —— DevicesPage 组装测试（v5.3.4 Devices）。
 
 验证：
 1. VM 注入成功
-2. 节点列表显示
-3. 选中节点 -> DetailPanel 更新
-4. 多节点切换
-5. 页面生命周期 on_show/on_hide
-6. context_action 信号转发
+2. 节点增加 -> DeviceCard 出现
+3. 数据更新 -> Card 刷新
+4. 节点删除 -> Card 移除
+5. 统计行正确
+6. 页面生命周期
 """
 import os
 import sys
@@ -26,7 +26,7 @@ _app = QApplication.instance() or QApplication(_sys.argv)
 
 from host.store.frame_store import FrameStore
 from host.store.node_store import NodeStore
-from host.viewmodels.node_detail_vm import NodeDetailViewModel
+from host.viewmodels.devices_vm import DevicesViewModel
 from host.gui.pages.nodes_page import NodesPage
 
 PASS = 0
@@ -43,144 +43,123 @@ def check(name, cond, detail=""):
         print(f"  [FAIL] {name}  {detail}")
 
 
-def full_frame():
+def make_frame(cpu=45.0, ram=50.0, gpu=62.0):
     return {
         "type": "monitor_data", "ts": time.time(), "hostname": "test",
-        "system": {"hostname": "test", "local_ip": "1.2.3.4", "uptime_seconds": 100},
-        "cpu": {"name": "X", "total_usage": 45.2, "physical_cores": 8,
-                "logical_cores": 16, "core_freq_mhz": 4500,
-                "package_temp_c": 65.0, "power_w": 65.0},
-        "ram": {"total_gb": 32, "used_gb": 16, "available_gb": 16,
-                "usage_percent": 50.0, "swap_used_mb": 0},
-        "gpu": {"name": "RTX", "usage_percent": 62.1,
-                "vram_used_mb": 8192, "vram_total_mb": 12288,
-                "core_temp_c": 71.0, "hotspot_temp_c": 82.0,
-                "core_freq_mhz": 2400, "power_w": 185.0},
-        "disk": [{"drive": "C:", "read_mb_s": 120, "write_mb_s": 85,
-                  "usage_percent": 78, "free_gb": 45}],
-        "net": {"interface": "eth", "upload_mb_s": 12.3,
-                "download_mb_s": 45.6, "link_speed_mbps": 1000},
-        "net_quality": {"latency_to_client_ms": 0.45,
-                        "latency_to_gateway_ms": 1.2,
-                        "packet_loss_percent": 0.0,
-                        "quality_score": 95, "quality_grade": "优秀"},
-        "fps": {"window_title": "Game", "fps": 142,
-                "frame_time_ms": 7.04, "low_1_percent": 118, "source": "presentmon"},
-        "processes": {"top_cpu": [{"name": "chrome", "usage_percent": 12}],
-                      "top_gpu": [{"name": "game", "usage_percent": 48}]},
+        "cpu": {"total_usage": cpu, "package_temp_c": 65},
+        "gpu": {"usage_percent": gpu, "core_temp_c": 71},
+        "ram": {"usage_percent": ram, "total_gb": 32, "used_gb": 16},
+        "net": {"upload_mb_s": 12.3, "download_mb_s": 45.6},
+        "net_quality": {"quality_score": 90},
+        "fps": {"fps": 0}, "disk": [], "processes": {"top_cpu": [], "top_gpu": []},
     }
 
 
 def test_vm_injection():
     print("\n--- 1. VM 注入 ---")
     ns = NodeStore(); fs = FrameStore()
-    vm = NodeDetailViewModel(ns, fs)
+    vm = DevicesViewModel(ns, fs)
     page = NodesPage()
     page.set_view_model(vm)
-    page.set_stores(frame=fs, node=ns)
-    check("vm 已注入", page._node_detail_vm is vm)
+    check("vm 已注入", page._vm is vm)
 
 
-def test_node_list_display():
-    print("\n--- 2. 节点列表 ---")
+def test_node_add_card():
+    print("\n--- 2. 节点增加 ---")
     ns = NodeStore(); fs = FrameStore()
-    vm = NodeDetailViewModel(ns, fs)
+    vm = DevicesViewModel(ns, fs)
     page = NodesPage()
     page.set_view_model(vm)
     page.show()
 
-    # 添加节点到 NodeExplorer（v5.2 Phase 4-3：_explorer 替代 node_list）
-    page._explorer.add_node("localhost", "本机", "127.0.0.1")
-    page._explorer.add_node("game-pc", "游戏主机", "192.168.1.100")
-    check("列表有 2 项", len(page._explorer._items) == 2)
-
-
-def test_select_updates_detail():
-    print("\n--- 3. 选中节点 -> DetailDashboard ---")
-    ns = NodeStore(); fs = FrameStore()
-    vm = NodeDetailViewModel(ns, fs)
-    page = NodesPage()
-    page.set_view_model(vm)
-    page.show()
-
-    page._explorer.add_node("game-pc", "游戏主机", "192.168.1.100")
     ns.add_node("game-pc", alias="游戏主机", ip="192.168.1.100")
-    fs.push("game-pc", full_frame())
-
-    # 模拟选中
-    page.select_node("game-pc")
-    check("current_node 设置", page.get_current_node() == "game-pc")
-    check("DetailDashboard name 已更新", page._dashboard._name_lbl.text() != "未选择节点")
+    fs.push("game-pc", make_frame())
+    page._rebuild_grid()
+    check("cards 数量 = 1", len(page._cards) == 1)
+    check("game-pc card 存在", "game-pc" in page._cards)
 
 
-def test_node_switch():
-    print("\n--- 4. 多节点切换 ---")
+def test_stats():
+    print("\n--- 3. 统计行 ---")
     ns = NodeStore(); fs = FrameStore()
-    vm = NodeDetailViewModel(ns, fs)
+    vm = DevicesViewModel(ns, fs)
     page = NodesPage()
     page.set_view_model(vm)
     page.show()
 
-    page._explorer.add_node("A", "节点A", "1.1.1.1")
-    page._explorer.add_node("B", "节点B", "2.2.2.2")
-    ns.add_node("A"); ns.add_node("B")
+    ns.add_node("a", alias="A"); ns.add_node("b", alias="B")
+    ns.update_status("a", "connected")
+    ns.update_status("b", "offline")
+    fs.push("a", make_frame(cpu=90))
+    fs.push("b", make_frame())
+    page._rebuild_grid()
+    check("total=2", page._stat_total["val"].text() == "2")
+    check("online=1", page._stat_online["val"].text() == "1")
+    check("offline=1", page._stat_offline["val"].text() == "1")
 
-    f_a = full_frame(); f_a["cpu"]["total_usage"] = 20.0
-    f_b = full_frame(); f_b["cpu"]["total_usage"] = 80.0
-    fs.push("A", f_a); fs.push("B", f_b)
 
-    page.select_node("A")
-    check("选中 A", page.get_current_node() == "A")
+def test_node_remove():
+    print("\n--- 4. 节点删除 ---")
+    ns = NodeStore(); fs = FrameStore()
+    vm = DevicesViewModel(ns, fs)
+    page = NodesPage()
+    page.set_view_model(vm)
+    page.show()
 
-    page.select_node("B")
-    check("切换到 B", page.get_current_node() == "B")
+    ns.add_node("a", alias="A"); ns.add_node("b", alias="B")
+    fs.push("a", make_frame()); fs.push("b", make_frame())
+    page._rebuild_grid()
+    check("初始 2 cards", len(page._cards) == 2)
+
+    ns.remove_node("a")
+    page._rebuild_grid()
+    check("删除后 1 card", len(page._cards) == 1)
+    check("a 已移除", "a" not in page._cards)
+
+
+def test_empty_state():
+    print("\n--- 5. 空状态 ---")
+    ns = NodeStore(); fs = FrameStore()
+    vm = DevicesViewModel(ns, fs)
+    page = NodesPage()
+    page.set_view_model(vm)
+    page.show()
+
+    page._rebuild_grid()
+    check("空状态提示可见", page._empty.isVisible())
+    check("滚动区域隐藏", not page._scroll.isVisible())
+
+    ns.add_node("a", alias="A")
+    fs.push("a", make_frame())
+    page._rebuild_grid()
+    check("添加后提示隐藏", not page._empty.isVisible())
+    check("滚动区域显示", page._scroll.isVisible())
 
 
 def test_lifecycle():
-    print("\n--- 5. 生命周期 ---")
+    print("\n--- 6. 生命周期 ---")
     ns = NodeStore(); fs = FrameStore()
-    vm = NodeDetailViewModel(ns, fs)
+    vm = DevicesViewModel(ns, fs)
     page = NodesPage()
     page.set_view_model(vm)
-
-    # on_show 不崩溃
     page.on_show()
     check("on_show OK", True)
-
-    # on_hide 不崩溃
     page.on_hide()
     check("on_hide OK", True)
-
-
-def test_signals():
-    print("\n--- 6. 信号 ---")
-    ns = NodeStore(); fs = FrameStore()
-    vm = NodeDetailViewModel(ns, fs)
-    page = NodesPage()
-    page.set_view_model(vm)
-    page.show()
-
-    selected_ids = []
-    page.node_selected.connect(lambda nid: selected_ids.append(nid))
-
-    page._explorer.add_node("X", "节点X", "3.3.3.3")
-    page.select_node("X")
-    check("node_selected 触发", len(selected_ids) == 1)
-    check("node_selected 携带 X", selected_ids[0] == "X")
 
 
 def main():
     global PASS, FAIL
     print("=" * 50)
-    print("  NodesPage 组装测试 (Phase 3-3B)")
+    print("  DevicesPage 组装测试 (v5.3.4)")
     print("=" * 50)
 
     test_vm_injection()
-    test_node_list_display()
-    test_select_updates_detail()
-    test_node_switch()
+    test_node_add_card()
+    test_stats()
+    test_node_remove()
+    test_empty_state()
     test_lifecycle()
-    test_signals()
 
     print()
     print(f"结果: {PASS} 通过, {FAIL} 失败")

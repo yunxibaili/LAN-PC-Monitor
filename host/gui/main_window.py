@@ -52,6 +52,7 @@ from host.viewmodels.dashboard_vm import DashboardViewModel
 from host.viewmodels.node_detail_vm import NodeDetailViewModel
 from host.viewmodels.settings_vm import SettingsViewModel
 from host.viewmodels.history_vm import HistoryViewModel
+from host.viewmodels.devices_vm import DevicesViewModel
 from host.facade.history_facade import HistoryFacade
 from host.service.storage_service import StorageService
 from host.service.metric_persistence import MetricPersistenceService
@@ -190,6 +191,7 @@ class HostMainWindow(QMainWindow):
         self.node_detail_vm = NodeDetailViewModel(
             node_store=self.node_store, frame_store=self.frame_store)
         self.settings_vm = SettingsViewModel(self.settings)
+        self.devices_vm = DevicesViewModel(self.node_store, self.frame_store)
 
         # Storage Service（统一管理 SQLite 连接 + Repository）
         # v5.3.1：默认路径固定到用户数据目录，不再跟随启动 CWD
@@ -213,11 +215,11 @@ class HostMainWindow(QMainWindow):
         # VM 注入
         self.dashboard_page = self._pages["dashboard"]
         self.dashboard_page.set_view_model(self.dashboard_vm)
+        self.dashboard_page.set_alert_store(self.alert_store)
         self.dashboard_page.card_clicked.connect(self._on_card_clicked)
 
         self.nodes_page = self._pages["nodes"]
-        self.nodes_page.set_view_model(self.node_detail_vm)
-        self.nodes_page.node_selected.connect(self._on_node_selected_vm)
+        self.nodes_page.set_view_model(self.devices_vm)
 
         self.monitor_page = self._pages["monitor"]
         self.alerts_page = self._pages["alerts"]

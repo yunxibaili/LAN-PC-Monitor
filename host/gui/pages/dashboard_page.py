@@ -189,6 +189,9 @@ class DashboardPage(PageBase):
         self._vm = vm
 
     def set_alert_store(self, alert_store):
+        self._alert_store = alert_store
+
+    def set_alert_store(self, alert_store):
         """接收 AlertStore（可选，v5.3.2 增强告警预览）。"""
         self._alert_store = alert_store
 
@@ -261,7 +264,7 @@ class DashboardPage(PageBase):
         self._update_summary(total, online, total - online, alerts)
 
     def _flush_refresh(self):
-        """2 秒节流刷新 System Overview + Summary Cards。"""
+        """2 秒节流刷新 System Overview + Summary Cards + Alerts。"""
         if not self._vm:
             return
         nodes = self._vm.get_nodes()
@@ -278,6 +281,72 @@ class DashboardPage(PageBase):
             ram=avg(lambda n: n.memory_usage),
             net=avg(lambda n: n.network_rx + n.network_tx),
         )
+        self._refresh_alerts()
+
+    def _refresh_alerts(self):
+        """刷新 Recent Activity（从 AlertStore 取最近 5 条）。"""
+        if not hasattr(self, '_alert_store') or not self._alert_store:
+            return
+        # 清空旧内容
+        while self._alerts_layout.count():
+            item = self._alerts_layout.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+
+        alerts = self._alert_store.alerts(limit=5)
+        if not alerts:
+            lbl = QLabel("No recent alerts")
+            lbl.setStyleSheet(
+                f"color:{TC.TEXT_DISABLED}; font-size:12px; padding:12px;"
+                f" background:transparent;")
+            self._alerts_layout.addWidget(lbl)
+            return
+
+        for a in alerts:
+            row = QHBoxLayout()
+            row.setContentsMargins(0, 8, 0, 8)
+            row.setSpacing(10)
+
+            dot = QLabel("●")
+            dot.setFixedWidth(12)
+            color = TC.ALERT_DANGER if a.get("level") == "red" else TC.ALERT_WARN
+            dot.setStyleSheet(f"color:{color}; font-size:10px; background:transparent;")
+            row.addWidget(dot)
+
+            col = QVBoxLayout()
+            col.setSpacing(1)
+            name = a.get("name") or a.get("path", "")
+            val = a.get("value")
+            node = a.get("node_alias") or a.get("node_id", "")
+            title_txt = name
+            if val is not None:
+                title_txt += f"  {val:.1f}%"
+            title_lbl = QLabel(title_txt)
+            title_lbl.setStyleSheet(
+                f"font-size:12px; font-weight:600; color:{TC.TEXT_PRIMARY};"
+                f" background:transparent;")
+            col.addWidget(title_lbl)
+
+            ts = a.get("timestamp", 0)
+            if ts:
+                import time as _t
+                ago = _t.time() - ts
+                if ago < 60:
+                    time_txt = f"{node} · {int(ago)}s ago"
+                elif ago < 3600:
+                    time_txt = f"{node} · {int(ago // 60)}m ago"
+                else:
+                    time_txt = f"{node} · {int(ago // 3600)}h ago"
+            else:
+                time_txt = node
+            meta_lbl = QLabel(time_txt)
+            meta_lbl.setStyleSheet(
+                f"font-size:11px; color:{TC.TEXT_SECONDARY}; background:transparent;")
+            col.addWidget(meta_lbl)
+
+            row.addLayout(col, 1)
+            self._alerts_layout.addLayout(row)
 
     def update_trends(self, node_id, frame):
         """外部调用（MainWindow 信号驱动）。"""

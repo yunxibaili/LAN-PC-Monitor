@@ -1,116 +1,154 @@
 # -*- coding: utf-8 -*-
 """
-NodesPage —— 节点管理页（v5.2 Phase 4-3 Redesign）。
+DevicesPage —— 设备列表页（v5.3.4 Devices）。
 
-左侧 NodeExplorer + 右侧 DetailDashboard。
-NodeDetailViewModel 唯一数据来源。
+Stats Row + Device Card Grid。
+Signal 驱动，不直接访问 Store。
 """
 import logging
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QSplitter, QVBoxLayout,
+    QFrame, QGridLayout, QHBoxLayout, QLabel, QScrollArea,
+    QVBoxLayout, QWidget,
 )
 
 from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.spacing import ThemeSpacing as S
-from host.gui.widgets.node_explorer import NodeExplorer
-from host.gui.widgets.detail_dashboard import DetailDashboard
 from host.gui.pages.base_page import PageBase
+from host.gui.widgets.device_card import DeviceCard
 
-log = logging.getLogger("host.gui.nodes_page")
+log = logging.getLogger("host.gui.devices_page")
 
 
-class NodesPage(PageBase):
-    """节点管理页：NodeExplorer + DetailDashboard。"""
+class DevicesPage(PageBase):
+    """设备列表页：Stats Row + Device Card Grid。"""
 
     PAGE_ID = "nodes"
-    node_selected = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._node_detail_vm = None
-        self._current_node = None
+        self._vm = None
+        self._cards = {}
+        self._grid_cols = 3
         self._setup_ui()
 
     def _setup_ui(self):
         root = QVBoxLayout(self)
-        root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(0)
+        root.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
+        root.setSpacing(S.SM)
 
-        # Page Header
+        # Header
         header = QHBoxLayout()
-        header.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
-        title = QLabel("Nodes")
-        title.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {TC.TEXT_PRIMARY};")
+        title = QLabel("Devices")
+        title.setStyleSheet(
+            f"font-size: 20px; font-weight:bold; color:{TC.TEXT_PRIMARY};"
+            f" background:transparent;")
         header.addWidget(title)
         header.addStretch(1)
-        self._status_label = QLabel("")
-        self._status_label.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
-        header.addWidget(self._status_label)
+        self._subtitle = QLabel("Network device status")
+        self._subtitle.setStyleSheet(
+            f"color:{TC.TEXT_SECONDARY}; font-size:13px; background:transparent;")
+        header.addWidget(self._subtitle)
         root.addLayout(header)
 
-        # Splitter: NodeExplorer + DetailDashboard
-        self._splitter = QSplitter(Qt.Horizontal)
-        self._splitter.setStyleSheet(f"QSplitter::handle {{ background: {TC.BORDER_DEFAULT}; width: 1px; }}")
+        # Stats row
+        stats = QHBoxLayout()
+        stats.setSpacing(24)
+        self._stat_online = self._make_stat("Online", "0", TC.STATUS_ONLINE)
+        self._stat_offline = self._make_stat("Offline", "0", TC.STATUS_ERROR)
+        self._stat_warning = self._make_stat("Warning", "0", TC.STATUS_WARNING)
+        self._stat_total = self._make_stat("Total", "0", TC.TEXT_PRIMARY)
+        root.addLayout(stats)
+        root.addSpacing(8)
 
-        # Left: NodeExplorer
-        self._explorer = NodeExplorer()
-        self._explorer.node_selected.connect(self._on_node_selected)
-        self._splitter.addWidget(self._explorer)
+        # Device grid
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QFrame.NoFrame)
+        self._scroll.setStyleSheet("background:transparent; border:none;")
+        self._grid_container = QWidget()
+        self._grid_layout = QGridLayout(self._grid_container)
+        self._grid_layout.setContentsMargins(0, 0, 0, 0)
+        self._grid_layout.setSpacing(S.SM)
+        self._scroll.setWidget(self._grid_container)
+        root.addWidget(self._scroll, 1)
 
-        # Right: DetailDashboard
-        self._dashboard = DetailDashboard()
-        self._splitter.addWidget(self._dashboard)
+        # Empty state
+        self._empty = QLabel("No devices detected\n\nStart Agent on remote machines")
+        self._empty.setAlignment(Qt.AlignCenter)
+        self._empty.setStyleSheet(
+            f"color:{TC.TEXT_DISABLED}; font-size:14px; background:transparent;"
+            f" padding:40px 0;")
+        self._empty.hide()
+        root.addWidget(self._empty)
 
-        self._splitter.setStretchFactor(0, 0)
-        self._splitter.setStretchFactor(1, 1)
-
-        root.addWidget(self._splitter, 1)
-
-    # ---------- ViewModel 注入 ----------
+    def _make_stat(self, label, value, color):
+        wrap = QVBoxLayout()
+        wrap.setSpacing(0)
+        val_lbl = QLabel(value)
+        val_lbl.setStyleSheet(
+            f"font-size:28px; font-weight:700; color:{color}; background:transparent;")
+        name_lbl = QLabel(label)
+        name_lbl.setStyleSheet(
+            f"font-size:12px; color:{TC.TEXT_SECONDARY}; background:transparent;")
+        wrap.addWidget(val_lbl)
+        wrap.addWidget(name_lbl)
+        return {"val": val_lbl, "name": name_lbl}
 
     def set_view_model(self, vm):
-        self._node_detail_vm = vm
-
-    # ---------- 生命周期 ----------
+        self._vm = vm
 
     def on_show(self):
         super().on_show()
-        if self._node_detail_vm:
-            self._node_detail_vm.refresh_all()
-        self._refresh_detail()
+        self._rebuild_grid()
 
-    def on_hide(self):
-        super().on_hide()
-
-    # ---------- 节点选择 ----------
-
-    def _on_node_selected(self, node_id):
-        self._current_node = node_id
-        self._refresh_detail()
-        self.node_selected.emit(node_id)
-
-    def _refresh_detail(self):
-        if not self._current_node or not self._node_detail_vm:
-            self._dashboard.update_data(None)
+    def _rebuild_grid(self):
+        if not self._vm:
             return
-        data = self._node_detail_vm.get_data(self._current_node)
-        if data:
-            self._dashboard.update_data(data)
-        else:
-            self._dashboard.update_data(None)
+        for card in self._cards.values():
+            self._grid_layout.removeWidget(card)
+            card.deleteLater()
+        self._cards.clear()
 
-    # ---------- 外部操作 ----------
+        devices = self._vm.get_devices()
+        summary = self._vm.get_summary()
 
-    def select_node(self, node_id):
-        self._explorer._items.get(node_id)
-        self._current_node = node_id
-        self._refresh_detail()
-        self.node_selected.emit(node_id)
+        self._stat_online["val"].setText(str(summary["online"]))
+        self._stat_offline["val"].setText(str(summary["offline"]))
+        self._stat_warning["val"].setText(str(summary["warning"]))
+        self._stat_total["val"].setText(str(summary["total"]))
 
-    def get_current_node(self):
-        return self._current_node
+        if not devices:
+            self._empty.show()
+            self._scroll.hide()
+            return
+        self._empty.hide()
+        self._scroll.show()
 
-    def _on_context_action(self, action, node_id):
-        log.info("节点操作: %s -> %s", action, node_id)
+        cols = self._calc_cols(self._scroll.viewport().width())
+        for idx, dev in enumerate(devices):
+            card = DeviceCard()
+            card.update_device(dev)
+            row, col = divmod(idx, cols)
+            self._grid_layout.addWidget(card, row, col)
+            self._cards[dev.node_id] = card
+
+    def _calc_cols(self, width):
+        if width < 900:
+            return 1
+        elif width < 1400:
+            return 2
+        return 3
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self._cards:
+            new_cols = self._calc_cols(self._scroll.viewport().width())
+            if new_cols != self._grid_cols:
+                self._grid_cols = new_cols
+                self._rebuild_grid()
+
+
+# 向后兼容别名（tests 引用 NodesPage）
+NodesPage = DevicesPage

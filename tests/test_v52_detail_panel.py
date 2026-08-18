@@ -263,8 +263,8 @@ def test_vm_is_primary_data_source():
     print("\n--- 4d. NodesPage 使用 VM ---")
     np = os.path.join(ROOT, "host", "gui", "pages", "nodes_page.py")
     source = open(np, "r", encoding="utf-8").read()
-    check("有 update_data 调用", "update_data" in source)
-    check("有 node_detail_vm 引用", "node_detail_vm" in source or "_node_detail_vm" in source)
+    check("有 update_device 调用", "update_device" in source or "update_data" in source)
+    check("有 VM 引用", "_vm" in source or "node_detail_vm" in source)
 
 
 def main():
