@@ -79,6 +79,23 @@ class HeaderBar(QWidget):
     def set_title(self, title: str) -> None:
         self._title.setText(title)
 
+    def set_notification_count(self, count: int) -> None:
+        """设置通知计数徽章。"""
+        if count > 0:
+            self._notif_btn.setText(str(count))
+            self._notif_btn.setStyleSheet(f"""
+                QPushButton {{
+                    width: 32px; height: 32px;
+                    border: none; background: {TC.DANGER};
+                    border-radius: 4px; color: {TC.TEXT_ON_COLOR};
+                    font-size: 10px; font-weight: 700;
+                }}
+            """)
+        else:
+            self._notif_btn.setText("")
+            self._notif_btn.setStyleSheet(self._tb_btn_style())
+        self._title.setText(title)
+
     def set_connection(self, connected: int, total: int) -> None:
         self._conn_label.setText(f"{connected}/{total} Connected")
 

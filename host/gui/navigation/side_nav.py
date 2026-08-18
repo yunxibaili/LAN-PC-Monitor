@@ -169,9 +169,6 @@ class SideNav(QWidget):
             f"color: {TC.TEXT_DISABLED}; font-size: {TT.CAPTION['size']}px;"
             f" font-weight: 600; background: transparent; letter-spacing: 0.5px;")
         root.addWidget(self._node_title)
-        self._node_title.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: {TT.CAPTION['size']}px;"
-            f" font-weight: 600; background: transparent; letter-spacing: 1px;")
         root.addWidget(self._node_title)
 
         # Node list
