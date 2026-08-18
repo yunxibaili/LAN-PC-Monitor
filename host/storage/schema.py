@@ -56,9 +56,12 @@ TABLES = {
 INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_metrics_node_ts ON metrics(node_id, timestamp)",
     "CREATE INDEX IF NOT EXISTS idx_metrics_node_metric ON metrics(node_id, metric)",
+    "CREATE INDEX IF NOT EXISTS idx_metrics_ts ON metrics(timestamp)",  # 5.1: retention 加速
     "CREATE INDEX IF NOT EXISTS idx_alerts_node_ts ON alerts(node_id, timestamp)",
     "CREATE INDEX IF NOT EXISTS idx_alerts_level ON alerts(level)",
+    "CREATE INDEX IF NOT EXISTS idx_alerts_ts ON alerts(timestamp)",    # 5.1: retention 加速
     "CREATE INDEX IF NOT EXISTS idx_sessions_node_ts ON sessions(node_id, timestamp)",
+    "CREATE INDEX IF NOT EXISTS idx_sessions_ts ON sessions(timestamp)", # 5.1: retention 加速
 ]
 
 
