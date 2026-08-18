@@ -27,7 +27,7 @@ class SummaryCard(QFrame):
         super().__init__(parent)
         self._title = title
         self._size = size
-        self.setFixedHeight(72)
+        self.setFixedHeight(90)
         bc = border_color or "transparent"
         self.setStyleSheet(f"""
             SummaryCard {{
