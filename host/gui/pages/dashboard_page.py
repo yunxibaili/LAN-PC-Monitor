@@ -99,24 +99,34 @@ class DashboardPage(PageBase):
         header.addWidget(self._subtitle)
         root.addLayout(header)
 
-        # ---- System Overview: 4 StatCards ----
+        # ---- System Overview: 4 条形进度条 ----
         overview_label = QLabel(tr("dashboard.system_overview"))
         overview_label.setStyleSheet(
             f"font-size: {TT.TITLE_SMALL['size']}px; font-weight: 600; "
             f"color: {TC.TEXT_PRIMARY}; margin-top: 4px; background: transparent;")
         root.addWidget(overview_label)
 
-        stats_row = QHBoxLayout()
-        stats_row.setSpacing(S.SM)
-        self._stat_cpu = StatCard("CPU", "0%", TC.ACCENT_PRIMARY)
-        self._stat_gpu = StatCard("GPU", "0%", TC.CHART_PURPLE)
-        self._stat_ram = StatCard("RAM", "0%", TC.STATUS_ONLINE)
-        self._stat_net = StatCard("Network", "0 MB/s", TC.CHART_ORANGE)
-        stats_row.addWidget(self._stat_cpu)
-        stats_row.addWidget(self._stat_gpu)
-        stats_row.addWidget(self._stat_ram)
-        stats_row.addWidget(self._stat_net)
-        root.addLayout(stats_row)
+        overview_card = QFrame()
+        overview_card.setStyleSheet(f"""
+            QFrame {{
+                background-color: {TC.BG_CARD};
+                border: 1px solid {TC.BORDER_DEFAULT};
+                border-radius: 8px;
+            }}
+        """)
+        overview_layout = QHBoxLayout(overview_card)
+        overview_layout.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
+        overview_layout.setSpacing(S.XL)
+
+        self._bar_cpu = MetricBar("CPU", "%", parent=overview_card)
+        self._bar_gpu = MetricBar("GPU", "%", parent=overview_card)
+        self._bar_ram = MetricBar("RAM", "%", parent=overview_card)
+        self._bar_net = MetricBar("Network", "MB/s", parent=overview_card)
+        overview_layout.addWidget(self._bar_cpu, 1)
+        overview_layout.addWidget(self._bar_gpu, 1)
+        overview_layout.addWidget(self._bar_ram, 1)
+        overview_layout.addWidget(self._bar_net, 1)
+        root.addWidget(overview_card)
 
         # ---- 双栏：Performance Chart + Recent Alerts ----
         two_col = QHBoxLayout()
@@ -315,11 +325,11 @@ class DashboardPage(PageBase):
         if not online:
             return
         avg = lambda fn: sum(fn(n) for n in online) / len(online)
-        self._stat_cpu.set_value(f"{avg(lambda n: n.cpu_usage):.1f}%", sub="Normal", color=TC.bar_color(avg(lambda n: n.cpu_usage)))
-        self._stat_gpu.set_value(f"{avg(lambda n: n.gpu_usage):.1f}%", sub="Normal", color=TC.bar_color(avg(lambda n: n.gpu_usage)))
-        self._stat_ram.set_value(f"{avg(lambda n: n.memory_usage):.1f}%", sub="Normal", color=TC.bar_color(avg(lambda n: n.memory_usage)))
+        self._bar_cpu.set_metric("CPU", avg(lambda n: n.cpu_usage))
+        self._bar_gpu.set_metric("GPU", avg(lambda n: n.gpu_usage))
+        self._bar_ram.set_metric("RAM", avg(lambda n: n.memory_usage))
         net_val = avg(lambda n: n.network_rx + n.network_tx)
-        self._stat_net.set_value(f"{net_val:.1f}", sub="MB/s", color=TC.ACCENT_PRIMARY)
+        self._bar_net.set_metric("Network", net_val, unit="MB/s")
         self._update_summary_from_vm()
         self._refresh_alerts()
 
@@ -378,19 +388,11 @@ class DashboardPage(PageBase):
     def update_trends(self, node_id, frame):
         if not frame:
             return
-        self._stat_cpu.set_value(
-            f"{frame.get('cpu', {}).get('total_usage', 0):.1f}%",
-            sub="Normal", color=TC.bar_color(frame.get('cpu', {}).get('total_usage', 0)))
-        self._stat_gpu.set_value(
-            f"{frame.get('gpu', {}).get('usage_percent', 0):.1f}%",
-            sub="Normal", color=TC.bar_color(frame.get('gpu', {}).get('usage_percent', 0)))
-        self._stat_ram.set_value(
-            f"{frame.get('ram', {}).get('usage_percent', 0):.1f}%",
-            sub="Normal", color=TC.bar_color(frame.get('ram', {}).get('usage_percent', 0)))
+        self._bar_cpu.set_metric("CPU", frame.get("cpu", {}).get("total_usage", 0))
+        self._bar_gpu.set_metric("GPU", frame.get("gpu", {}).get("usage_percent", 0))
+        self._bar_ram.set_metric("RAM", frame.get("ram", {}).get("usage_percent", 0))
         net = frame.get("net", {})
-        self._stat_net.set_value(
-            f"{net.get('upload_mb_s', 0) + net.get('download_mb_s', 0):.1f}",
-            sub="MB/s", color=TC.ACCENT_PRIMARY)
+        self._bar_net.set_metric("Network", net.get("upload_mb_s", 0) + net.get("download_mb_s", 0), unit="MB/s")
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
