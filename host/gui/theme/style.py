@@ -4,7 +4,8 @@ from host.gui.theme.colors import ThemeColors as C
 from host.gui.theme.metrics import ThemeMetrics as M
 
 
-def dark_qss():
+def light_qss():
+    """亮色主题 QSS（基于 ThemeColors）。"""
     return f"""
 * {{
     font-family: 'Microsoft YaHei', 'Segoe UI', Consolas, sans-serif;
@@ -98,8 +99,16 @@ QToolTip {{ background-color: {C.BG_ELEVATED}; color: {C.TEXT_PRIMARY}; border: 
 """
 
 
+# 向后兼容别名
+dark_qss = light_qss
+
+
 class ThemeStyle:
     """QSS 样式生成器（向后兼容入口）。"""
     @staticmethod
     def dark_qss() -> str:
-        return dark_qss()
+        return light_qss()
+
+    @staticmethod
+    def light_qss() -> str:
+        return light_qss()

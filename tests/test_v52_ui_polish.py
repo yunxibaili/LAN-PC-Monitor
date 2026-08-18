@@ -64,7 +64,7 @@ def test_colors():
     check("BG_BASE 定义", hasattr(TC, 'BG_BASE'))
     check("TEXT_PRIMARY 定义", hasattr(TC, 'TEXT_PRIMARY'))
     check("status_color(connected)", TC.status_color("connected") == TC.SUCCESS)
-    check("status_color(offline)", TC.status_color("offline") == TC.DANGER)
+    check("status_color(offline)", TC.status_color("offline") == TC.STATUS_OFFLINE)
     check("alert_color(red)", TC.alert_color("red") == TC.DANGER)
     check("bar_color(50)", TC.bar_color(50) == TC.BAR_SUCCESS)
     check("bar_color(85)", TC.bar_color(85) == TC.BAR_WARNING)

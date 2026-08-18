@@ -5,11 +5,17 @@ NavItem —— 侧边栏导航项（Gentelella 风格，SVG 图标 + 文字）�
 替代 QPushButton，支持 inline SVG 渲染。
 """
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPixmap, QPainter, QColor
-from PyQt5.QtSvg import QSvgRenderer
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QFrame
 
 from host.gui.theme.colors import ThemeColors as TC
+
+# SVG 渲染：Qt5Svg 可选依赖
+try:
+    from PyQt5.QtGui import QPixmap, QPainter, QColor
+    from PyQt5.QtSvg import QSvgRenderer
+    _HAS_SVG = True
+except ImportError:
+    _HAS_SVG = False
 
 
 class NavItem(QFrame):
@@ -43,7 +49,9 @@ class NavItem(QFrame):
         layout.addWidget(self._text_lbl, 1)
 
     def _set_svg(self, svg_str: str):
-        """将 SVG 字符串渲染为 QPixmap。"""
+        """将 SVG 字符串渲染为 QPixmap（Qt5Svg 可选）。"""
+        if not _HAS_SVG:
+            return
         try:
             renderer = QSvgRenderer(bytearray(svg_str.encode("utf-8")))
             if renderer.isValid():
@@ -54,7 +62,7 @@ class NavItem(QFrame):
                 painter.end()
                 self._icon_lbl.setPixmap(pixmap)
         except Exception:
-            pass  # SVG 渲染失败时显示空白
+            pass
 
     def _base_style(self, active: bool) -> str:
         if active:

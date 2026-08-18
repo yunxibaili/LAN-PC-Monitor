@@ -8,7 +8,7 @@ from host.gui.theme.animation import ThemeAnimation
 from host.gui.theme.typography import ThemeTypography
 from host.gui.theme.components import remove_help_button
 from host.gui.theme.icons import ThemeIcons
-from host.gui.theme.style import dark_qss
+from host.gui.theme.style import light_qss, light_qss as dark_qss
 
 # 便捷函数（兼容旧代码 common.theme 风格调用）
 COLOR_TEXT = ThemeColors.TEXT_PRIMARY

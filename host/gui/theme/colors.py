@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ThemeColors —— 统一颜色系统（v5.4 Gentelella 对齐）。
-
-基础 token 来自 common/theme_tokens.py（Gentelella Dark Mode）。
-语义 token 保留本文件（Host UI 专用）。
+ThemeColors —— 统一颜色系统（v5.4 亮色 Professional Monitoring Console）。
 """
 import common.theme_tokens as ThemeTokens
 
@@ -11,61 +8,61 @@ import common.theme_tokens as ThemeTokens
 class ThemeColors:
     """颜色常量。所有 GUI 颜色从此处引用。"""
 
-    # ---- 基础 token：来自 common/theme_tokens.py（Gentelella Dark） ----
-    BACKGROUND_PRIMARY = ThemeTokens.COLOR_BG_DARK       # #0f1623
-    BACKGROUND_SECONDARY = ThemeTokens.COLOR_BG_SURFACE   # #1a2332
-    BACKGROUND_CARD = ThemeTokens.COLOR_BG_CARD           # #1e2a3a
+    # ---- 基础 token ----
+    BACKGROUND_PRIMARY = ThemeTokens.COLOR_BG_DARK       # #FFFFFF
+    BACKGROUND_SECONDARY = ThemeTokens.COLOR_BG_SURFACE   # #F9FAFB
+    BACKGROUND_CARD = ThemeTokens.COLOR_BG_CARD           # #F3F4F6
 
-    TEXT_PRIMARY = ThemeTokens.COLOR_TEXT_PRIMARY          # #e6ebf2
-    TEXT_SECONDARY = ThemeTokens.COLOR_TEXT_SECONDARY      # #b3bccb
-    TEXT_DISABLED = ThemeTokens.COLOR_TEXT_DISABLED        # #5a6473
+    TEXT_PRIMARY = ThemeTokens.COLOR_TEXT_PRIMARY          # #111827
+    TEXT_SECONDARY = ThemeTokens.COLOR_TEXT_SECONDARY      # #6B7280
+    TEXT_DISABLED = ThemeTokens.COLOR_TEXT_DISABLED        # #9CA3AF
 
-    ACCENT_PRIMARY = ThemeTokens.COLOR_ACCENT             # #1ABB9C (teal)
+    ACCENT_PRIMARY = ThemeTokens.COLOR_ACCENT             # #3B82F6
 
-    STATUS_ONLINE = ThemeTokens.COLOR_SUCCESS             # #2fb344
-    STATUS_OFFLINE = ThemeTokens.COLOR_DANGER             # #d63939
-    STATUS_WARNING = ThemeTokens.COLOR_WARNING            # #f59f00
-    STATUS_ERROR = ThemeTokens.COLOR_DANGER               # #d63939
+    STATUS_ONLINE = ThemeTokens.COLOR_SUCCESS             # #22C55E
+    STATUS_OFFLINE = ThemeTokens.COLOR_OFFLINE            # #6B7280
+    STATUS_WARNING = ThemeTokens.COLOR_WARNING            # #EAB308
+    STATUS_ERROR = ThemeTokens.COLOR_DANGER               # #EF4444
 
-    ALERT_INFO = ThemeTokens.COLOR_INFO                   # #4299e1
-    ALERT_WARN = ThemeTokens.COLOR_WARNING                # #f59f00
-    ALERT_DANGER = ThemeTokens.COLOR_DANGER               # #d63939
+    ALERT_INFO = ThemeTokens.COLOR_INFO
+    ALERT_WARN = ThemeTokens.COLOR_WARNING
+    ALERT_DANGER = ThemeTokens.COLOR_DANGER
 
-    BORDER_DEFAULT = ThemeTokens.COLOR_BORDER             # rgba(255,255,255,0.08)
+    BORDER_DEFAULT = ThemeTokens.COLOR_BORDER             # #E5E7EB
 
-    # ---- 语义 token：Host UI 专用 ----
-    BACKGROUND_ELEVATED = "#22303f"
-    BACKGROUND_HOVER = "rgba(255,255,255,0.04)"
-    BACKGROUND_INPUT = "#141d2b"
+    # ---- 语义 token ----
+    BACKGROUND_ELEVATED = "#FFFFFF"
+    BACKGROUND_HOVER = "#F3F4F6"
+    BACKGROUND_INPUT = "#FFFFFF"
 
-    TEXT_INVERSE = "#0f1623"
-    TEXT_ON_COLOR = "#ffffff"
+    TEXT_INVERSE = "#FFFFFF"
+    TEXT_ON_COLOR = "#FFFFFF"
 
-    BORDER_FOCUS = "#1ABB9C"
-    BORDER_SUBTLE = "rgba(255,255,255,0.05)"
+    BORDER_FOCUS = "#3B82F6"
+    BORDER_SUBTLE = "#E5E7EB"
 
-    CHART_PRIMARY = "#1ABB9C"
-    CHART_SECONDARY = "#f59f00"
-    CHART_GREEN = "#2fb344"
-    CHART_RED = "#d63939"
-    CHART_PURPLE = "#ae3ec9"
-    CHART_CYAN = "#17a2b8"
-    CHART_AREA = "rgba(26,187,156,0.12)"
-    CHART_GRID = "rgba(255,255,255,0.05)"
-    CHART_THRESHOLD_WARN = "#f59f00"
-    CHART_THRESHOLD_DANGER = "#d63939"
+    CHART_PRIMARY = "#3B82F6"
+    CHART_SECONDARY = "#A855F7"
+    CHART_GREEN = "#22C55E"
+    CHART_RED = "#EF4444"
+    CHART_PURPLE = "#A855F7"
+    CHART_CYAN = "#06B6D4"
+    CHART_AREA = "rgba(59,130,246,0.08)"
+    CHART_GRID = "rgba(0,0,0,0.06)"
+    CHART_THRESHOLD_WARN = "#EAB308"
+    CHART_THRESHOLD_DANGER = "#EF4444"
 
-    BAR_BG = "rgba(255,255,255,0.06)"
-    BAR_SUCCESS = "#2fb344"
-    BAR_WARNING = "#f59f00"
-    BAR_DANGER = "#d63939"
+    BAR_BG = "#E5E7EB"
+    BAR_SUCCESS = "#22C55E"
+    BAR_WARNING = "#EAB308"
+    BAR_DANGER = "#EF4444"
 
-    TABLE_HEADER_BG = "#141d2b"
-    TABLE_ALT_ROW = "#1a2332"
-    TABLE_GRID = "rgba(255,255,255,0.06)"
-    TABLE_HOVER = "#22303f"
+    TABLE_HEADER_BG = "#F3F4F6"
+    TABLE_ALT_ROW = "#F9FAFB"
+    TABLE_GRID = "#E5E7EB"
+    TABLE_HOVER = "#F3F4F3"
 
-    # ---- 别名（向后兼容） ----
+    # ---- 别名 ----
     BG_BASE = BACKGROUND_PRIMARY
     BG_SURFACE = BACKGROUND_SECONDARY
     BG_CARD = BACKGROUND_CARD

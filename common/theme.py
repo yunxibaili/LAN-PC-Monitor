@@ -27,10 +27,10 @@ DISK_WARN, DISK_DANGER = 85, 95
 SCORE_WARN = 60
 RTT_WARN, RTT_DANGER = 5, 20
 
-# ---------- QSS 深色主题（与 Host 一致） ----------
+# ---------- QSS 亮色主题（与 Host 一致） ----------
 _BORDER = _T.COLOR_BORDER
 _SURFACE = _T.COLOR_BG_SURFACE
-_ELEVATED = "#1E293B"
+_ELEVATED = _T.COLOR_BG_CARD
 
 DARK_QSS = f"""
     * {{ font-family: {_T.FONT_FAMILY}; }}
@@ -49,7 +49,7 @@ DARK_QSS = f"""
     }}
     QListWidget, QPlainTextEdit {{ background-color: {_SURFACE}; border: 1px solid {_BORDER}; }}
     QPushButton {{ background-color: {_ELEVATED}; color: {COLOR_TEXT}; border: 1px solid {_BORDER}; padding: 6px 12px; border-radius: 3px; }}
-    QPushButton:hover {{ background-color: #253049; }}
+    QPushButton:hover {{ background-color: #E5E7EB; }}
     QPushButton:pressed {{ background-color: {COLOR_BG}; }}
     QScrollBar:vertical {{ background: {_SURFACE}; width: 10px; }}
     QScrollBar::handle:vertical {{ background: {_BORDER}; min-height: 24px; border-radius: 5px; }}
