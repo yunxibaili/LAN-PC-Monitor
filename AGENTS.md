@@ -58,4 +58,4 @@ python logs/run_all_tests_v3.py  # 全量回归
 - **架构文档**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **开发规范**: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 - **路线图**: [docs/ROADMAP.md](docs/ROADMAP.md)
-- **Gentelella 参考**: `gentelella-master/`（已 gitignore，仅参考）
+- **Gentelella 参考**: `gentelella-master/`（已 gitignore，仅参考，不入库）
