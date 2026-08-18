@@ -24,7 +24,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QMainWindow,
                              QPushButton, QVBoxLayout, QWidget)
 
-from common import theme
+from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.components import remove_help_button
 from common.gui.detail_panel import DetailPanel
 from common.i18n import tr
 from common.utils import get_lan_ip
@@ -103,16 +104,17 @@ class AgentDashboardWindow(QMainWindow):
 
         # 底部服务状态
         self.status_label = QLabel()
-        self.status_label.setStyleSheet(f"color: {theme.COLOR_NA};")
+        self.status_label.setStyleSheet(f"color: {TC.TEXT_DISABLED};")
         root.addWidget(self.status_label)
 
         self.setCentralWidget(central)
         self._update_header()
 
     def _open_settings(self) -> None:
-        """打开设置中心（齿轮按钮入口）。Agent 侧主要管理采集/高级设置。"""
+        """打开设置中心（齿轮按钮入口）。"""
         from common.settings_dialog import SettingsDialog
         dialog = SettingsDialog(parent=self)
+        remove_help_button(dialog)
         dialog.exec_()
 
     def _build_conninfo(self) -> QWidget:
@@ -132,7 +134,7 @@ class AgentDashboardWindow(QMainWindow):
             h.setContentsMargins(0, 0, 0, 0)
             h.setSpacing(2)
             lbl = QLabel(name)
-            lbl.setStyleSheet(f"color: {theme.COLOR_NA};")
+            lbl.setStyleSheet(f"color: {TC.TEXT_DISABLED};")
             edit = QLineEdit(text)
             edit.setReadOnly(True)
             edit.setMaximumWidth(240)

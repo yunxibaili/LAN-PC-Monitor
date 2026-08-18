@@ -53,7 +53,7 @@ class ProcCollector(BaseCollector):
 
     @staticmethod
     def _get_top_gpu() -> list:
-        """尝试获取 GPU Top3 进程（nvidia-ml-py）。"""
+        """尝试获取 GPU Top3 进程（nvidia-ml-py，占用率百分比）。"""
         try:
             import pynvml
             pynvml.nvmlInit()
@@ -63,12 +63,21 @@ class ProcCollector(BaseCollector):
                 h = pynvml.nvmlDeviceGetHandleByIndex(i)
                 try:
                     apps = pynvml.nvmlDeviceGetComputeRunningProcesses(h)
+                    util = pynvml.nvmlDeviceGetUtilizationRates(h)
+                    total_gpu = util.gpu if util.gpu > 0 else 100
                     for app in apps:
                         try:
                             name = pynvml.nvmlSystemGetProcessName(app.pid)
                         except Exception:
                             name = f"pid:{app.pid}"
-                        procs.append({"name": name, "usage_percent": round(app.usedGpuMemory / 1048576, 1) if app.usedGpuMemory else 0})
+                        # 按显存占比估算 GPU 占用率
+                        vram_used = app.usedGpuMemory or 0
+                        try:
+                            mem = pynvml.nvmlDeviceGetMemoryInfo(h)
+                            pct = round(vram_used / mem.total * 100, 1) if mem.total else 0
+                        except Exception:
+                            pct = 0
+                        procs.append({"name": name, "usage_percent": pct})
                 except Exception:
                     pass
             pynvml.nvmlShutdown()

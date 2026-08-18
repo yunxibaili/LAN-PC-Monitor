@@ -12,7 +12,7 @@
 |---|------|------|------|------|
 | ~~1~~ | ~~history.db 路径统一~~ | ~~P2~~ | ~~v5.3~~ | ✅ 已修复（v5.3.1：`%APPDATA%/LAN-PC-Monitor/data/history.db`） |
 | ~~2~~ | ~~Settings dirty 双模型~~ | ~~P2~~ | ~~v5.3~~ | ✅ 已修复（v5.3.4：Page 委托 VM 标记） |
-| ~~3~~ | ~~Agent theme 迁移~~ | ~~P2~~ | ~~Phase 4-7~~ | ✅ 已修复（v5.3.4：common/theme.py 统一到 theme_tokens） |
+| ~~3~~ | ~~Agent theme 迁移~~ | ~~P2~~ | ~~Phase 4-7~~ | ✅ 已修复（v5.3.4：Agent GUI 颜色统一到 ThemeColors；DetailPanel 保留 common/ 独立实现） |
 | 4 | History downsample | P3 | 未来 | ✅ 已修复（v5.3.4：Facade 自动降采样 MAX_POINTS=500） |
 | 5 | Controller 直连 host.config | P3 | 观察 | data_controller/window_controller 直接 upsert_host/save_config |
 | 6 | storage_service → history_facade 反向依赖 | P3 | 观察 | 组合便利，依赖方向值得后续理顺 |
