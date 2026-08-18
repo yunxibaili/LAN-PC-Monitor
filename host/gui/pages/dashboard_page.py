@@ -169,9 +169,9 @@ class DashboardPage(PageBase):
         # Summary row
         summary_row = QHBoxLayout()
         summary_row.setSpacing(S.SM)
-        self._card_total = SummaryCard(tr("dashboard.total_nodes"), "0", size=28)
-        self._card_online = SummaryCard(tr("dashboard.online"), "0", TC.SUCCESS, size=28)
-        self._card_alerts = SummaryCard(tr("dashboard.alerts"), "0", TC.WARNING, size=28)
+        self._card_total = SummaryCard(tr("dashboard.total_nodes"), "0", size=28, border_color=TC.ACCENT_PRIMARY)
+        self._card_online = SummaryCard(tr("dashboard.online"), "0", TC.SUCCESS, size=28, border_color=TC.SUCCESS)
+        self._card_alerts = SummaryCard(tr("dashboard.alerts"), "0", TC.WARNING, size=28, border_color=TC.WARNING)
         summary_row.addWidget(self._card_total)
         summary_row.addWidget(self._card_online)
         summary_row.addWidget(self._card_alerts)

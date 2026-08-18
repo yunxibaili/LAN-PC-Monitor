@@ -56,3 +56,6 @@ agent_config.json
 # OS
 .DS_Store
 Thumbs.db
+
+# 参考文件（不提交）
+gentelella-master/

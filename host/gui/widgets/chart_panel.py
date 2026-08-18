@@ -19,17 +19,20 @@ from host.gui.widgets.chart_widget import ChartWidget
 
 
 class SummaryCard(QFrame):
-    """汇总卡片：Current / Average / Peak / Status。"""
+    """汇总卡片：标题 + 大数值 + 可选彩色左边条（Gentelella stat 风格）。"""
 
-    def __init__(self, title="", value="—", color=None, size=20, parent=None):
+    def __init__(self, title="", value="—", color=None, size=20,
+                 border_color=None, parent=None):
         super().__init__(parent)
         self._title = title
         self._size = size
         self.setFixedHeight(72)
+        bc = border_color or "transparent"
         self.setStyleSheet(f"""
             SummaryCard {{
                 background-color: {TC.BG_CARD};
                 border: 1px solid {TC.BORDER_DEFAULT};
+                border-left: 3px solid {bc};
                 border-radius: 12px;
             }}
         """)

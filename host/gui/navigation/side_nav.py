@@ -19,25 +19,30 @@ from common.i18n import tr
 
 
 class NavButton(QPushButton):
-    """导航项按钮。"""
+    """导航项按钮（Gentelella 风格）。"""
 
     def __init__(self, text="", icon="", parent=None):
         super().__init__(parent)
         display = f"  {icon}  {text}" if icon else f"    {text}"
         self.setText(display)
         self.setCheckable(True)
-        self.setFixedHeight(38)
+        self.setFixedHeight(36)
         self.setCursor(Qt.PointingHandCursor)
         self.setStyleSheet(f"""
             QPushButton {{
                 text-align: left; padding: 0 16px; border: none;
                 border-left: 3px solid transparent;
                 background: transparent; color: {TC.TEXT_SECONDARY}; font-size: 13px;
+                border-radius: 0 6px 6px 0;
             }}
-            QPushButton:hover {{ background: {TC.BG_HOVER}; color: {TC.TEXT_PRIMARY}; }}
+            QPushButton:hover {{
+                background: rgba(255,255,255,0.04);
+                color: {TC.TEXT_PRIMARY};
+            }}
             QPushButton:checked {{
                 border-left: 3px solid {TC.ACCENT_PRIMARY};
-                background: {TC.BG_CARD}; color: {TC.TEXT_PRIMARY}; font-weight: 600;
+                background: rgba(59,130,246,0.08);
+                color: {TC.TEXT_PRIMARY}; font-weight: 600;
             }}
         """)
 
@@ -78,12 +83,16 @@ class SideNav(QWidget):
     node_clicked = pyqtSignal(str)
 
     NAV_ITEMS = [
-        ("dashboard", "dashboard", "▣"),
-        ("nodes",     "devices",   "▣"),
-        ("monitor",   "monitor",   "▣"),
-        ("alerts",    "alerts",    "⚠"),
-        ("history",   "history",   "📈"),
-        ("settings",  "settings",  "⚙"),
+        ("monitor", "nav.section_monitor", [
+            ("dashboard", "nav.dashboard", "▣"),
+            ("nodes",     "nav.devices",   "▣"),
+            ("monitor",   "nav.monitor",   "▣"),
+            ("alerts",    "nav.alerts",    "⚠"),
+        ]),
+        ("system", "nav.section_system", [
+            ("history",   "nav.history",   "📈"),
+            ("settings",  "nav.settings",  "⚙"),
+        ]),
     ]
 
     def __init__(self, parent=None):
@@ -113,16 +122,26 @@ class SideNav(QWidget):
         logo_layout.addWidget(logo_text)
         root.addWidget(logo_frame)
 
-        # Nav buttons
+        # Nav buttons with section headers
         nav_frame = QWidget()
         nav_layout = QVBoxLayout(nav_frame)
         nav_layout.setContentsMargins(8, 8, 8, 8)
         nav_layout.setSpacing(2)
-        for nav_id, i18n_key, icon in self.NAV_ITEMS:
-            btn = NavButton(tr(i18n_key), icon, parent=self)
-            btn.clicked.connect(lambda checked, n=nav_id: self._on_nav_click(n))
-            nav_layout.addWidget(btn)
-            self._buttons[nav_id] = btn
+
+        for group_id, section_key, items in self.NAV_ITEMS:
+            # Section header
+            section_lbl = QLabel(tr(section_key))
+            section_lbl.setStyleSheet(
+                f"color: {TC.TEXT_DISABLED}; font-size: 10px; font-weight: 600; "
+                f"letter-spacing: 1px; padding: 12px 8px 4px 8px; background: transparent;")
+            nav_layout.addWidget(section_lbl)
+
+            for nav_id, i18n_key, icon in items:
+                btn = NavButton(tr(i18n_key), icon, parent=self)
+                btn.clicked.connect(lambda checked, n=nav_id: self._on_nav_click(n))
+                nav_layout.addWidget(btn)
+                self._buttons[nav_id] = btn
+
         nav_layout.addStretch(1)
         root.addWidget(nav_frame)
 
