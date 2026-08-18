@@ -47,4 +47,4 @@
 
 - 框架：自定义 check runner（非 pytest）
 - 最新全量回归：**994/994 PASS**
-- 基线明细见 `docs/releases/baseline_v5.2.3.txt`
+- 运行: `python logs/run_all_tests_v3.py`

@@ -63,9 +63,9 @@
 
 ### Validation
 
-- Tests：**988/988 PASS**（明细见 `docs/reports/baseline_v5.2.3.txt`）
+- Tests：**988/988 PASS**（`python logs/run_all_tests_v3.py`）
 - CI：**Windows Python 3.10 / 3.11 全绿**
-- 审计：`docs/reports/v5.2.3_release_audit.md`
+- 审计：发布审计记录已归档（docs/archive/decisions.md 保留关键决策）
 
 ---
 

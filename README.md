@@ -116,7 +116,7 @@ python -m agent --gui        # 带本机仪表盘
 python -m host               # 集中监控大屏
 ```
 
-首次启动自动生成配置文件。详细安装见 [docs/archive/old_docs/installation.md](docs/archive/old_docs/installation.md)。
+首次启动自动生成配置文件。安装见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
 
 ## Documentation
 
@@ -124,12 +124,13 @@ python -m host               # 集中监控大屏
 docs/
 ├── README.md              文档总入口
 ├── ARCHITECTURE.md        架构 + 数据流
-├── UI_GUIDE.md            ⭐ UI 唯一规范
+├── UI_GUIDE.md            ⭐ UI 唯一规范（Professional Monitoring Console）
 ├── DEVELOPMENT.md         开发规范
 ├── ROADMAP.md             路线图
 ├── known_issues.md        已知问题
-├── releases/              Release Notes + 审计
-└── archive/               历史文档（phases/reports/old_docs）
+├── releases/v5.2.3.md     Release Notes
+├── design/                UI 设计稿（HTML 原型）
+└── archive/decisions.md   架构决策记录
 ```
 
 开发人员和 AI 只需阅读 `docs/README.md` + `docs/UI_GUIDE.md` 即可理解整个项目。
@@ -153,8 +154,7 @@ python tests/test_p0.py     # 协议/采集器冒烟
 
 ```
 Latest verified baseline:
-  docs/releases/v5.2.3_release_audit.md  (§四 测试基线冻结)
-  docs/releases/baseline_v5.2.3.txt      (逐文件明细)
+  python logs/run_all_tests_v3.py  # 全量回归（当前 994/994 PASS）
 ```
 
 开发指南见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。

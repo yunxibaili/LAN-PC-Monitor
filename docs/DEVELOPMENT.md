@@ -129,8 +129,8 @@ python tests/test_v52_dashboard_vm.py
 
 ```
 Latest verified baseline:
-  docs/releases/v5.2.3_release_audit.md  (§四 测试基线冻结)
-  docs/releases/baseline_v5.2.3.txt      (逐文件明细)
+  python logs/run_all_tests_v3.py  # 全量回归
+  docs/releases/v5.2.3.md          (发布说明含测试状态)
 ```
 
 > 新增/删除测试后，不要修改文档中的数字，只更新基线文件。

@@ -38,7 +38,7 @@ Storage
 
 ## 提交前检查
 
-- [ ] 本地全量回归通过（基线见 `docs/reports/baseline_v5.2.3.txt`）
+- [ ] 本地全量回归通过（`python logs/run_all_tests_v3.py`）
 - [ ] CI 全绿（Windows Python 3.10 / 3.11）
 - [ ] 无硬编码颜色 / 间距（走 host.gui.theme）
 - [ ] 无 QTimer 轮询（Signal 驱动）
