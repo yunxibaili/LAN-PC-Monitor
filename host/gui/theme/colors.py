@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-ThemeColors —— 统一颜色系统（v5.2 Phase 3-9 / RC-7A Token Wiring）。
+ThemeColors —— 统一颜色系统（v5.4 Gentelella 对齐）。
 
-基础 token 来自 common/theme_tokens.py（单一来源）。
+基础 token 来自 common/theme_tokens.py（Gentelella Dark Mode）。
 语义 token 保留本文件（Host UI 专用）。
 """
 import common.theme_tokens as ThemeTokens
@@ -11,61 +11,61 @@ import common.theme_tokens as ThemeTokens
 class ThemeColors:
     """颜色常量。所有 GUI 颜色从此处引用。"""
 
-    # ---- 基础 token：来自 common/theme_tokens.py ----
-    BACKGROUND_PRIMARY = ThemeTokens.COLOR_BG_DARK
-    BACKGROUND_SECONDARY = ThemeTokens.COLOR_BG_SURFACE
-    BACKGROUND_CARD = ThemeTokens.COLOR_BG_CARD
+    # ---- 基础 token：来自 common/theme_tokens.py（Gentelella Dark） ----
+    BACKGROUND_PRIMARY = ThemeTokens.COLOR_BG_DARK       # #0f1623
+    BACKGROUND_SECONDARY = ThemeTokens.COLOR_BG_SURFACE   # #1a2332
+    BACKGROUND_CARD = ThemeTokens.COLOR_BG_CARD           # #1e2a3a
 
-    TEXT_PRIMARY = ThemeTokens.COLOR_TEXT_PRIMARY
-    TEXT_SECONDARY = ThemeTokens.COLOR_TEXT_SECONDARY
-    TEXT_DISABLED = ThemeTokens.COLOR_TEXT_DISABLED
+    TEXT_PRIMARY = ThemeTokens.COLOR_TEXT_PRIMARY          # #e6ebf2
+    TEXT_SECONDARY = ThemeTokens.COLOR_TEXT_SECONDARY      # #b3bccb
+    TEXT_DISABLED = ThemeTokens.COLOR_TEXT_DISABLED        # #5a6473
 
-    ACCENT_PRIMARY = ThemeTokens.COLOR_ACCENT
+    ACCENT_PRIMARY = ThemeTokens.COLOR_ACCENT             # #1ABB9C (teal)
 
-    STATUS_ONLINE = ThemeTokens.COLOR_SUCCESS
-    STATUS_OFFLINE = ThemeTokens.COLOR_DANGER
-    STATUS_WARNING = ThemeTokens.COLOR_WARNING
-    STATUS_ERROR = ThemeTokens.COLOR_DANGER
+    STATUS_ONLINE = ThemeTokens.COLOR_SUCCESS             # #2fb344
+    STATUS_OFFLINE = ThemeTokens.COLOR_DANGER             # #d63939
+    STATUS_WARNING = ThemeTokens.COLOR_WARNING            # #f59f00
+    STATUS_ERROR = ThemeTokens.COLOR_DANGER               # #d63939
 
-    ALERT_INFO = ThemeTokens.COLOR_INFO
-    ALERT_WARN = ThemeTokens.COLOR_WARNING
-    ALERT_DANGER = ThemeTokens.COLOR_DANGER
+    ALERT_INFO = ThemeTokens.COLOR_INFO                   # #4299e1
+    ALERT_WARN = ThemeTokens.COLOR_WARNING                # #f59f00
+    ALERT_DANGER = ThemeTokens.COLOR_DANGER               # #d63939
 
-    BORDER_DEFAULT = ThemeTokens.COLOR_BORDER
+    BORDER_DEFAULT = ThemeTokens.COLOR_BORDER             # rgba(255,255,255,0.08)
 
-    # ---- 语义 token：Host UI 专用（保留，不来自 theme_tokens） ----
-    BACKGROUND_ELEVATED = "#1E293B"
-    BACKGROUND_HOVER = "#253049"
-    BACKGROUND_INPUT = "#0D1117"
+    # ---- 语义 token：Host UI 专用 ----
+    BACKGROUND_ELEVATED = "#22303f"
+    BACKGROUND_HOVER = "rgba(255,255,255,0.04)"
+    BACKGROUND_INPUT = "#141d2b"
 
-    TEXT_INVERSE = "#0F1117"
-    TEXT_ON_COLOR = "#FFFFFF"
+    TEXT_INVERSE = "#0f1623"
+    TEXT_ON_COLOR = "#ffffff"
 
-    BORDER_FOCUS = "#3B82F6"
-    BORDER_SUBTLE = "#30363D"
+    BORDER_FOCUS = "#1ABB9C"
+    BORDER_SUBTLE = "rgba(255,255,255,0.05)"
 
-    CHART_PRIMARY = "#3B82F6"
-    CHART_SECONDARY = "#F59E0B"
-    CHART_GREEN = "#22C55E"
-    CHART_RED = "#EF4444"
-    CHART_PURPLE = "#A855F7"
-    CHART_CYAN = "#06B6D4"
-    CHART_AREA = "rgba(59,130,246,0.12)"
-    CHART_GRID = "#21262D"
-    CHART_THRESHOLD_WARN = "#F59E0B"
-    CHART_THRESHOLD_DANGER = "#EF4444"
+    CHART_PRIMARY = "#1ABB9C"
+    CHART_SECONDARY = "#f59f00"
+    CHART_GREEN = "#2fb344"
+    CHART_RED = "#d63939"
+    CHART_PURPLE = "#ae3ec9"
+    CHART_CYAN = "#17a2b8"
+    CHART_AREA = "rgba(26,187,156,0.12)"
+    CHART_GRID = "rgba(255,255,255,0.05)"
+    CHART_THRESHOLD_WARN = "#f59f00"
+    CHART_THRESHOLD_DANGER = "#d63939"
 
-    BAR_BG = "#21262D"
-    BAR_SUCCESS = "#22C55E"
-    BAR_WARNING = "#F59E0B"
-    BAR_DANGER = "#EF4444"
+    BAR_BG = "rgba(255,255,255,0.06)"
+    BAR_SUCCESS = "#2fb344"
+    BAR_WARNING = "#f59f00"
+    BAR_DANGER = "#d63939"
 
-    TABLE_HEADER_BG = "#161B22"
-    TABLE_ALT_ROW = "#141920"
-    TABLE_GRID = "#21262D"
-    TABLE_HOVER = "#1C2333"
+    TABLE_HEADER_BG = "#141d2b"
+    TABLE_ALT_ROW = "#1a2332"
+    TABLE_GRID = "rgba(255,255,255,0.06)"
+    TABLE_HOVER = "#22303f"
 
-    # ---- 别名（向后兼容，逐步淘汰） ----
+    # ---- 别名（向后兼容） ----
     BG_BASE = BACKGROUND_PRIMARY
     BG_SURFACE = BACKGROUND_SECONDARY
     BG_CARD = BACKGROUND_CARD
@@ -81,7 +81,6 @@ class ThemeColors:
     COLOR_HIGHLIGHT = BACKGROUND_CARD
     CHART_BG = BACKGROUND_SECONDARY
 
-    # ---- 向后兼容别名（测试/旧代码使用） ----
     SUCCESS = STATUS_ONLINE
     WARNING = STATUS_WARNING
     DANGER = STATUS_ERROR
@@ -102,29 +101,40 @@ class ThemeColors:
 
     @classmethod
     def bar_color(cls, value, warn=80, danger=95):
-        if value >= danger: return cls.BAR_DANGER
-        elif value >= warn: return cls.BAR_WARNING
+        if value >= danger:
+            return cls.BAR_DANGER
+        if value >= warn:
+            return cls.BAR_WARNING
         return cls.BAR_SUCCESS
 
     @classmethod
     def score_color(cls, score):
-        if score is None or score == "N/A": return cls.TEXT_DISABLED
-        if score < 60: return cls.STATUS_ERROR
-        if score < 80: return cls.STATUS_WARNING
+        if score is None or score == "N/A":
+            return cls.TEXT_DISABLED
+        if score < 60:
+            return cls.STATUS_ERROR
+        if score < 80:
+            return cls.STATUS_WARNING
         return cls.STATUS_ONLINE
 
     @classmethod
     def temp_color(cls, temp):
-        if temp is None or temp == "N/A": return cls.TEXT_DISABLED
-        if temp > 85: return cls.STATUS_ERROR
-        if temp > 80: return cls.STATUS_WARNING
+        if temp is None or temp == "N/A":
+            return cls.TEXT_DISABLED
+        if temp > 85:
+            return cls.STATUS_ERROR
+        if temp > 80:
+            return cls.STATUS_WARNING
         return cls.STATUS_ONLINE
 
     @classmethod
     def usage_color(cls, val):
-        if val is None or val == "N/A": return cls.TEXT_DISABLED
-        if val > 95: return cls.STATUS_ERROR
-        if val > 80: return cls.STATUS_WARNING
+        if val is None or val == "N/A":
+            return cls.TEXT_DISABLED
+        if val > 95:
+            return cls.STATUS_ERROR
+        if val > 80:
+            return cls.STATUS_WARNING
         return cls.STATUS_ONLINE
 
     @classmethod

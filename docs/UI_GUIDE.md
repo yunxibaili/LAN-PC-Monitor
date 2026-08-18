@@ -1,7 +1,8 @@
 # LAN-PC-Monitor UI Guide
 
-> **唯一 UI 规范**。所有 GUI 开发以此为准，禁止参考 archive 中的旧 UI 文档。
-> **Version**: v5.3.4
+> **唯一 UI 规范**。所有 GUI 开发以此为准。
+> **Version**: v5.4
+> **UI 参考**: [Gentelella v4](https://github.com/ColorlibHQ/gentelella)（暗色模式对齐）
 
 ---
 
@@ -34,27 +35,23 @@ MainWindow
 
 ---
 
-## 3. 颜色
+## 3. 颜色（Gentelella Dark Mode 对齐）
 
 | 用途 | 值 | 常量 |
 |------|-----|------|
-| 背景-主 | `#0F1117` | `TC.BACKGROUND_PRIMARY` |
-| 背景-面 | `#161B22` | `TC.BACKGROUND_SECONDARY` |
-| 背景-卡片 | `#1C2333` | `TC.BACKGROUND_CARD` |
-| 边框 | `#21262D` | `TC.BORDER_DEFAULT` |
-| 主色/强调 | `#3B82F6` | `TC.ACCENT_PRIMARY` |
-| 成功/在线 | `#22C55E` | `TC.STATUS_ONLINE` |
-| 警告 | `#F59E0B` | `TC.STATUS_WARNING` |
-| 危险/离线 | `#EF4444` | `TC.STATUS_ERROR` |
-| 文字-主 | `#E6EDF3` | `TC.TEXT_PRIMARY` |
-| 文字-次 | `#8B949E` | `TC.TEXT_SECONDARY` |
-| 文字-禁用 | `#484F58` | `TC.TEXT_DISABLED` |
-| 图表-主 | `#3B82F6` | `TC.CHART_PRIMARY` |
-| 图表-次 | `#F59E0B` | `TC.CHART_SECONDARY` |
-| 图表-绿 | `#22C55E` | `TC.CHART_GREEN` |
-| 图表-红 | `#EF4444` | `TC.CHART_RED` |
-| 图表-紫 | `#A855F7` | `TC.CHART_PURPLE` |
-| 图表-青 | `#06B6D4` | `TC.CHART_CYAN` |
+| 背景-主 | `#0f1623` | `TC.BACKGROUND_PRIMARY` |
+| 背景-面 | `#1a2332` | `TC.BACKGROUND_SECONDARY` |
+| 背景-卡片 | `#1e2a3a` | `TC.BACKGROUND_CARD` |
+| 边框 | `rgba(255,255,255,0.08)` | `TC.BORDER_DEFAULT` |
+| 主色/强调 | `#1ABB9C`（teal） | `TC.ACCENT_PRIMARY` |
+| 成功/在线 | `#2fb344` | `TC.STATUS_ONLINE` |
+| 警告 | `#f59f00` | `TC.STATUS_WARNING` |
+| 危险/离线 | `#d63939` | `TC.STATUS_ERROR` |
+| 文字-主 | `#e6ebf2` | `TC.TEXT_PRIMARY` |
+| 文字-次 | `#b3bccb` | `TC.TEXT_SECONDARY` |
+| 文字-禁用 | `#5a6473` | `TC.TEXT_DISABLED` |
+| 图表-主 | `#1ABB9C` | `TC.CHART_PRIMARY` |
+| 图表-次 | `#f59f00` | `TC.CHART_SECONDARY` |
 
 引用方式：
 
@@ -149,9 +146,9 @@ widget.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
 
 | 状态 | 颜色 |
 |------|------|
-| ONLINE | 绿 #22C55E |
-| OFFLINE | 红 #EF4444 |
-| WARNING | 黄 #F59E0B |
+| ONLINE | 绿 #2fb344 |
+| OFFLINE | 红 #d63939 |
+| WARNING | 黄 #f59f00 |
 
 ### NodeCard（节点卡）
 
@@ -186,3 +183,14 @@ widget.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
 4. 注册 → main_window.py _init_viewmodels / _init_ui
 5. 测试 → tests/test_v52_xxx.py（含架构扫描 + Theme 扫描）
 ```
+
+## 10. 致谢
+
+本项目 UI 设计参考了 [Gentelella v4](https://github.com/ColorlibHQ/gentelella)（by ColorlibHQ），基于其暗色模式 token 体系对齐颜色方案。具体借鉴：
+
+- 暗色模式色板（body-bg / surface / text / border）
+- Sidebar 分组导航模式（section header + nav items）
+- Stat card 样式（彩色左边条 + 大数值 + 标签）
+- 间距/圆角/阴影比例
+
+感谢 ColorlibHQ 提供的高质量开源 admin dashboard 模板。

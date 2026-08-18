@@ -139,7 +139,7 @@ NodeConnection.data_received → DataController → Store.push
 
 ## 6. 设计系统
 
-所有 GUI 颜色/间距/字体通过 Theme 引用，详见 [docs/UI_GUIDE.md](UI_GUIDE.md)：
+所有 GUI 颜色/间距/字体通过 Theme 引用（基于 [Gentelella v4](https://github.com/ColorlibHQ/gentelella) 暗色模式对齐），详见 [docs/UI_GUIDE.md](UI_GUIDE.md)：
 
 ```python
 from host.gui.theme.colors import ThemeColors as TC
