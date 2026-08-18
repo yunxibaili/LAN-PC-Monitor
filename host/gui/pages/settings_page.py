@@ -96,7 +96,6 @@ class SettingsPage(PageBase):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._vm = None
-        self._dirty = False
         self._section_widgets = {}
         self._setup_ui()
 
@@ -254,11 +253,33 @@ class SettingsPage(PageBase):
         layout.setSpacing(S.MD)
 
         self._add_section_title(layout, "Monitoring")
+        sub = QLabel("Data retention policy (days)")
+        sub.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
+        layout.addWidget(sub)
 
-        info = QLabel("Monitoring settings will be available in a future release.")
-        info.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: 13px; background: transparent;")
-        layout.addWidget(info)
+        row1 = self._add_form_row(layout, "Metrics retention")
+        self._ret_metrics = QSpinBox()
+        self._ret_metrics.setRange(1, 365)
+        self._ret_metrics.setValue(30)
+        self._ret_metrics.setSuffix(" days")
+        self._ret_metrics.valueChanged.connect(self._mark_dirty)
+        row1.addWidget(self._ret_metrics, 1)
+
+        row2 = self._add_form_row(layout, "Alerts retention")
+        self._ret_alerts = QSpinBox()
+        self._ret_alerts.setRange(1, 365)
+        self._ret_alerts.setValue(90)
+        self._ret_alerts.setSuffix(" days")
+        self._ret_alerts.valueChanged.connect(self._mark_dirty)
+        row2.addWidget(self._ret_alerts, 1)
+
+        row3 = self._add_form_row(layout, "Sessions retention")
+        self._ret_sessions = QSpinBox()
+        self._ret_sessions.setRange(1, 365)
+        self._ret_sessions.setValue(90)
+        self._ret_sessions.setSuffix(" days")
+        self._ret_sessions.valueChanged.connect(self._mark_dirty)
+        row3.addWidget(self._ret_sessions, 1)
 
         layout.addStretch(1)
         return w
@@ -357,13 +378,16 @@ class SettingsPage(PageBase):
     # ---------- Dirty State ----------
 
     def _mark_dirty(self):
-        if not self._dirty:
-            self._dirty = True
-            self._dirty_lbl.setText("● Unsaved changes")
-            self._save_btn.setEnabled(True)
+        """P1.5: 委托 VM 标记脏（单一数据源）。"""
+        if self._vm:
+            self._vm._mark_dirty()
+        self._dirty_lbl.setText("● Unsaved changes")
+        self._save_btn.setEnabled(True)
 
     def _clear_dirty(self):
-        self._dirty = False
+        """P1.5: 委托 VM 清除脏标记。"""
+        if self._vm:
+            self._vm._clear_dirty()
         self._dirty_lbl.setText("")
         self._save_btn.setEnabled(False)
 
@@ -415,10 +439,15 @@ class SettingsPage(PageBase):
         self._fps_min_spin.setValue(
             (vm.get_alert("fps.fps") or {}).get("red_min", 30))
 
+        # Monitoring (retention)
+        self._ret_metrics.setValue(vm.get("retention_metrics", 30))
+        self._ret_alerts.setValue(vm.get("retention_alerts", 90))
+        self._ret_sessions.setValue(vm.get("retention_sessions", 90))
+
     # ---------- 保存 ----------
 
     def _on_save(self) -> None:
-        if not self._vm or not self._dirty:
+        if not self._vm or not self._vm.is_dirty():
             return
         vm = self._vm
 
@@ -441,6 +470,11 @@ class SettingsPage(PageBase):
         vm.set_alert("gpu.core_temp_c", red=self._gpu_temp_spin.value())
         vm.set_alert("ram.usage_percent", red=self._ram_red_spin.value())
         vm.set_alert("fps.fps", red_min=self._fps_min_spin.value())
+
+        # Monitoring (retention)
+        vm.set("retention_metrics", self._ret_metrics.value())
+        vm.set("retention_alerts", self._ret_alerts.value())
+        vm.set("retention_sessions", self._ret_sessions.value())
 
         # 一次写盘
         vm.save()

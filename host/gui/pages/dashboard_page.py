@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
 
 from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.spacing import ThemeSpacing as S
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.pages.base_page import PageBase
 from host.gui.widgets.node_card import NodeCard
 from host.gui.widgets.chart_panel import SummaryCard
@@ -127,14 +128,14 @@ class DashboardPage(PageBase):
         hdr.addWidget(title)
         hdr.addStretch(1)
         self._subtitle = QLabel("System overview and performance at a glance")
-        self._subtitle.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 13px;")
+        self._subtitle.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY_SMALL['size']}px;")
         hdr.addWidget(self._subtitle)
         root.addLayout(hdr)
 
         # System Overview（4 个 MetricBar 全在一行）
         overview_label = QLabel("System Overview")
         overview_label.setStyleSheet(
-            f"font-size: 16px; font-weight: 600; color: {TC.TEXT_PRIMARY};")
+            f"font-size: {TT.TITLE_SMALL['size']}px; font-weight: 600; color: {TC.TEXT_PRIMARY};")
         root.addWidget(overview_label)
         self._system_overview = SystemOverviewWidget()
         root.addWidget(self._system_overview)

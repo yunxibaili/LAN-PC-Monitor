@@ -81,10 +81,25 @@ class AlertCard(QFrame):
         root.addLayout(content, 1)
 
     def set_alert(self, item) -> None:
-        """从 AlertItem 填充卡片。"""
+        """从 AlertItem / RecoveryItem 填充卡片。"""
         self._item = item
 
-        # 严重度
+        # 1.3: RecoveryItem 处理
+        if hasattr(item, 'level') and item.level == "recovery":
+            self._severity_lbl.setText("RECOVERED")
+            self._severity_lbl.setStyleSheet(
+                f"color: {TC.STATUS_ONLINE}; font-size: 11px; font-weight: 700; "
+                f"letter-spacing: 0.5px; background: transparent;")
+            self._severity_bar.setStyleSheet(
+                f"background: {TC.STATUS_ONLINE}; border-radius: 2px;")
+            node = item.node_alias or item.node_id or "Unknown"
+            self._title_lbl.setText(f"Recovered: {node}")
+            self._node_lbl.setText(f"{item.count} alert(s) resolved")
+            self._value_lbl.setText("")
+            self._time_lbl.setText(_fmt_time_relative(item.timestamp))
+            return
+
+        # AlertItem 标准渲染
         level = (item.level or "warn").lower()
         if level == "red":
             sev_text = "CRITICAL"

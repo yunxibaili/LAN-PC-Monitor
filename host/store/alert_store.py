@@ -21,10 +21,11 @@ from host.store.signals import Signal
 
 
 class AlertStore:
-    """告警 Store（30s 窗口去重 + 计数）。"""
+    """告警 Store（30s 窗口去重 + 计数 + 恢复检测）。"""
 
     alert_added = Signal(dict)
     alert_cleared = Signal(str)
+    recovery_added = Signal(dict)  # 1.3: 恢复事件
     count_changed = Signal(int)
     reset = Signal()
 
@@ -34,6 +35,7 @@ class AlertStore:
         self._alerts = []                 # 完整告警列表（新→旧或旧→新，见 _append）
         self._last_alert_ts = {}          # (node_id, path) -> ts（去重）
         self._active = {}                 # (node_id, path) -> alert（未恢复）
+        self._recoveries = []             # 1.3: 恢复事件列表
 
     # ---------- 写入 ----------
 
@@ -65,12 +67,25 @@ class AlertStore:
     def clear_node(self, node_id: str) -> None:
         """清空某节点的活动告警（节点恢复/离线时调用）。"""
         changed = False
+        recovered = []
         for key in list(self._active.keys()):
             if key[0] == node_id:
-                del self._active[key]
+                alert = self._active.pop(key)
                 changed = True
-        # 保留去重时间戳（避免瞬时抖动重复告警）；清活动态即可
+                recovered.append(alert)
         if changed:
+            # 1.3: 记录恢复事件
+            recovery = {
+                "node_id": node_id,
+                "node_alias": recovered[0].get("node_alias", node_id),
+                "timestamp": time.time(),
+                "count": len(recovered),
+                "alerts": recovered,
+            }
+            self._recoveries.append(recovery)
+            if len(self._recoveries) > self._max_entries:
+                self._recoveries = self._recoveries[-self._max_entries:]
+            self.recovery_added.emit(recovery)
             self.alert_cleared.emit(node_id)
             self.count_changed.emit(self.active_count())
 
@@ -84,10 +99,11 @@ class AlertStore:
         self.count_changed.emit(0)
 
     def reset_all(self) -> None:
-        """整体重置（清空历史、去重表、活动告警）。"""
+        """整体重置（清空历史、去重表、活动告警、恢复事件）。"""
         self._alerts.clear()
         self._last_alert_ts.clear()
         self._active.clear()
+        self._recoveries.clear()
         self.reset.emit()
         self.count_changed.emit(0)
 
@@ -118,6 +134,13 @@ class AlertStore:
     def node_alerts(self, node_id: str) -> list:
         """某节点的未恢复告警。"""
         return [a for k, a in self._active.items() if k[0] == node_id]
+
+    def recoveries(self, limit: int = None) -> list:
+        """恢复事件列表（最新在前）。"""
+        seq = list(reversed(self._recoveries))
+        if limit is not None and limit > 0:
+            seq = seq[:limit]
+        return seq
 
     # ---------- 统计 ----------
 

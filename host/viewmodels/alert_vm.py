@@ -58,6 +58,19 @@ class AlertItem:
         }
 
 
+class RecoveryItem:
+    """恢复事件展示项。"""
+
+    __slots__ = ("timestamp", "node_id", "node_alias", "count", "level")
+
+    def __init__(self, recovery: dict):
+        self.timestamp = recovery.get("timestamp", 0.0)
+        self.node_id = recovery.get("node_id", "")
+        self.node_alias = recovery.get("node_alias", "")
+        self.count = recovery.get("count", 0)
+        self.level = "recovery"
+
+
 class AlertViewModel:
     """告警视图模型：转换 + 过滤 + 统计，不复制 Store 去重。"""
 
@@ -86,6 +99,7 @@ class AlertViewModel:
         self._store.alert_added.connect(self._on_added)
         self._store.alert_cleared.connect(self._on_cleared)
         self._store.count_changed.connect(self._on_count)
+        self._store.recovery_added.connect(self._on_recovery)
         self._subscribed = True
         self._rebuild()
 
@@ -95,6 +109,7 @@ class AlertViewModel:
             self._store.alert_added.disconnect(self._on_added)
             self._store.alert_cleared.disconnect(self._on_cleared)
             self._store.count_changed.disconnect(self._on_count)
+            self._store.recovery_added.disconnect(self._on_recovery)
             self._subscribed = False
 
     # ---------- 内部信号回调 ----------
@@ -109,6 +124,11 @@ class AlertViewModel:
         self._items = [i for i in self._items if i.node_id != node_id]
         self.alerts_changed.emit()
 
+    def _on_recovery(self, recovery: dict) -> None:
+        """AlertStore 恢复事件 → 插入 RecoveryItem。"""
+        self._items.insert(0, RecoveryItem(recovery))
+        self.alerts_changed.emit()
+
     def _on_count(self, count: int) -> None:
         """活动告警总数变化。"""
         self.count_changed.emit(count)
@@ -116,7 +136,7 @@ class AlertViewModel:
     # ---------- 查询 ----------
 
     def get_items(self) -> list:
-        """按当前过滤条件返回 AlertItem 列表（新→旧）。"""
+        """按当前过滤条件返回 AlertItem + RecoveryItem 列表（新→旧）。"""
         return [i for i in self._items if self._match(i)]
 
     def get_count(self) -> int:
@@ -176,8 +196,11 @@ class AlertViewModel:
 
     # ---------- 内部 ----------
 
-    def _match(self, item: AlertItem) -> bool:
+    def _match(self, item) -> bool:
         """是否匹配当前过滤条件。"""
+        # RecoveryItem 始终显示
+        if isinstance(item, RecoveryItem):
+            return True
         if self._filter_level and item.level != self._filter_level:
             return False
         if self._filter_node and item.node_id != self._filter_node:
@@ -191,4 +214,8 @@ class AlertViewModel:
     def _rebuild(self) -> None:
         """从 Store 全量重建缓存（subscribe / clear_all 时）。"""
         self._items = [AlertItem(a) for a in self._store.alerts(limit=None)]
-        # alerts() 已按新→旧排序（内部 reversed）
+        # 1.3: 追加恢复事件
+        for r in self._store.recoveries(limit=50):
+            self._items.append(RecoveryItem(r))
+        # 按时间倒序排列
+        self._items.sort(key=lambda i: i.timestamp, reverse=True)

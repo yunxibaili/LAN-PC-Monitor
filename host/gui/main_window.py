@@ -196,6 +196,14 @@ class HostMainWindow(QMainWindow):
         # Storage Service（统一管理 SQLite 连接 + Repository）
         # v5.3.1：默认路径固定到用户数据目录，不再跟随启动 CWD
         self._storage = StorageService()
+        # 5-5C: 从配置加载 retention 策略
+        from host.storage.retention import RetentionPolicy
+        ret_policy = RetentionPolicy(
+            metrics_days=self.cfg.get("retention_metrics", 30),
+            alerts_days=self.cfg.get("retention_alerts", 90),
+            sessions_days=self.cfg.get("retention_sessions", 90),
+        )
+        self._storage.retention_service(ret_policy).run()
         self._history_facade = self._storage.history_facade()
         self.history_vm = HistoryViewModel(self._history_facade)
         self._metric_persistence = MetricPersistenceService(

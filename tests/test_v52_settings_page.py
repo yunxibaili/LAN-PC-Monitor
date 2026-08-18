@@ -90,11 +90,11 @@ def test_dirty():
     print("\n--- 4. Dirty state ---")
     vm, page = _make()
     page.on_show()
-    check("初始 clean", not page._dirty)
+    check("初始 clean", not vm.is_dirty())
     check("save 禁用", not page._save_btn.isEnabled())
 
     page._scale_spin.setValue(1.5)
-    check("修改后 dirty", page._dirty)
+    check("修改后 dirty", vm.is_dirty())
     check("save 启用", page._save_btn.isEnabled())
     check("dirty 提示", "Unsaved" in page._dirty_lbl.text())
 
@@ -108,7 +108,7 @@ def test_save():
 
     page._scale_spin.setValue(1.5)
     page._on_save()
-    check("保存后 clean", not page._dirty)
+    check("保存后 clean", not vm.is_dirty())
     check("save 禁用", not page._save_btn.isEnabled())
     check("值已持久化", vm.get("ui_scale") == 1.5)
 
