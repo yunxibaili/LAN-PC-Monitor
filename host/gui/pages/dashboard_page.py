@@ -110,7 +110,6 @@ class DashboardPage(PageBase):
         overview_card.setStyleSheet(f"""
             QFrame {{
                 background-color: {TC.BG_CARD};
-                border: 1px solid {TC.BORDER_DEFAULT};
                 border-radius: 8px;
             }}
         """)
@@ -137,7 +136,6 @@ class DashboardPage(PageBase):
         chart_card.setStyleSheet(f"""
             QFrame {{
                 background-color: {TC.BG_CARD};
-                border: 1px solid {TC.BORDER_DEFAULT};
                 border-radius: 8px;
             }}
         """)
@@ -160,7 +158,6 @@ class DashboardPage(PageBase):
         alerts_card.setStyleSheet(f"""
             QFrame {{
                 background-color: {TC.BG_CARD};
-                border: 1px solid {TC.BORDER_DEFAULT};
                 border-radius: 8px;
             }}
         """)

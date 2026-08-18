@@ -24,7 +24,7 @@ class HeaderBar(QWidget):
         self.setFixedHeight(56)
         self.setStyleSheet(f"""
             HeaderBar {{
-                background-color: {TC.BG_SURFACE};
+                background-color: {TC.BG_BASE};
                 border-bottom: 1px solid {TC.BORDER_DEFAULT};
             }}
         """)
