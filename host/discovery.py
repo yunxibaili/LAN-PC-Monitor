@@ -91,7 +91,8 @@ class DiscoveryListener:
                     "hostname": msg.get("hostname", ""),
                     "http_port": port,
                     "tcp_port": port,           # 兼容字段
-                    "token": msg.get("token", ""),
+                    "token_hash": msg.get("token_hash", ""),
+                    "token": "",                # P1-3: 明文 token 不再广播，需用户输入
                     "version": msg.get("version", "4.0"),
                     "last_seen": time.time(),
                 }
@@ -187,7 +188,8 @@ class MdnsDiscovery:
                     "hostname": hostname,
                     "http_port": port,
                     "tcp_port": port,           # 兼容字段
-                    "token": "",                # mDNS 仅广播 token 摘要
+                    "token_hash": "",            # mDNS 未广播 token hash
+                    "token": "",                 # P1-3: 需用户输入
                     "version": version,
                     "mdns": True,
                 }

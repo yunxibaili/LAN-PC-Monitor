@@ -95,7 +95,7 @@ class RestServer:
         system_uptime = frame.get("system", {}).get("uptime_seconds", 0)
         return web.json_response({
             "status": "ok",
-            "version": "5.0.0",
+            "version": "5.3.4",
             "hostname": socket.gethostname(),
             "ip": get_lan_ip(self.cfg.get("preferred_iface", "")),
             "port": self.cfg.get("http_port", 12345),
@@ -156,10 +156,11 @@ class RestServer:
                 self.cfg[k] = v
                 updated.append(k)
 
-        # P1-2: 应用 log_level 变更
+        # P1-2/R-3: 应用 log_level 变更到 agent 根 logger（影响所有 agent.* 子 logger）
         if "log_level" in updated:
             level = getattr(logging, self.cfg["log_level"].upper(), logging.INFO)
-            logging.getLogger().setLevel(level)
+            logging.getLogger("agent").setLevel(level)
+            log.info("日志级别已变更为 %s", self.cfg["log_level"])
 
         # P1-2: 落盘
         if updated:

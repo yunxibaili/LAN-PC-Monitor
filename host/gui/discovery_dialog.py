@@ -4,14 +4,14 @@
 
 - 显示当前在线节点（来自 UDP 心跳监听器），支持多选批量添加。
 - 已添加的节点（IP+端口已在配置）标记"已添加"并禁用勾选。
-- 确认添加后：写入 host_config.json 并回调主窗口创建连接。
+- P1-3: Agent 不再广播明文 token，需用户输入 token 确认后才能连接。
 """
 import logging
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel,
-                             QListWidget, QListWidgetItem, QPushButton,
-                             QVBoxLayout)
+                             QLineEdit, QListWidget, QListWidgetItem,
+                             QPushButton, QVBoxLayout)
 
 from common.i18n import tr
 from common.utils import make_host_id
@@ -37,9 +37,9 @@ class DiscoveryDialog(QDialog):
         self.on_add = on_add
         self.on_add_local = on_add_local
         from host.gui.theme.components import remove_help_button
-        remove_help_button(self)   # 移除 Windows 标题栏问号按钮，防闪退
+        remove_help_button(self)
         self.setWindowTitle(tr("topbar.scan"))
-        self.resize(480, 420)
+        self.resize(480, 480)
         self._build_ui()
         self._refresh()
 
@@ -55,7 +55,29 @@ class DiscoveryDialog(QDialog):
         self.list_widget.setSelectionMode(QListWidget.MultiSelection)
         root.addWidget(self.list_widget, 1)
 
-        # 便捷入口：一键添加本机节点
+        # P1-3: Token 输入行（发现的 Agent 需要用户输入 token 才能连接）
+        token_row = QHBoxLayout()
+        token_lbl = QLabel("Token:")
+        token_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 12px;")
+        self._token_input = QLineEdit()
+        self._token_input.setPlaceholderText("输入 Agent token 以连接（首次连接必需）")
+        self._token_input.setEchoMode(QLineEdit.Password)
+        self._token_input.setStyleSheet(f"""
+            QLineEdit {{
+                background: {TC.BG_INPUT};
+                border: 1px solid {TC.BORDER_DEFAULT};
+                border-radius: 6px;
+                padding: 6px 10px;
+                color: {TC.TEXT_PRIMARY};
+                font-size: 12px;
+            }}
+            QLineEdit:focus {{ border-color: {TC.ACCENT_PRIMARY}; }}
+        """)
+        token_row.addWidget(token_lbl)
+        token_row.addWidget(self._token_input, 1)
+        root.addLayout(token_row)
+
+        # 便捷入口
         local_row = QHBoxLayout()
         self.btn_local = QPushButton(tr("discovery.add_local"))
         self.btn_local.setToolTip(tr("discovery.add_local_tip"))
@@ -76,15 +98,12 @@ class DiscoveryDialog(QDialog):
         root.addLayout(bottom)
 
     def _on_add_local(self) -> None:
-        """一键添加本机节点（复用回调）。"""
         if self.on_add_local:
             self.on_add_local()
             self.accept()
 
     def _refresh(self) -> None:
-        """刷新在线节点列表。"""
         self.list_widget.clear()
-        # 兼容：listener 可以是对象（有 get_hosts()）或直接传 dict（合并后的节点）
         if hasattr(self.listener, "get_hosts"):
             hosts = self.listener.get_hosts()
         else:
@@ -111,7 +130,9 @@ class DiscoveryDialog(QDialog):
             self.list_widget.addItem(item)
 
     def _on_accept(self) -> None:
-        """确认添加选中的节点。"""
+        token = self._token_input.text().strip()
+        if not token:
+            token = ""  # 允许空 token（本地节点不需要）
         added = 0
         for item in self.list_widget.selectedItems():
             info = item.data(Qt.UserRole)
@@ -120,10 +141,9 @@ class DiscoveryDialog(QDialog):
             if info["node_id"] in self.existing:
                 continue
             if self.on_add:
-                self.on_add(info["ip"], info["port"], info["token"],
+                self.on_add(info["ip"], info["port"], token,
                             info["alias"])
-            self.existing.add(info["node_id"])
-            added += 1
+                added += 1
         if added:
-            log.info("自动发现添加 %d 台节点", added)
+            log.info("发现弹窗添加 %d 个节点", added)
         self.accept()

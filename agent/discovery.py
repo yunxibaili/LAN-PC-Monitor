@@ -78,9 +78,9 @@ class DiscoveryBroadcaster:
     """
     Agent UDP 心跳广播器 —— 每 2 秒广播 agent_heartbeat，供 Host 自动发现。
 
-    字段语义（v5.0）：
-    - http_port: Agent HTTP/WS 共用端口（v4.0 字段为 tcp_port，v5.0 改名以避免误导）。
-    - token: 明文 token（mDNS 走 token_hash，UDP 走明文以兼容旧 host 监听器）。
+    字段语义（v5.3.4，P1-3 安全加固）：
+    - http_port: Agent HTTP/WS 共用端口。
+    - token_hash: token 的 sha256[:8] 摘要（不再广播明文 token，Host 需用户输入 token 后连接）。
     """
 
     def __init__(self, http_port: int, udp_port: int, token: str,

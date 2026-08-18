@@ -127,6 +127,10 @@ class DataController:
                 try:
                     port = info.get("http_port") or info.get("port") or 12345
                     token = info.get("token", "")
+                    # P1-3: Agent 不再广播明文 token，跳过无 token 的节点
+                    # （需通过发现对话框手动输入 token 添加）
+                    if not token:
+                        continue
                     node_id = make_host_id(ip, port)
                     if node_id in self.nodes:
                         continue
