@@ -23,7 +23,7 @@
 
 1. 判断是否属于 Allowed 三类；不确定时默认拒绝。
 2. Allowed 修复仍需：本地全量回归 + CI 全绿。
-3. 非 Allowed 变更一律排入 v5.3（见 `docs/core/ROADMAP.md` / `docs/issues/v5.2.3_known_issues.md`）。
+3. 非 Allowed 变更一律排入 v5.3（见 `docs/ROADMAP.md` / `docs/known_issues.md`）。
 
 ## Tag 策略（统一规则，长期有效）
 

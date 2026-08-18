@@ -54,7 +54,7 @@ HistoryVM
 HistoryPage
 ```
 
-详细架构见 [docs/core/ARCHITECTURE.md](docs/core/ARCHITECTURE.md)。
+详细架构见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 ## Features
 
@@ -116,28 +116,23 @@ python -m agent --gui        # 带本机仪表盘
 python -m host               # 集中监控大屏
 ```
 
-首次启动自动生成配置文件。详细安装见 [docs/archive/installation.md](docs/archive/installation.md)。
+首次启动自动生成配置文件。详细安装见 [docs/archive/old_docs/installation.md](docs/archive/old_docs/installation.md)。
 
 ## Documentation
 
 ```
 docs/
 ├── README.md              文档总入口
-├── core/                  ⭐ 开发必读
-│   ├── BLUEPRINT.md        项目总蓝图（唯一入口）
-│   ├── ARCHITECTURE.md     最终架构
-│   ├── UI_SYSTEM.md        UI 设计规范（唯一权威）
-│   ├── DATA_FLOW.md        数据流
-│   ├── DEVELOPMENT.md      开发规范
-│   └── ROADMAP.md          路线图
-├── releases/               Release Notes
-├── issues/                 已知问题登记
-├── phases/                Phase 迁移历史
-├── reports/               审计/清理报告
-└── archive/               历史归档
+├── ARCHITECTURE.md        架构 + 数据流
+├── UI_GUIDE.md            ⭐ UI 唯一规范
+├── DEVELOPMENT.md         开发规范
+├── ROADMAP.md             路线图
+├── known_issues.md        已知问题
+├── releases/              Release Notes + 审计
+└── archive/               历史文档（phases/reports/old_docs）
 ```
 
-开发人员和 AI 只需阅读 `docs/README.md` + `docs/core/*.md` 即可理解整个项目。
+开发人员和 AI 只需阅读 `docs/README.md` + `docs/UI_GUIDE.md` 即可理解整个项目。
 
 ## Configuration
 
@@ -158,11 +153,11 @@ python tests/test_p0.py     # 协议/采集器冒烟
 
 ```
 Latest verified baseline:
-  docs/reports/v5.2.3_release_audit.md  (§四 测试基线冻结)
-  docs/reports/baseline_v5.2.3.txt      (逐文件明细)
+  docs/releases/v5.2.3_release_audit.md  (§四 测试基线冻结)
+  docs/releases/baseline_v5.2.3.txt      (逐文件明细)
 ```
 
-开发指南见 [docs/core/DEVELOPMENT.md](docs/core/DEVELOPMENT.md)。
+开发指南见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
 
 ## Roadmap
 
@@ -184,7 +179,7 @@ Latest verified baseline:
 - [ ] Agent GUI 升级（Phase 4-7，含 common/theme.py 迁移）
 - [ ] 高级告警引擎（Phase 6）
 
-详细路线图见 [docs/core/ROADMAP.md](docs/core/ROADMAP.md)。
+详细路线图见 [docs/ROADMAP.md](docs/ROADMAP.md)。
 
 ## License
 

@@ -1,108 +1,37 @@
-# PC Monitor — 文档总入口
+# LAN-PC-Monitor 文档
 
-> **Version**: v5.2.3
-> **Status**: STABLE（Architecture Stabilization Release）
+> **Version**: v5.3.3
+> **Status**: v5.3 UI 体验阶段
 
-## 项目介绍
+局域网远程电脑监控系统。Agent（被监控端）采集硬件数据，Host（监控端）集中展示。
 
-PC Monitor 是一套**局域网远程电脑监控系统**，采用双角色架构：
-
-- **Agent**（副机端）：运行在每台被监控电脑上，采集硬件数据并推送
-- **Host**（主机端）：运行在监控电脑上，集中展示所有节点的实时状态
-
-## 当前版本
-
-**v5.2.3（Architecture Stabilization Release）**
-
-| 模块 | 版本 | 状态 |
-|------|------|------|
-| Agent | v5.2.3 | ✅ COMPLETE |
-| Host Backend | v5.2.3 | ✅ COMPLETE |
-| Host Architecture | v5.2.3 | ✅ COMPLETE |
-| Design System | v5.2.3 | ✅ COMPLETE |
-| Dashboard UI | v5.2.3 | ✅ COMPLETE |
-| Nodes UI | v5.2.3 | ✅ COMPLETE |
-| Monitor UI | v5.2.3 | ✅ COMPLETE |
-| Alerts UI | v5.2.3 | ✅ COMPLETE |
-| Settings UI | v5.2.3 | ✅ COMPLETE |
-| History UI | v5.2.3 | ✅ COMPLETE |
-| Storage / SQLite | v5.2.3 | ✅ COMPLETE |
-
-## 核心架构
-
-```
-Agent (采集+推送)
-  ↓ WebSocket
-Connection (WS 客户端)
-  ↓ Signal
-Store (数据存储)
-  ↓
-ViewModel (数据转换)
-  ↓
-Page (页面容器)
-  ↓
-Widget (UI 组件)
-  ↓
-Theme (设计系统)
-```
-
-## 快速导航
-
-### 核心文档（开发必读）
+## 核心文档（6 个，开发必读）
 
 | 文档 | 说明 |
 |------|------|
-| [core/BLUEPRINT.md](core/BLUEPRINT.md) | ⭐ 项目总蓝图（唯一入口） |
-| [core/ARCHITECTURE.md](core/ARCHITECTURE.md) | 当前最终架构 |
-| [core/DATA_FLOW.md](core/DATA_FLOW.md) | 数据流说明 |
-| [core/UI_SYSTEM.md](core/UI_SYSTEM.md) | 唯一 UI 设计规范 |
-| [core/DEVELOPMENT.md](core/DEVELOPMENT.md) | 开发规范 |
-| [core/ROADMAP.md](core/ROADMAP.md) | 当前阶段和未来计划 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 架构、目录、数据流、分层规则 |
+| [UI_GUIDE.md](UI_GUIDE.md) | ⭐ 唯一 UI 规范（颜色/字体/组件/禁止项） |
+| [ROADMAP.md](ROADMAP.md) | 当前阶段和未来计划 |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | 开发规范（新增页面/组件/测试流程） |
+| [known_issues.md](known_issues.md) | 已知问题登记 |
 
-### 参考文档
+## 发布文档
 
 | 文档 | 说明 |
 |------|------|
-| [core/PRODUCT.md](core/PRODUCT.md) | 产品定位与功能 |
-| [core/API_PROTOCOL.md](core/API_PROTOCOL.md) | Agent/Host 通信协议 |
+| [releases/v5.2.3.md](releases/v5.2.3.md) | v5.2.3 发布说明 |
+| [releases/freeze.md](releases/freeze.md) | v5.2.x 冻结策略 |
+| [releases/v5.2.3_release_audit.md](releases/v5.2.3_release_audit.md) | 发布审计报告 |
+| [releases/baseline_v5.2.3.txt](releases/baseline_v5.2.3.txt) | 测试基线明细 |
 
-> 旧的 architecture.md / protocol.md / api.md 已整合进 core/，原始文件归档在 [archive/](archive/)。
+## 归档
 
-### 历史文档
-
-| 目录 | 说明 |
-|------|------|
-| [phases/](phases/) | Phase 3 迁移历史 |
-| [reports/](reports/) | 审计与清理报告 |
-| [archive/](archive/) | 归档的旧版设计文档 |
-
-## 目录结构
-
-```
-docs/
-├── README.md              ← 你在这里
-├── core/                  ⭐ 开发必读
-│   ├── BLUEPRINT.md       项目总蓝图（唯一入口）
-│   ├── PRODUCT.md
-│   ├── ARCHITECTURE.md
-│   ├── UI_SYSTEM.md
-│   ├── DATA_FLOW.md
-│   ├── API_PROTOCOL.md
-│   ├── DEVELOPMENT.md
-│   └── ROADMAP.md
-├── releases/              Release Notes
-├── issues/                已知问题登记
-├── phases/                Phase 迁移历史
-├── reports/               审计/清理报告
-└── archive/               归档旧文档（含旧 architecture/protocol/api/installation/ui_design 等）
-```
+历史文档（Phase 计划 / 审计报告 / 旧设计）见 [archive/](archive/)，日常开发不需要读。
 
 ## AI 开发指南
 
-如果你是 AI 助手，只需阅读以下文件即可理解整个项目：
+理解项目只需读：
 
-1. **docs/core/BLUEPRINT.md**（项目总蓝图）— 唯一入口
-2. **docs/core/ARCHITECTURE.md** — 架构和目录
-3. **docs/core/DATA_FLOW.md** — 数据流
-4. **docs/core/UI_SYSTEM.md** — UI 规范
-5. **docs/core/DEVELOPMENT.md** — 开发规范
+1. **docs/ARCHITECTURE.md** —— 架构和数据流
+2. **docs/UI_GUIDE.md** —— UI 规范（改 UI 前必读）
+3. **docs/DEVELOPMENT.md** —— 开发规则

@@ -38,7 +38,7 @@
 |----|-----|
 | 受影响测试 | `tests/test_v52_phase0.py`、`tests/test_v52_phase2.py` |
 | 现象 | 进程以 `0xC0000005`（3221225477）原生访问冲突崩溃，无测试输出 |
-| 依据 | docs/reports/rc5_environment_notes.md（RC-5 已记录，不阻塞基线冻结） |
+| 依据 | docs/archive/reports/rc5_environment_notes.md（RC-5 已记录，不阻塞基线冻结） |
 | 备注 | 本机最终审计复现一致；疑与原生库/硬件采集相关，非代码回归 |
 
 ---
