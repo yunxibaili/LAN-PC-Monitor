@@ -113,7 +113,7 @@ class SideNav(QWidget):
 
         # Logo
         logo_frame = QFrame()
-        logo_frame.setFixedHeight(48)
+        logo_frame.setFixedHeight(56)
         logo_frame.setStyleSheet(f"background: {TC.BG_SURFACE}; border-bottom: 1px solid {TC.BORDER_DEFAULT};")
         logo_layout = QHBoxLayout(logo_frame)
         logo_layout.setContentsMargins(14, 0, 14, 0)

@@ -37,7 +37,7 @@ def test_header_bar():
     from host.gui.widgets.header_bar import HeaderBar
     hb = HeaderBar()
     check("HeaderBar 创建", hb is not None)
-    check("高度=48", hb.height() == 48 or hb.minimumHeight() <= 48)
+    check("高度=56", hb.height() == 56 or hb.minimumHeight() <= 56)
     check("set_title", hasattr(hb, 'set_title'))
     check("set_connection", hasattr(hb, 'set_connection'))
     check("settings_clicked 信号", hasattr(hb, 'settings_clicked'))

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""ThemeMetrics —— 间距/字号/圆角/阴影常量（v5.2 Phase 4-2）。"""
+"""ThemeMetrics —— 间距/字号/圆角常量（v5.4 亮色模式）。"""
 
 
 class ThemeMetrics:
@@ -22,9 +22,9 @@ class ThemeMetrics:
     FONT_SIZE_XXL = 24
     FONT_SIZE_NUM = 32
 
-    SHADOW_SM = "0 1px 3px rgba(0,0,0,0.3)"
-    SHADOW_MD = "0 2px 8px rgba(0,0,0,0.4)"
-    SHADOW_LG = "0 4px 16px rgba(0,0,0,0.5)"
+    SHADOW_SM = "0 1px 2px rgba(0,0,0,0.05)"
+    SHADOW_MD = "0 2px 4px rgba(0,0,0,0.08)"
+    SHADOW_LG = "0 4px 8px rgba(0,0,0,0.10)"
 
     SIDEBAR_WIDTH = 220
     HEADER_HEIGHT = 56
