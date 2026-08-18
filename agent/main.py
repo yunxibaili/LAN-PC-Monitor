@@ -258,7 +258,13 @@ def _run_tray(cfg, log) -> int:
     app.setStyleSheet(DARK_QSS)
     ensure_language(cfg, agent_config.save_config, parent=app)
 
-    # 后台服务线程
+    # P1-5 fix: 先检测托盘可用性，不可用则单进程后台（避免双服务冲突）
+    if not QSystemTrayIcon.isSystemTrayAvailable():
+        log.warning("系统托盘不可用，降级为纯后台（单进程）")
+        _run_background(cfg, log)
+        return 0
+
+    # 后台服务线程（仅在有托盘时启动）
     stop_event = asyncio.Event()
     service_ref = {}
 
@@ -268,12 +274,6 @@ def _run_tray(cfg, log) -> int:
 
     svc_thread = _ServiceThread()
     svc_thread.start()
-
-    # 托盘图标
-    if not QSystemTrayIcon.isSystemTrayAvailable():
-        log.warning("系统托盘不可用，降级为纯后台")
-        _run_background(cfg, log)
-        return 0
 
     tray = QSystemTrayIcon()
     tray.setToolTip("LAN PC Monitor - Agent")

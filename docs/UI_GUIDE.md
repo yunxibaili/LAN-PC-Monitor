@@ -1,7 +1,7 @@
 # LAN-PC-Monitor UI Guide
 
 > **唯一 UI 规范**。所有 GUI 开发以此为准，禁止参考 archive 中的旧 UI 文档。
-> **Version**: v5.3.3
+> **Version**: v5.3.4
 
 ---
 

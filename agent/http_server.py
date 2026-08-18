@@ -20,6 +20,7 @@ import time
 from aiohttp import web
 
 from common.utils import get_lan_ip
+from agent.config import save_config as _save_agent_config
 
 log = logging.getLogger("agent.http")
 
@@ -131,20 +132,43 @@ class RestServer:
         return web.json_response(safe)
 
     async def post_config(self, request: web.Request) -> web.Response:
-        """POST /api/config —— 更新配置（别名/日志级别/采集开关）。"""
+        """POST /api/config —— 更新配置（别名/日志级别/采集开关，token 不可修改）。"""
         self._require_auth(request)
         try:
             data = await request.json()
         except Exception:
             raise web.HTTPBadRequest(text=json.dumps(
                 {"error": "invalid json"}), content_type="application/json")
-        # 允许更新的白名单字段
-        allowed = {"alias", "log_level"}
+
+        # P1-2: 类型校验
+        allowed = {
+            "alias": (str, 100),
+            "log_level": (str, 10),
+        }
+        updated = []
         for k, v in data.items():
+            if k == "token":
+                continue
             if k in allowed:
+                typ, maxlen = allowed[k]
+                if not isinstance(v, typ) or (isinstance(v, str) and len(v) > maxlen):
+                    continue
                 self.cfg[k] = v
-        # token 不可经此接口修改（§20.1 明确）
-        return web.json_response({"ok": True})
+                updated.append(k)
+
+        # P1-2: 应用 log_level 变更
+        if "log_level" in updated:
+            level = getattr(logging, self.cfg["log_level"].upper(), logging.INFO)
+            logging.getLogger().setLevel(level)
+
+        # P1-2: 落盘
+        if updated:
+            try:
+                _save_agent_config(self.cfg)
+            except Exception as e:
+                log.warning("POST /api/config 落盘失败: %s", e)
+
+        return web.json_response({"ok": True, "updated": updated})
 
     # ---------- 应用 ----------
 

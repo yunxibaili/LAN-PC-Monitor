@@ -36,6 +36,10 @@ class Database:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA foreign_keys=ON")
+        # P1-4: 性能优化 —— NORMAL 降低 fsync 频率（WAL 已保证崩溃安全）
+        self._conn.execute("PRAGMA synchronous=NORMAL")
+        # P1-4: 避免 SQLITE_BUSY 死锁（5 秒超时）
+        self._conn.execute("PRAGMA busy_timeout=5000")
         version = init_schema(self._conn)
         log.info("Database connected: %s (schema v%d)", self._path, version)
         return self

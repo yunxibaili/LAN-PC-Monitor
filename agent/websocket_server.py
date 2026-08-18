@@ -112,14 +112,17 @@ class WebSocketServer:
             await ws.close(code=1008, message=b"unauthorized")
             return ws
 
-        self._subscribers.add(ws)
-        log.info("WS 客户端 %s 已连接，当前订阅者 %d",
-                 request.remote, self.subscriber_count())
+        # P1-1 fix: 先发 auth_result 再入订阅集合，避免竞态
         try:
             await ws.send_str(json.dumps(
                 {"type": "auth_result", "ok": True}, ensure_ascii=False))
         except Exception:
-            pass
+            await ws.close(code=1008, message=b"unauthorized")
+            return ws
+
+        self._subscribers.add(ws)
+        log.info("WS 客户端 %s 已连接，当前订阅者 %d",
+                 request.remote, self.subscriber_count())
 
         try:
             async for msg in ws:

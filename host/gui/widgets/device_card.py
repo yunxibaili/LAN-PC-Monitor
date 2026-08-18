@@ -71,9 +71,9 @@ class DeviceCard(QFrame):
         self._cpu_bar = self._make_metric("CPU")
         self._ram_bar = self._make_metric("RAM")
         self._gpu_bar = self._make_metric("GPU")
-        metrics.addWidget(self._cpu_bar["wrap"], 1)
-        metrics.addWidget(self._ram_bar["wrap"], 1)
-        metrics.addWidget(self._gpu_bar["wrap"], 1)
+        metrics.addLayout(self._cpu_bar["wrap"], 1)
+        metrics.addLayout(self._ram_bar["wrap"], 1)
+        metrics.addLayout(self._gpu_bar["wrap"], 1)
         layout.addLayout(metrics)
 
         # -- Footer: IP + last seen --

@@ -215,6 +215,7 @@ class HostMainWindow(QMainWindow):
         # VM 注入
         self.dashboard_page = self._pages["dashboard"]
         self.dashboard_page.set_view_model(self.dashboard_vm)
+        self.dashboard_page.set_frame_store(self.frame_store)
         self.dashboard_page.set_alert_store(self.alert_store)
         self.dashboard_page.card_clicked.connect(self._on_card_clicked)
 

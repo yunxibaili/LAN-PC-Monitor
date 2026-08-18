@@ -1,6 +1,6 @@
 # 开发规范
 
-> **Version**: v5.2.3
+> **Version**: v5.3.4
 > **Status**: STABLE
 
 ## 1. 环境

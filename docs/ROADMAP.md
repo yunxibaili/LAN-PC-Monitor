@@ -1,6 +1,6 @@
 # 路线图
 
-> **Version**: v5.3.3
+> **Version**: v5.3.4
 > **Status**: v5.3 UI 体验阶段
 
 ## 已完成
@@ -12,12 +12,13 @@
 | v5.3.1 | Runtime Fix（history.db 路径统一 + netifaces 替换） | ✅ |
 | v5.3.2 | Dashboard 2.0（System Overview + 状态卡片） | ✅ |
 | v5.3.3 | History UX（时间快捷键 + 多曲线 + tooltip + Summary） | ✅ |
+| v5.3.4 | Devices Page + Dashboard Recent Activity | ✅ |
 
 ## 进行中
 
 | 项 | 内容 |
 |----|------|
-| v5.3.4 | Device View（设备列表 + 在线状态 + IP + 最后通信时间） |
+| （无） | — |
 
 ## 待完成
 
@@ -45,5 +46,5 @@
 ## 测试
 
 - 框架：自定义 check runner（非 pytest）
-- 最新全量回归：**989/989 PASS**
+- 最新全量回归：**994/994 PASS**
 - 基线明细见 `docs/releases/baseline_v5.2.3.txt`

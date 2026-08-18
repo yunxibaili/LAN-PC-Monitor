@@ -1,6 +1,6 @@
 # 架构
 
-> **Version**: v5.3.3
+> **Version**: v5.3.4
 > **Status**: STABLE
 
 ## 1. 总体架构

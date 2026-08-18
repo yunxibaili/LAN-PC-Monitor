@@ -1,6 +1,6 @@
 # LAN-PC-Monitor 文档
 
-> **Version**: v5.3.3
+> **Version**: v5.3.4
 > **Status**: v5.3 UI 体验阶段
 
 局域网远程电脑监控系统。Agent（被监控端）采集硬件数据，Host（监控端）集中展示。

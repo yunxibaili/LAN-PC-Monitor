@@ -109,9 +109,10 @@ class DashboardPage(PageBase):
         self._grid_cols = 2
         self._setup_ui()
 
-        # 2 秒节流刷新
+        # P1-6 fix: Signal 驱动 + 100ms debounce（非轮询）
         self._refresh_timer = QTimer(self)
-        self._refresh_timer.setInterval(2000)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.setInterval(100)
         self._refresh_timer.timeout.connect(self._flush_refresh)
 
     def _setup_ui(self):
@@ -188,6 +189,17 @@ class DashboardPage(PageBase):
     def set_view_model(self, vm):
         self._vm = vm
 
+    def set_frame_store(self, frame_store):
+        """P1-6: 连接 frame_store 信号，触发 Signal 驱动刷新。"""
+        self._frame_store = frame_store
+        if frame_store:
+            frame_store.frame_updated.connect(self._on_frame_updated)
+
+    def _on_frame_updated(self, node_id, frame):
+        """P1-6: 帧到达 → 启动 debounce timer（非轮询）。"""
+        if self._visible and not self._refresh_timer.isActive():
+            self._refresh_timer.start()
+
     def set_alert_store(self, alert_store):
         self._alert_store = alert_store
 
@@ -198,7 +210,7 @@ class DashboardPage(PageBase):
     def on_show(self):
         super().on_show()
         self._rebuild_grid()
-        self._refresh_timer.start()
+        self._flush_refresh()
 
     def on_hide(self):
         super().on_hide()

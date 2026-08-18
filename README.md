@@ -3,7 +3,7 @@
 轻量级局域网硬件监控平台，支持多节点实时监控、历史趋势分析、事件告警。
 
 [![Windows Tests](https://github.com/yunxibaili/LAN-PC-Monitor/actions/workflows/windows-tests.yml/badge.svg)](https://github.com/yunxibaili/LAN-PC-Monitor/actions/workflows/windows-tests.yml)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)]() [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey.svg)]() [![Version](https://img.shields.io/badge/Version-v5.2.3-green.svg)]() [![License](https://img.shields.io/badge/License-MIT-blue.svg)]()
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)]() [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey.svg)]() [![Version](https://img.shields.io/badge/Version-v5.3.4-green.svg)]() [![License](https://img.shields.io/badge/License-MIT-blue.svg)]()
 
 > 实时查看多台 Windows 电脑的 CPU / GPU / 内存 / 磁盘 / 网络 / FPS / 进程，并逐步演进为带历史分析、事件告警的轻量级监控平台。纯局域网运行，不依赖云服务。
 
@@ -11,8 +11,8 @@
 
 ## Current Version
 
-- **版本**：v5.2.3（Architecture Stabilization Release）
-- **状态**：Stable（已冻结）
+- **版本**：v5.3.4（UI Experience + Runtime Fix）
+- **状态**：Active Development（v5.3 开发线）
 - **架构**：前后端分离（Agent 服务端 + Host 监控端）
 - **通信**：WebSocket + REST API
 - **UI**：SaaS 深色风格，Design System 统一主题

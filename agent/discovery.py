@@ -127,7 +127,7 @@ class DiscoveryBroadcaster:
                     "ip": lan_ip,
                     "http_port": self.http_port,   # v5.0 字段名
                     "tcp_port": self.http_port,    # 兼容旧 Host 监听器
-                    "token": self.token,
+                    "token_hash": hashlib.sha256(self.token.encode()).hexdigest()[:8],
                     "ts": time.time(),
                 }, ensure_ascii=False).encode("utf-8")
                 if self.use_multicast:
