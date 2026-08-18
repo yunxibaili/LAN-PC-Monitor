@@ -1,196 +1,287 @@
-# LAN-PC-Monitor UI Guide
+# LAN-PC-Monitor UI 设计规范
 
-> **唯一 UI 规范**。所有 GUI 开发以此为准。
 > **Version**: v5.4
-> **UI 参考**: [Gentelella v4](https://github.com/ColorlibHQ/gentelella)（暗色模式对齐）
+> **定位**: Professional Monitoring Console（专业运维监控控制台）
+> **不是**: 后台管理系统、商城、普通 Dashboard
 
 ---
 
-## 1. 总原则
+## 1. 设计原则
 
-- 颜色、间距、字体全部走 Theme token，**禁止硬编码**
-- 组件先查 `host/gui/widgets/` 是否已有，**禁止复制创建近似组件**
-- 页面样式统一走 Theme，**禁止页面自己内联定义新样式**
+### 提取自（不复制）
 
----
+| 参考来源 | 提取什么 | 不复制什么 |
+|----------|---------|-----------|
+| [Gentelella](https://github.com/ColorlibHQ/gentelella) | Sidebar 结构、Card 布局、Dashboard 密度、颜色语义 | Bootstrap、网页布局、商业后台风格 |
+| Grafana | 信息层级、图表表达、实时数据展示 | 面板拖拽、插件体系 |
+| Windows Fluent | 控件规范、深色模式、桌面应用手感 | 动画、圆角过度 |
 
-## 2. 布局
+### 核心关键词
 
 ```
-MainWindow
-├── HeaderBar (顶部导航)
-├── SideNav (左侧栏)
-└── ContentStack (页面容器)
-    ├── DashboardPage
-    ├── NodesPage
-    ├── MonitorPage
-    ├── AlertsPage
-    ├── HistoryPage
-    └── SettingsPage
+clean          干净简洁
+dense info     信息密度高
+technical      技术感
+dark friendly  深色友好
+real-time      实时数据
+low distraction 低干扰
 ```
 
-每个页面结构：
-- `PageHeader`（标题 + 副标题）
-- 内容区（按页面类型不同）
+### 禁止
+
+- ❌ Bootstrap 风格
+- ❌ 复制网页布局
+- ❌ 新增随机颜色
+- ❌ 独立页面风格
+- ❌ 随意动画
+- ❌ 修改已有 Theme Token
+- ❌ ERP/商城/后台管理风格
 
 ---
 
-## 3. 颜色（Gentelella Dark Mode 对齐）
+## 2. 颜色系统
 
-| 用途 | 值 | 常量 |
+### 背景层
+
+| Token | 值 | 用途 |
+|-------|-----|------|
+| Primary | `#111827` | 主背景（最深） |
+| Secondary | `#1F2937` | 表面容器（卡片/侧栏） |
+| Card | `#273449` | 卡片背景（最亮） |
+| Border | `#374151` | 边框/分隔线 |
+
+### 文字层
+
+| Token | 值 | 用途 |
+|-------|-----|------|
+| Primary | `#F9FAFB` | 主要文字/标题 |
+| Secondary | `#9CA3AF` | 次要文字/描述 |
+| Disabled | `#4B5563` | 禁用/占位 |
+
+### 语义色
+
+| 状态 | 值 | 用途 |
 |------|-----|------|
-| 背景-主 | `#0f1623` | `TC.BACKGROUND_PRIMARY` |
-| 背景-面 | `#1a2332` | `TC.BACKGROUND_SECONDARY` |
-| 背景-卡片 | `#1e2a3a` | `TC.BACKGROUND_CARD` |
-| 边框 | `rgba(255,255,255,0.08)` | `TC.BORDER_DEFAULT` |
-| 主色/强调 | `#1ABB9C`（teal） | `TC.ACCENT_PRIMARY` |
-| 成功/在线 | `#2fb344` | `TC.STATUS_ONLINE` |
-| 警告 | `#f59f00` | `TC.STATUS_WARNING` |
-| 危险/离线 | `#d63939` | `TC.STATUS_ERROR` |
-| 文字-主 | `#e6ebf2` | `TC.TEXT_PRIMARY` |
-| 文字-次 | `#b3bccb` | `TC.TEXT_SECONDARY` |
-| 文字-禁用 | `#5a6473` | `TC.TEXT_DISABLED` |
-| 图表-主 | `#1ABB9C` | `TC.CHART_PRIMARY` |
-| 图表-次 | `#f59f00` | `TC.CHART_SECONDARY` |
+| 正常 | `#22C55E` | 在线/正常/完成 |
+| 警告 | `#EAB308` | 警告/中等 |
+| 危险 | `#EF4444` | 离线/危险/错误 |
+| 信息 | `#3B82F6` | 链接/选中/强调 |
 
-引用方式：
+### 图表颜色
+
+| 指标 | 颜色 |
+|------|------|
+| CPU | `#3B82F6`（蓝） |
+| GPU | `#A855F7`（紫） |
+| RAM | `#22C55E`（绿） |
+| Network | `#F97316`（橙） |
+
+### 引用方式
 
 ```python
 from host.gui.theme.colors import ThemeColors as TC
-color = TC.ACCENT_PRIMARY  # 不是 "#3B82F6"
+bg = TC.BACKGROUND_PRIMARY   # #111827
+text = TC.TEXT_PRIMARY        # #F9FAFB
+status = TC.STATUS_ONLINE    # #22C55E
 ```
 
 ---
 
-## 4. 字体
+## 3. 布局体系
 
-| 级别 | 字号 | 字重 | 用途 |
-|------|------|------|------|
-| Title Large | 24px | Bold | 页面大标题 |
-| Title Medium | 20px | Bold | 区域标题 |
-| Title Small | 16px | Bold | 卡片标题 |
-| Body | 14px | Regular | 正文 |
-| Body Small | 12px | Regular | 辅助文字 |
-| Caption | 11px | Regular | 标签 |
-| Numeric Large | 32px | Bold | 指标大数字 |
+### 主窗口
 
-字体栈：`Microsoft YaHei` / `Segoe UI` / `Consolas`
+```
+┌──────────────────────────────────────────────┐
+│ HeaderBar                    [搜索] [通知] [⚙] │
+├──────────┬───────────────────────────────────┤
+│          │                                   │
+│ Sidebar  │        Main Content Area          │
+│ (220px)  │                                   │
+│          │  ┌─────────────────────────────┐  │
+│ 监控      │  │  Page Content               │  │
+│  总览     │  │                             │  │
+│  历史     │  │                             │  │
+│  告警     │  │                             │  │
+│ 网络      │  └─────────────────────────────┘  │
+│  设备     │                                   │
+│ 系统      │                                   │
+│  设置     │                                   │
+└──────────┴───────────────────────────────────┘
+```
+
+### Sidebar 规范
+
+- 宽度: 220px
+- 背景: `#1F2937`
+- Active: 左侧 3px accent bar (`#3B82F6`)
+- 图标: 16-18px SVG（currentColor）
+- 文字: 14px
+- 分组标题: 10px 大写 + 字距
+
+禁止:
+- ❌ 大图标
+- ❌ 彩色菜单
+- ❌ 渐变背景
 
 ---
 
-## 5. 间距与圆角
+## 4. 信息密度原则
 
-| 间距 Token | 值 |
-|-----------|-----|
-| XS | 4px |
-| SM | 8px |
-| MD | 12px |
-| LG | 16px |
-| XL | 24px |
+### Dashboard
 
-| 元素 | 圆角 |
-|------|------|
-| Card | 12px |
-| Button | 6px |
-| Badge | 12px |
+```
+第一层：System Overview（4 个 MetricCard 一行）
+┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
+│ CPU    │ │ GPU    │ │ RAM    │ │Network │
+│45.2 %  │ │62.0 %  │ │50.1 %  │ │57 Mbps │
+│████░░░ │ │██████░ │ │█████░░ │ │███░░░░ │
+└────────┘ └────────┘ └────────┘ └────────┘
 
-```python
-from host.gui.theme.spacing import ThemeSpacing as S
-widget.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
+第二层：双栏布局
+┌──────────────────┬──────────────┐
+│ Performance      │ Recent       │
+│ History          │ Activity     │
+│ [Chart]          │ [Alert List] │
+└──────────────────┴──────────────┘
+
+第三层：Device Status Cards
+┌─────────┐ ┌─────────┐ ┌─────────┐
+│ PC-001  │ │ PC-002  │ │ Server  │
+│ ● 在线  │ │ ● 在线  │ │ ⚠ 警告  │
+│ CPU 45% │ │ CPU 32% │ │ CPU 88% │
+└─────────┘ └─────────┘ └─────────┘
+```
+
+### MetricCard 规范
+
+- Title: 11px 大写
+- Value: 24-32px bold
+- Progress: 5px bar
+- Status: 彩色左边条 3px
+- 禁止: ❌ 只显示数字 ❌ 大面积颜色 ❌ 3D效果
+
+---
+
+## 5. 图表设计
+
+### 折线图规范
+
+```
+背景: transparent
+网格: rgba(255,255,255,0.08)
+线宽: 2px
+填充: 线下方 10% 透明度
+
+颜色分配:
+  CPU:    #3B82F6 (蓝)
+  GPU:    #A855F7 (紫)
+  RAM:    #22C55E (绿)
+  Network: #F97316 (橙)
+```
+
+### Tooltip
+
+- 十字准线跟随鼠标
+- 显示: 时间 + 指标值
+- 格式: `HH:MM:SS` / `YYYY-MM-DD HH:MM`
+
+### 降采样
+
+- 数据点 > 500 时自动时间桶聚合
+- 保留趋势，不丢精度
+
+---
+
+## 6. 状态反馈
+
+### 在线状态
+
+```
+● 在线    #22C55E  (绿色实心圆)
+● 离线    #6B7280  (灰色实心圆)
+● 警告    #EAB308  (黄色实心圆)
+● 连接中  #3B82F6  (蓝色闪烁)
+```
+
+### 告警级别
+
+```
+● CRITICAL  #EF4444  (红色)
+● WARNING   #EAB308  (黄色)
+● INFO      #3B82F6  (蓝色)
+● RECOVERED #22C55E  (绿色)
 ```
 
 ---
 
-## 6. 阈值变色
+## 7. 页面规范
 
-| 指标 | 绿 | 橙 | 红 |
-|------|-----|-----|-----|
-| CPU/GPU | < 80% | 80~95% | > 95% |
-| 温度 | < 80°C | 80~85°C | > 85°C |
-| 内存 | < 80% | 80~90% | > 90% |
-| FPS | > 60 | 30~60 | < 30 |
-| 网络评分 | >= 80 | 60~79 | < 60 |
+### 7.1 Dashboard（总览）
 
----
+布局: SystemOverview → 双栏(Chart+Alerts) → DeviceGrid
 
-## 7. 组件规范
+### 7.2 History（历史）
 
-### 基础容器（AppCard 风格）
+布局: TimeRangeButtons → MetricCheckboxes → Chart → SummaryCards
 
-```
-圆角 12px | 背景 #1C2333 | 边框 1px #21262D
-```
+快捷按钮: 10min / 1h / 6h / 24h / 7d
 
-### MetricBar（指标条）
+### 7.3 Devices（设备）
 
-```
-标签 + 数值（右对齐）+ 进度条（6px 高，圆角，阈值变色）
-```
-位于 `host/gui/widgets/metric_bar.py`
+布局: StatsRow → DeviceCardGrid
 
-### SummaryCard（汇总卡）
+每卡: 名称/状态/指标进度条/IP/最后通信时间
 
-```
-标题(小字) + 大数值(20-28px bold) + 副标题
-```
-位于 `host/gui/widgets/chart_panel.py`
+### 7.4 Monitor（监控）
 
-### ChartWidget（折线图）
+布局: MonitorHeader → MetricSelector(Tab) → ChartPanel
 
-```
-支持多曲线叠加 + 十字准线 + tooltip
-```
-位于 `host/gui/widgets/chart_widget.py`
+### 7.5 Alerts（告警）
 
-### StatusBadge（状态徽章）
+布局: SummaryCards → AlertTimeline
 
-| 状态 | 颜色 |
-|------|------|
-| ONLINE | 绿 #2fb344 |
-| OFFLINE | 红 #d63939 |
-| WARNING | 黄 #f59f00 |
+### 7.6 Settings（设置）
 
-### NodeCard（节点卡）
-
-```
-┌─────────────────────────────┐
-│ 🖥 Gaming-PC         ● ONLINE│
-│ CPU     ████████░░  45%     │
-│ GPU     ██████░░░░  65%     │
-│ RAM     █████░░░░░  53%     │
-│ Quality: 96  A              │
-└─────────────────────────────┘
-```
+布局: Sidebar(分区) → ContentStack
 
 ---
 
-## 8. Do Not（禁止）
+## 8. 致谢
 
-1. ❌ **禁止新增颜色** —— 颜色只能从 `ThemeColors` 引用；新增颜色必须先改 `common/theme_tokens.py` 再改 `host/gui/theme/colors.py`
-2. ❌ **禁止复制组件** —— 复用 `host/gui/widgets/` 现有组件；若确实缺，先在 widgets/ 新增并加测试
-3. ❌ **禁止页面自己定义样式** —— 页面只引用 Theme token，不在 Page 内写内联 QSS 色值
-4. ❌ **禁止硬编码间距/字号** —— 用 `ThemeSpacing` / `ThemeTypography`
-5. ❌ **禁止参考旧 UI 文档** —— archive/ 里的 `ui_design_*` 已废弃，一律以本文为准
+本项目 UI 设计参考了 [Gentelella v4](https://github.com/ColorlibHQ/gentelella)（by ColorlibHQ）的设计原则（布局体系、信息密度、颜色语义），并结合 Grafana 的信息层级和 Windows Fluent 的桌面应用规范。
+
+感谢以下开源项目的灵感：
+- [Gentelella](https://github.com/ColorlibHQ/gentelella) — Dashboard 布局与组件结构
+- [Grafana](https://github.com/grafana/grafana) — 监控面板信息层级
+- [Windows Fluent Design](https://developer.microsoft.com/en-us/fluentui) — 桌面控件规范
 
 ---
 
-## 9. 新增页面/组件流程
+## 9. AI 开发指令
+
+### 设计前必须输出
 
 ```
-1. 复用 widgets/ 现有组件（SummaryCard / MetricBar / ChartWidget / NodeCard ...）
-2. 确需新组件 → host/gui/widgets/xxx.py，只 import Theme
-3. 页面 → host/gui/pages/xxx_page.py，继承 PageBase
-4. 注册 → main_window.py _init_viewmodels / _init_ui
-5. 测试 → tests/test_v52_xxx.py（含架构扫描 + Theme 扫描）
+1. 页面 UI 结构说明
+2. 组件列表（复用现有 / 新增）
+3. 颜色使用（全部走 ThemeColors）
+4. 数据来源（ViewModel 字段）
 ```
 
-## 10. 致谢
+### 代码约束
 
-本项目 UI 设计参考了 [Gentelella v4](https://github.com/ColorlibHQ/gentelella)（by ColorlibHQ），基于其暗色模式 token 体系对齐颜色方案。具体借鉴：
+- 颜色: ThemeColors
+- 间距: ThemeSpacing
+- 字体: ThemeTypography
+- 组件: 复用 widgets/ 现有组件
+- 架构: Page → ViewModel → Facade → Service
+- 不增加业务逻辑到 Widget
 
-- 暗色模式色板（body-bg / surface / text / border）
-- Sidebar 分组导航模式（section header + nav items）
-- Stat card 样式（彩色左边条 + 大数值 + 标签）
-- 间距/圆角/阴影比例
+### 禁止清单
 
-感谢 ColorlibHQ 提供的高质量开源 admin dashboard 模板。
+- ❌ 新增颜色
+- ❌ 新建重复组件
+- ❌ 页面独立 CSS
+- ❌ 随意修改布局
+- ❌ 添加无需求功能

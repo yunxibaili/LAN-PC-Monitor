@@ -1,61 +1,40 @@
 # LAN-PC-Monitor 设计规范
 
-> 基于 [Gentelella v4](https://github.com/ColorlibHQ/gentelella)（by ColorlibHQ）暗色模式。
-> 本文件为唯一设计权威，所有新增/修改 UI 必须遵循。
+> 基于 Gentelella / Grafana / Windows Fluent 设计原则提取。
+> **Professional Monitoring Console**——不是后台管理系统。
 > **Version**: v5.4
 
 ---
 
 ## 1. 设计令牌
 
-### 1.1 颜色体系（Gentelella Dark Mode）
+### 1.1 颜色体系（Professional Monitoring Console）
 
 #### 背景层
 
 | Token | 值 | 用途 |
 |-------|-----|------|
-| `body-bg` | `#0f1623` | 窗口/页面背景 |
-| `bg-surface` | `#1a2332` | 卡片/侧栏/表面容器 |
-| `bg-surface-secondary` | `#141d2b` | 表格表头/次级表面 |
-| `bg-card` | `#1e2a3a` | 卡片（略亮于 surface） |
-| `bg-elevated` | `#22303f` | 浮层/hover 状态 |
-| `bg-hover` | `rgba(255,255,255,0.04)` | 导航项/列表项 hover |
-| `bg-input` | `#141d2b` | 输入框背景 |
+| `primary-bg` | `#111827` | 主背景（最深） |
+| `secondary-bg` | `#1F2937` | 表面容器（卡片/侧栏） |
+| `card-bg` | `#273449` | 卡片背景 |
+| `border` | `#374151` | 边框/分隔线 |
 
 #### 文字层
 
 | Token | 值 | 用途 |
 |-------|-----|------|
-| `text` | `#e6ebf2` | 主要文字 |
-| `text-secondary` | `#b3bccb` | 次要文字/描述 |
-| `text-muted` | `#8a93a3` | 弱化文字/标签 |
-| `text-disabled` | `#5a6473` | 禁用/占位文字 |
-| `text-inverse` | `#0f1623` | 反色文字（浅底深字） |
+| `text-primary` | `#F9FAFB` | 主要文字 |
+| `text-secondary` | `#9CA3AF` | 次要文字 |
+| `text-disabled` | `#4B5563` | 禁用 |
 
-#### 主色 / 语义色
+#### 语义色
 
 | Token | 值 | 用途 |
 |-------|-----|------|
-| `primary` | `#1ABB9C`（teal） | 主色调/强调/选中/链接 |
-| `primary-dk` | `#169f85` | primary 深色（hover） |
-| `primary-lt` | `rgba(26,187,156,0.14)` | primary 浅底（选中背景） |
-| `green` | `#2fb344` | 成功/在线/正增长 |
-| `yellow` | `#f59f00` | 警告/中等 |
-| `red` | `#d63939` | 危险/离线/负增长 |
-| `blue` | `#066fd1` | 信息/链接 |
-| `azure` | `#4299e1` | 辅助信息 |
-| `purple` | `#ae3ec9` | 紫色标记 |
-| `cyan` | `#17a2b8` | 青色标记 |
-
-#### 边框 / 阴影
-
-| Token | 值 | 用途 |
-|-------|-----|------|
-| `border-color` | `rgba(255,255,255,0.08)` | 主边框（暗色模式） |
-| `border-color-light` | `rgba(255,255,255,0.05)` | 细边框（表格/分隔） |
-| `border-translucent` | `rgba(255,255,255,0.08)` | 卡片外边框 |
-| `shadow` | `rgba(0,0,0,0.4) 0 2px 4px` | 标准阴影 |
-| `shadow-card` | `border + rgba(0,0,0,0.3) 0 2px 4px` | 卡片阴影 |
+| `success` | `#22C55E` | 在线/正常 |
+| `warning` | `#EAB308` | 警告 |
+| `danger` | `#EF4444` | 离线/危险 |
+| `info` | `#3B82F6` | 信息/选中 |
 
 ### 1.2 字体系统
 
