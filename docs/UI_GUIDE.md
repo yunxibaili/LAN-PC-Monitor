@@ -163,33 +163,42 @@ status = TC.STATUS_ONLINE    # #22C55E
 
 ---
 
-## 5. 图表设计
+## 9. 图表设计
 
 ### 折线图规范
 
-```
-背景: transparent
-网格: rgba(0,0,0,0.06)
-线宽: 2px
-填充: 线下方 10% 透明度
+- 数据类型：Trend Over Time（时间序列趋势）
+- 背景: transparent
+- 网格: `rgba(0,0,0,0.06)`
+- 线宽: 2px，多系列用不同线型（实线/虚线/点线）
+- 填充: 线下方 20% 透明度
 
-颜色分配:
-  CPU:    #3B82F6 (蓝)
-  GPU:    #A855F7 (紫)
-  RAM:    #22C55E (绿)
-  Network: #F97316 (橙)
-```
+### 颜色分配（按 Skill 建议）
+
+| 指标 | 颜色 | 说明 |
+|------|------|------|
+| CPU | `#3B82F6`（蓝） | Primary |
+| GPU | `#A855F7`（紫） | Secondary |
+| RAM | `#22C55E`（绿） | Success |
+| Network | `#F97316`（橙） | Accent |
+
+### 降采样规则（按 Skill 建议）
+
+- < 1000 点：SVG 直接渲染
+- ≥ 1000 点：Canvas + 降采样
+- > 10000 点：聚合到时间间隔
 
 ### Tooltip
 
 - 十字准线跟随鼠标
-- 显示: 时间 + 指标值
-- 格式: `HH:MM:SS` / `YYYY-MM-DD HH:MM`
+- 显示: 时间 + 所有系列值
+- 格式: `HH:MM:SS`
 
-### 降采样
+### 无障碍
 
-- 数据点 > 500 时自动时间桶聚合
-- 保留趋势，不丢精度
+- 不仅靠颜色区分系列（加线型/标签）
+- 键盘焦点可查看数值
+- 停用动画时显示静态快照
 
 ---
 
@@ -247,7 +256,19 @@ status = TC.STATUS_ONLINE    # #22C55E
 
 ---
 
-## 8. 致谢
+## 10. 交付前检查（Skill Pre-Delivery Checklist）
+
+- [ ] 不用 emoji 做图标（用 SVG）
+- [ ] 所有可点击元素有 cursor:pointer
+- [ ] Hover 状态有平滑过渡（150-300ms）
+- [ ] 文字对比度 ≥ 4.5:1
+- [ ] 键盘导航可见焦点
+- [ ] 尊重 prefers-reduced-motion
+- [ ] 响应式：375px / 768px / 1024px / 1440px
+- [ ] 图表：多系列用不同线型，不仅靠颜色区分
+- [ ] 实时数据：标注更新时间，显示 stale 状态
+
+## 11. 致谢
 
 本项目 UI 设计参考了 [Gentelella v4](https://github.com/ColorlibHQ/gentelella)（by ColorlibHQ）的设计原则（布局体系、信息密度、颜色语义），并结合 Grafana 的信息层级和 Windows Fluent 的桌面应用规范。
 
