@@ -1,24 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-common/theme_tokens.py —— 共享设计令牌（v5.4 亮色模式 Professional Monitoring Console）。
+common/theme_tokens.py —— 共享设计令牌（v5.4 Gentelella 亮色模式直接对齐）。
 
-基于 Gentelella v4 / Grafana / Windows Fluent 设计原则提取。
-供 host/gui/theme 和 agent/gui/theme 共同引用。
+来源：gentelella-master/src/scss/v4/_tokens.scss 亮色模式
 """
-# ---- 颜色令牌（亮色模式） ----
-COLOR_BG_DARK = "#FFFFFF"           # 主背景（白色）
-COLOR_BG_SURFACE = "#F9FAFB"       # 表面容器（卡片/侧栏）
-COLOR_BG_CARD = "#F3F4F6"          # 卡片背景
-COLOR_TEXT_PRIMARY = "#111827"      # 主要文字
-COLOR_TEXT_SECONDARY = "#6B7280"    # 次要文字
-COLOR_TEXT_DISABLED = "#9CA3AF"     # 禁用
-COLOR_ACCENT = "#3B82F6"           # 信息/选中/强调
-COLOR_SUCCESS = "#22C55E"          # 正常/在线
-COLOR_WARNING = "#EAB308"          # 警告
-COLOR_DANGER = "#EF4444"           # 危险/离线
-COLOR_INFO = "#3B82F6"             # 信息
-COLOR_BORDER = "#E5E7EB"           # 边框
-COLOR_OFFLINE = "#6B7280"          # 离线/灰色
+# ---- 颜色令牌（Gentelella Light Mode） ----
+COLOR_BG_DARK = "#F5F7FB"              # body-bg（不是纯白，微灰护眼）
+COLOR_BG_SURFACE = "#FFFFFF"            # bg-surface（卡片/侧栏/容器）
+COLOR_BG_CARD = "#FFFFFF"              # 卡片背景
+COLOR_TEXT_PRIMARY = "#1E2633"          # text
+COLOR_TEXT_SECONDARY = "#626D7D"        # text-secondary
+COLOR_TEXT_DISABLED = "#7E8896"         # text-muted
+COLOR_ACCENT = "#1ABB9C"              # primary（teal）
+COLOR_SUCCESS = "#2FB344"             # green
+COLOR_WARNING = "#F59F00"             # yellow
+COLOR_DANGER = "#D63939"              # red
+COLOR_INFO = "#4299E1"               # azure
+COLOR_BORDER = "#E6E7EB"             # border-color
+COLOR_OFFLINE = "#7E8896"            # muted
 
 # ---- 间距令牌 (px) ----
 SPACING_XS = 4

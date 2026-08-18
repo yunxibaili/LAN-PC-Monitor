@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ThemeColors —— 统一颜色系统（v5.4 亮色 Professional Monitoring Console）。
+ThemeColors —— 统一颜色系统（v5.4 Gentelella 亮色模式）。
 """
 import common.theme_tokens as ThemeTokens
 
@@ -9,59 +9,59 @@ class ThemeColors:
     """颜色常量。所有 GUI 颜色从此处引用。"""
 
     # ---- 基础 token ----
-    BACKGROUND_PRIMARY = ThemeTokens.COLOR_BG_DARK       # #FFFFFF
-    BACKGROUND_SECONDARY = ThemeTokens.COLOR_BG_SURFACE   # #F9FAFB
-    BACKGROUND_CARD = ThemeTokens.COLOR_BG_CARD           # #F3F4F6
+    BACKGROUND_PRIMARY = ThemeTokens.COLOR_BG_DARK       # #F5F7FB
+    BACKGROUND_SECONDARY = ThemeTokens.COLOR_BG_SURFACE   # #FFFFFF
+    BACKGROUND_CARD = ThemeTokens.COLOR_BG_CARD           # #FFFFFF
 
-    TEXT_PRIMARY = ThemeTokens.COLOR_TEXT_PRIMARY          # #111827
-    TEXT_SECONDARY = ThemeTokens.COLOR_TEXT_SECONDARY      # #6B7280
-    TEXT_DISABLED = ThemeTokens.COLOR_TEXT_DISABLED        # #9CA3AF
+    TEXT_PRIMARY = ThemeTokens.COLOR_TEXT_PRIMARY          # #1E2633
+    TEXT_SECONDARY = ThemeTokens.COLOR_TEXT_SECONDARY      # #626D7D
+    TEXT_DISABLED = ThemeTokens.COLOR_TEXT_DISABLED        # #7E8896
 
-    ACCENT_PRIMARY = ThemeTokens.COLOR_ACCENT             # #3B82F6
+    ACCENT_PRIMARY = ThemeTokens.COLOR_ACCENT             # #1ABB9C
 
-    STATUS_ONLINE = ThemeTokens.COLOR_SUCCESS             # #22C55E
-    STATUS_OFFLINE = ThemeTokens.COLOR_OFFLINE            # #6B7280
-    STATUS_WARNING = ThemeTokens.COLOR_WARNING            # #EAB308
-    STATUS_ERROR = ThemeTokens.COLOR_DANGER               # #EF4444
+    STATUS_ONLINE = ThemeTokens.COLOR_SUCCESS             # #2FB344
+    STATUS_OFFLINE = ThemeTokens.COLOR_OFFLINE            # #7E8896
+    STATUS_WARNING = ThemeTokens.COLOR_WARNING            # #F59F00
+    STATUS_ERROR = ThemeTokens.COLOR_DANGER               # #D63939
 
     ALERT_INFO = ThemeTokens.COLOR_INFO
     ALERT_WARN = ThemeTokens.COLOR_WARNING
     ALERT_DANGER = ThemeTokens.COLOR_DANGER
 
-    BORDER_DEFAULT = ThemeTokens.COLOR_BORDER             # #E5E7EB
+    BORDER_DEFAULT = ThemeTokens.COLOR_BORDER             # #E6E7EB
 
     # ---- 语义 token ----
     BACKGROUND_ELEVATED = "#FFFFFF"
-    BACKGROUND_HOVER = "#F3F4F6"
-    BACKGROUND_INPUT = "#FFFFFF"
+    BACKGROUND_HOVER = "#F5F7FB"
+    BACKGROUND_INPUT = "#F5F7FB"
 
     TEXT_INVERSE = "#FFFFFF"
     TEXT_ON_COLOR = "#FFFFFF"
 
-    BORDER_FOCUS = "#3B82F6"
-    BORDER_SUBTLE = "#E5E7EB"
+    BORDER_FOCUS = "#1ABB9C"
+    BORDER_SUBTLE = "#EFF0F3"
 
-    CHART_PRIMARY = "#3B82F6"
-    CHART_SECONDARY = "#A855F7"
-    CHART_GREEN = "#22C55E"
-    CHART_RED = "#EF4444"
-    CHART_PURPLE = "#A855F7"
-    CHART_ORANGE = "#F97316"
-    CHART_CYAN = "#06B6D4"
-    CHART_AREA = "rgba(59,130,246,0.08)"
+    CHART_PRIMARY = "#066FD1"
+    CHART_SECONDARY = "#AE3EC9"
+    CHART_GREEN = "#2FB344"
+    CHART_RED = "#D63939"
+    CHART_PURPLE = "#AE3EC9"
+    CHART_ORANGE = "#F76707"
+    CHART_CYAN = "#17A2B8"
+    CHART_AREA = "rgba(6,111,209,0.08)"
     CHART_GRID = "rgba(0,0,0,0.06)"
-    CHART_THRESHOLD_WARN = "#EAB308"
-    CHART_THRESHOLD_DANGER = "#EF4444"
+    CHART_THRESHOLD_WARN = "#F59F00"
+    CHART_THRESHOLD_DANGER = "#D63939"
 
-    BAR_BG = "#E5E7EB"
-    BAR_SUCCESS = "#22C55E"
-    BAR_WARNING = "#EAB308"
-    BAR_DANGER = "#EF4444"
+    BAR_BG = "#E6E7EB"
+    BAR_SUCCESS = "#2FB344"
+    BAR_WARNING = "#F59F00"
+    BAR_DANGER = "#D63939"
 
-    TABLE_HEADER_BG = "#F3F4F6"
+    TABLE_HEADER_BG = "#F9FAFB"
     TABLE_ALT_ROW = "#F9FAFB"
-    TABLE_GRID = "#E5E7EB"
-    TABLE_HOVER = "#F3F4F3"
+    TABLE_GRID = "#E6E7EB"
+    TABLE_HOVER = "#F5F7FB"
 
     # ---- 别名 ----
     BG_BASE = BACKGROUND_PRIMARY
