@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.pages.base_page import PageBase
 from host.gui.widgets.device_card import DeviceCard
@@ -43,13 +44,13 @@ class DevicesPage(PageBase):
         header = QHBoxLayout()
         title = QLabel(tr("devices.title"))
         title.setStyleSheet(
-            f"font-size: 20px; font-weight:bold; color:{TC.TEXT_PRIMARY};"
+            f"font-size: TT.TITLE_MEDIUM['size']px; font-weight:bold; color:{TC.TEXT_PRIMARY};"
             f" background:transparent;")
         header.addWidget(title)
         header.addStretch(1)
         self._subtitle = QLabel(tr("devices.subtitle"))
         self._subtitle.setStyleSheet(
-            f"color:{TC.TEXT_SECONDARY}; font-size:13px; background:transparent;")
+            f"color:{TC.TEXT_SECONDARY}; font-size:TT.BODY['size']px; background:transparent;")
         header.addWidget(self._subtitle)
         root.addLayout(header)
 
@@ -79,7 +80,7 @@ class DevicesPage(PageBase):
         self._empty = QLabel(tr("devices.no_device"))
         self._empty.setAlignment(Qt.AlignCenter)
         self._empty.setStyleSheet(
-            f"color:{TC.TEXT_DISABLED}; font-size:14px; background:transparent;"
+            f"color:{TC.TEXT_DISABLED}; font-size:TT.BODY['size']px; background:transparent;"
             f" padding:40px 0;")
         self._empty.hide()
         root.addWidget(self._empty)
@@ -89,10 +90,10 @@ class DevicesPage(PageBase):
         wrap.setSpacing(0)
         val_lbl = QLabel(value)
         val_lbl.setStyleSheet(
-            f"font-size:28px; font-weight:700; color:{color}; background:transparent;")
+            f"font-size:TT.NUMERIC_LARGE['size']px; font-weight:700; color:{color}; background:transparent;")
         name_lbl = QLabel(label)
         name_lbl.setStyleSheet(
-            f"font-size:12px; color:{TC.TEXT_SECONDARY}; background:transparent;")
+            f"font-size:TT.BODY_SMALL['size']px; color:{TC.TEXT_SECONDARY}; background:transparent;")
         wrap.addWidget(val_lbl)
         wrap.addWidget(name_lbl)
         return {"val": val_lbl, "name": name_lbl}

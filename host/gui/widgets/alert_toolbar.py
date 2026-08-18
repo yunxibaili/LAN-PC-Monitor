@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -48,7 +49,7 @@ class AlertToolbar(QFrame):
                 border-radius: 8px;
                 padding: 0 12px;
                 color: {TC.TEXT_PRIMARY};
-                font-size: 13px;
+                font-size: TT.BODY['size']px;
             }}
             QLineEdit:focus {{ border-color: {TC.ACCENT_PRIMARY}; }}
         """)
@@ -81,7 +82,7 @@ class AlertToolbar(QFrame):
                 border: 1px solid {TC.BORDER_DEFAULT};
                 border-radius: 8px;
                 padding: 0 12px;
-                font-size: 12px;
+                font-size: TT.BODY_SMALL['size']px;
             }}
             QPushButton:hover {{
                 background: {TC.STATUS_ERROR};

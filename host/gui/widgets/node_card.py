@@ -9,6 +9,7 @@ from PyQt5.QtGui import QColor, QPainter, QPen
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -56,15 +57,15 @@ class NodeCard(QFrame):
         # Header: icon + alias + status badge
         header = QHBoxLayout()
         self._icon = QLabel("🖥")
-        self._icon.setStyleSheet(f"font-size: 16px; background: transparent;")
+        self._icon.setStyleSheet(f"font-size: TT.TITLE_SMALL['size']px; background: transparent;")
         header.addWidget(self._icon)
         self._alias_lbl = QLabel(self._alias)
         self._alias_lbl.setStyleSheet(
-            f"color: {TC.TEXT_PRIMARY}; font-size: 14px; font-weight: 600; background: transparent;")
+            f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY['size']px; font-weight: 600; background: transparent;")
         header.addWidget(self._alias_lbl, 1)
         self._status_badge = QLabel("OFFLINE")
         self._status_badge.setStyleSheet(
-            f"background: {TC.STATUS_OFFLINE}; color: {TC.TEXT_ON_COLOR}; font-size: 9px; "
+            f"background: {TC.STATUS_OFFLINE}; color: {TC.TEXT_ON_COLOR}; font-size: TT.CAPTION['size']px; "
             f"font-weight: 600; padding: 2px 8px; border-radius: 8px;")
         header.addWidget(self._status_badge)
         root.addLayout(header)
@@ -86,7 +87,7 @@ class NodeCard(QFrame):
             rw.addWidget(ring_w, 0, Qt.AlignCenter)
             val = QLabel("—")
             val.setAlignment(Qt.AlignCenter)
-            val.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: 11px; font-weight: bold; background: transparent;")
+            val.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: TT.CAPTION['size']px; font-weight: bold; background: transparent;")
             rw.addWidget(val)
             self._ring_labels[key] = ring_w
             self._ring_values[key] = val
@@ -101,19 +102,19 @@ class NodeCard(QFrame):
         bottom.setSpacing(S.SM)
 
         self._fps_lbl = QLabel("FPS --")
-        self._fps_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 11px; background: transparent;")
+        self._fps_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.CAPTION['size']px; background: transparent;")
         bottom.addWidget(self._fps_lbl)
 
         self._temp_lbl = QLabel("Temp --")
-        self._temp_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 11px; background: transparent;")
+        self._temp_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.CAPTION['size']px; background: transparent;")
         bottom.addWidget(self._temp_lbl)
 
         self._net_lbl = QLabel("↑0 ↓0")
-        self._net_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 10px; background: transparent;")
+        self._net_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.CAPTION['size']px; background: transparent;")
         bottom.addWidget(self._net_lbl)
 
         self._score_lbl = QLabel("Q: --")
-        self._score_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 11px; font-weight: bold; background: transparent;")
+        self._score_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.CAPTION['size']px; font-weight: bold; background: transparent;")
         bottom.addWidget(self._score_lbl)
 
         root.addLayout(bottom)
@@ -154,7 +155,7 @@ class NodeCard(QFrame):
         badge_text = sm.get(self._status, self._status)
         self._status_badge.setText(badge_text)
         self._status_badge.setStyleSheet(
-            f"background: {sc}; color: {TC.TEXT_ON_COLOR}; font-size: 9px; "
+            f"background: {sc}; color: {TC.TEXT_ON_COLOR}; font-size: TT.CAPTION['size']px; "
             f"font-weight: 600; padding: 2px 8px; border-radius: 8px;")
         self._apply_style(sc)
         # 环形进度
@@ -171,7 +172,7 @@ class NodeCard(QFrame):
         sc = TC.score_color(self._score)
         self._score_lbl.setText(f"Q: {self._score} {self._grade}")
         self._score_lbl.setStyleSheet(
-            f"color: {sc}; font-size: 11px; font-weight: bold; background: transparent;")
+            f"color: {sc}; font-size: TT.CAPTION['size']px; font-weight: bold; background: transparent;")
 
     def _apply_style(self, border_color=None):
         bc = border_color or TC.BORDER_DEFAULT

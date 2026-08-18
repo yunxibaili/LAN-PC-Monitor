@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.pages.base_page import PageBase
 from host.gui.widgets.chart_widget import ChartWidget
@@ -54,7 +55,7 @@ def _btn_style(active=False):
             border: 1px solid {border};
             border-radius: 6px;
             padding: 6px 14px;
-            font-size: 12px;
+            font-size: TT.BODY_SMALL['size']px;
             font-weight: 600;
             min-width: 44px;
         }}
@@ -68,7 +69,7 @@ def _check_style(color):
     return f"""
         QCheckBox {{
             color: {color};
-            font-size: 12px;
+            font-size: TT.BODY_SMALL['size']px;
             font-weight: 600;
             spacing: 6px;
             background: transparent;
@@ -106,7 +107,7 @@ class HistoryPage(PageBase):
         header = QHBoxLayout()
         title = QLabel(tr("history.title"))
         title.setStyleSheet(
-            f"font-size: 20px; font-weight: bold; color: {TC.TEXT_PRIMARY};"
+            f"font-size: TT.TITLE_MEDIUM['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY};"
             f" background: transparent;")
         header.addWidget(title)
         header.addStretch(1)
@@ -117,7 +118,7 @@ class HistoryPage(PageBase):
         time_row.setSpacing(S.SM)
         time_lbl = QLabel(tr("history.time_range"))
         time_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         time_row.addWidget(time_lbl)
 
         self._time_btns = {}
@@ -145,7 +146,7 @@ class HistoryPage(PageBase):
         metric_row.setSpacing(S.SM)
         metric_lbl = QLabel(tr("history.metrics"))
         metric_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         metric_row.addWidget(metric_lbl)
 
         self._metric_checks = {}
@@ -197,7 +198,7 @@ class HistoryPage(PageBase):
         self._empty = QLabel(tr("history.no_data"))
         self._empty.setAlignment(Qt.AlignCenter)
         self._empty.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: 14px; background: transparent;")
+            f"color: {TC.TEXT_DISABLED}; font-size: TT.BODY['size']px; background: transparent;")
         root.addWidget(self._empty)
 
     # ---- ViewModel ----

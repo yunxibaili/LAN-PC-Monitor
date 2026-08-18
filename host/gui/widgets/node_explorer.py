@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -43,28 +44,28 @@ class NodeListItem(QFrame):
 
         self._dot = QLabel("●")
         self._dot.setFixedWidth(12)
-        self._dot.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 10px; background: transparent;")
+        self._dot.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; background: transparent;")
         layout.addWidget(self._dot)
 
         info = QVBoxLayout()
         info.setSpacing(0)
         self._name_lbl = QLabel(alias)
-        self._name_lbl.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: 13px; font-weight: 600; background: transparent;")
+        self._name_lbl.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY['size']px; font-weight: 600; background: transparent;")
         info.addWidget(self._name_lbl)
         self._ip_lbl = QLabel("")
-        self._ip_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 11px; background: transparent;")
+        self._ip_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.CAPTION['size']px; background: transparent;")
         info.addWidget(self._ip_lbl)
         layout.addLayout(info, 1)
 
         self._score_lbl = QLabel("")
-        self._score_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 11px; font-weight: bold; background: transparent;")
+        self._score_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.CAPTION['size']px; font-weight: bold; background: transparent;")
         layout.addWidget(self._score_lbl)
 
     def set_info(self, ip="", score="", status="connecting"):
         self._ip_lbl.setText(ip)
         self._score_lbl.setText(score)
         sc = TC.status_color(status)
-        self._dot.setStyleSheet(f"color: {sc}; font-size: 10px; background: transparent;")
+        self._dot.setStyleSheet(f"color: {sc}; font-size: TT.CAPTION['size']px; background: transparent;")
 
     def mousePressEvent(self, event):
         self.clicked.emit(self.node_id)
@@ -103,7 +104,7 @@ class NodeExplorer(QFrame):
                 border-radius: 8px;
                 padding: 0 12px;
                 color: {TC.TEXT_PRIMARY};
-                font-size: 13px;
+                font-size: TT.BODY['size']px;
             }}
             QLineEdit:focus {{ border-color: {TC.ACCENT_PRIMARY}; }}
         """)
@@ -114,7 +115,7 @@ class NodeExplorer(QFrame):
         title_row = QHBoxLayout()
         title_row.setContentsMargins(4, 0, 4, 0)
         self._title_lbl = QLabel("所有节点 (0)")
-        self._title_lbl.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 10px; font-weight: 600; background: transparent;")
+        self._title_lbl.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; font-weight: 600; background: transparent;")
         title_row.addWidget(self._title_lbl)
         title_row.addStretch(1)
         layout.addLayout(title_row)

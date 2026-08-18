@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -53,29 +54,29 @@ class AlertCard(QFrame):
         top_row.setSpacing(S.SM)
         self._severity_lbl = QLabel("WARN")
         self._severity_lbl.setStyleSheet(
-            f"color: {TC.STATUS_WARNING}; font-size: 11px; font-weight: 700; "
+            f"color: {TC.STATUS_WARNING}; font-size: TT.CAPTION['size']px; font-weight: 700; "
             f"letter-spacing: 0.5px; background: transparent;")
         top_row.addWidget(self._severity_lbl)
         top_row.addStretch(1)
         self._time_lbl = QLabel("")
         self._time_lbl.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: 11px; background: transparent;")
+            f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; background: transparent;")
         top_row.addWidget(self._time_lbl)
         content.addLayout(top_row)
 
         self._title_lbl = QLabel("")
         self._title_lbl.setStyleSheet(
-            f"color: {TC.TEXT_PRIMARY}; font-size: 14px; font-weight: 600; background: transparent;")
+            f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY['size']px; font-weight: 600; background: transparent;")
         content.addWidget(self._title_lbl)
 
         self._node_lbl = QLabel("")
         self._node_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         content.addWidget(self._node_lbl)
 
         self._value_lbl = QLabel("")
         self._value_lbl.setStyleSheet(
-            f"color: {TC.TEXT_PRIMARY}; font-size: 13px; font-weight: bold; background: transparent;")
+            f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY['size']px; font-weight: bold; background: transparent;")
         content.addWidget(self._value_lbl)
 
         root.addLayout(content, 1)
@@ -88,7 +89,7 @@ class AlertCard(QFrame):
         if hasattr(item, 'level') and item.level == "recovery":
             self._severity_lbl.setText("RECOVERED")
             self._severity_lbl.setStyleSheet(
-                f"color: {TC.STATUS_ONLINE}; font-size: 11px; font-weight: 700; "
+                f"color: {TC.STATUS_ONLINE}; font-size: TT.CAPTION['size']px; font-weight: 700; "
                 f"letter-spacing: 0.5px; background: transparent;")
             self._severity_bar.setStyleSheet(
                 f"background: {TC.STATUS_ONLINE}; border-radius: 2px;")
@@ -111,7 +112,7 @@ class AlertCard(QFrame):
             bar_color = TC.STATUS_WARNING
         self._severity_lbl.setText(sev_text)
         self._severity_lbl.setStyleSheet(
-            f"color: {sev_color}; font-size: 11px; font-weight: 700; "
+            f"color: {sev_color}; font-size: TT.CAPTION['size']px; font-weight: 700; "
             f"letter-spacing: 0.5px; background: transparent;")
         self._severity_bar.setStyleSheet(f"background: {bar_color}; border-radius: 2px;")
 

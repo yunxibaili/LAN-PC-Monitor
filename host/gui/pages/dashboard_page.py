@@ -46,19 +46,19 @@ class AlertPreviewItem(QFrame):
         lv = QLabel("●")
         lv.setFixedWidth(12)
         color = TC.ALERT_DANGER if level == "red" else TC.ALERT_WARN if level == "warn" else TC.TEXT_SECONDARY
-        lv.setStyleSheet(f"color: {color}; font-size: 12px; background: transparent;")
+        lv.setStyleSheet(f"color: {color}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         layout.addWidget(lv)
 
         self._title = QLabel(title)
-        self._title.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: 12px; background: transparent;")
+        self._title.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         layout.addWidget(self._title, 1)
 
         badge = QLabel(level.upper())
-        badge.setStyleSheet(f"color: {color}; font-size: 10px; font-weight: 600; background: transparent;")
+        badge.setStyleSheet(f"color: {color}; font-size: TT.CAPTION['size']px; font-weight: 600; background: transparent;")
         layout.addWidget(badge)
 
         self._time = QLabel(time_str)
-        self._time.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 10px; background: transparent;")
+        self._time.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; background: transparent;")
         layout.addWidget(self._time)
 
 
@@ -125,7 +125,7 @@ class DashboardPage(PageBase):
         # Page Header
         hdr = QHBoxLayout()
         title = QLabel(tr("dashboard.title"))
-        title.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {TC.TEXT_PRIMARY};")
+        title.setStyleSheet(f"font-size: TT.TITLE_MEDIUM['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY};")
         hdr.addWidget(title)
         hdr.addStretch(1)
         self._subtitle = QLabel(tr("dashboard.subtitle"))
@@ -144,7 +144,7 @@ class DashboardPage(PageBase):
         # Node Overview
         self._nodes_label = QLabel(tr("dashboard.node_overview"))
         self._nodes_label.setStyleSheet(
-            f"font-size: 16px; font-weight: 600; color: {TC.TEXT_PRIMARY}; margin-top: 4px;")
+            f"font-size: TT.TITLE_SMALL['size']px; font-weight: 600; color: {TC.TEXT_PRIMARY}; margin-top: 4px;")
         root.addWidget(self._nodes_label)
 
         # NodeCard Grid
@@ -162,7 +162,7 @@ class DashboardPage(PageBase):
         self._empty = QLabel(tr("devices.no_device"))
         self._empty.setAlignment(Qt.AlignCenter)
         self._empty.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: 14px; padding: 40px 0;")
+            f"color: {TC.TEXT_DISABLED}; font-size: TT.BODY['size']px; padding: 40px 0;")
         self._empty.hide()
         root.addWidget(self._empty)
 
@@ -180,7 +180,7 @@ class DashboardPage(PageBase):
         # Recent Alerts
         self._alerts_title = QLabel(tr("dashboard.recent_alerts"))
         self._alerts_title.setStyleSheet(
-            f"font-size: 14px; font-weight: 600; color: {TC.TEXT_PRIMARY}; margin-top: 4px;")
+            f"font-size: TT.BODY['size']px; font-weight: 600; color: {TC.TEXT_PRIMARY}; margin-top: 4px;")
         root.addWidget(self._alerts_title)
         self._alerts_container = QWidget()
         self._alerts_layout = QVBoxLayout(self._alerts_container)
@@ -312,7 +312,7 @@ class DashboardPage(PageBase):
         if not alerts:
             lbl = QLabel(tr("dashboard.no_alerts"))
             lbl.setStyleSheet(
-                f"color:{TC.TEXT_DISABLED}; font-size:12px; padding:12px;"
+                f"color:{TC.TEXT_DISABLED}; font-size:TT.BODY_SMALL['size']px; padding:12px;"
                 f" background:transparent;")
             self._alerts_layout.addWidget(lbl)
             return
@@ -325,7 +325,7 @@ class DashboardPage(PageBase):
             dot = QLabel("●")
             dot.setFixedWidth(12)
             color = TC.ALERT_DANGER if a.get("level") == "red" else TC.ALERT_WARN
-            dot.setStyleSheet(f"color:{color}; font-size:10px; background:transparent;")
+            dot.setStyleSheet(f"color:{color}; font-size:TT.CAPTION['size']px; background:transparent;")
             row.addWidget(dot)
 
             col = QVBoxLayout()
@@ -338,7 +338,7 @@ class DashboardPage(PageBase):
                 title_txt += f"  {val:.1f}%"
             title_lbl = QLabel(title_txt)
             title_lbl.setStyleSheet(
-                f"font-size:12px; font-weight:600; color:{TC.TEXT_PRIMARY};"
+                f"font-size:TT.BODY_SMALL['size']px; font-weight:600; color:{TC.TEXT_PRIMARY};"
                 f" background:transparent;")
             col.addWidget(title_lbl)
 
@@ -356,7 +356,7 @@ class DashboardPage(PageBase):
                 time_txt = node
             meta_lbl = QLabel(time_txt)
             meta_lbl.setStyleSheet(
-                f"font-size:11px; color:{TC.TEXT_SECONDARY}; background:transparent;")
+                f"font-size:TT.CAPTION['size']px; color:{TC.TEXT_SECONDARY}; background:transparent;")
             col.addWidget(meta_lbl)
 
             row.addLayout(col, 1)

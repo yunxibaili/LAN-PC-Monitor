@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -34,7 +35,7 @@ class MetricTab(QPushButton):
                     border: none;
                     border-radius: 8px;
                     padding: 0 16px;
-                    font-size: 12px;
+                    font-size: TT.BODY_SMALL['size']px;
                     font-weight: 600;
                 }}
             """)
@@ -46,7 +47,7 @@ class MetricTab(QPushButton):
                     border: 1px solid {TC.BORDER_DEFAULT};
                     border-radius: 8px;
                     padding: 0 16px;
-                    font-size: 12px;
+                    font-size: TT.BODY_SMALL['size']px;
                     font-weight: 500;
                 }}
                 MetricTab:hover {{

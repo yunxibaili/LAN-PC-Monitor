@@ -8,6 +8,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 _STATUS_CONFIG = {
@@ -37,7 +38,7 @@ class StatusBadge(QWidget):
         layout.addWidget(self._dot)
 
         self._text = QLabel("UNKNOWN")
-        self._text.setStyleSheet(f"font-size: 11px; background: transparent;")
+        self._text.setStyleSheet(f"font-size: TT.CAPTION['size']px; background: transparent;")
         layout.addWidget(self._text)
 
         self.set_status("unknown")
@@ -45,9 +46,9 @@ class StatusBadge(QWidget):
     def set_status(self, status):
         icon, color, label = _STATUS_CONFIG.get(status, _STATUS_CONFIG["unknown"])
         self._dot.setText(icon)
-        self._dot.setStyleSheet(f"color: {color}; font-size: 12px; background: transparent;")
+        self._dot.setStyleSheet(f"color: {color}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         self._text.setText(label)
-        self._text.setStyleSheet(f"color: {color}; font-size: 11px; font-weight: 600; background: transparent;")
+        self._text.setStyleSheet(f"color: {color}; font-size: TT.CAPTION['size']px; font-weight: 600; background: transparent;")
 
     def get_status(self):
         return self._text.text()

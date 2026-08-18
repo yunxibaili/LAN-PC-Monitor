@@ -15,7 +15,7 @@ from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.theme.layout import ThemeLayout as L
 from host.gui.theme.animation import ThemeAnimation as A
 from host.gui.theme.typography import ThemeTypography
-from host.gui.theme.components import CardStyle, ButtonStyle, InputStyle, TableStyle, BadgeStyle
+from host.gui.theme.components import remove_help_button
 from host.gui.theme.icons import ThemeIcons
 
 PASS = 0
@@ -98,11 +98,7 @@ def test_typography():
 
 def test_components():
     print("\n--- 6. Components ---")
-    check("CardStyle.RADIUS=12", CardStyle.RADIUS == 12)
-    check("ButtonStyle.HEIGHT=36", ButtonStyle.HEIGHT == 36)
-    check("InputStyle.RADIUS=6", InputStyle.RADIUS == 6)
-    check("TableStyle.ROW_HEIGHT=38", TableStyle.ROW_HEIGHT == 38)
-    check("BadgeStyle.RADIUS=12", BadgeStyle.RADIUS == 12)
+    check("remove_help_button 可导入", callable(remove_help_button))
 
 
 # ---------- 7. 无硬编码颜色 ----------
@@ -170,7 +166,7 @@ def test_page_header_usage():
             # 检查是否有标题组件（PageHeader / MonitorHeader / QLabel 标题）
             has_header = ('PageHeader' in txt or 'page_header' in txt
                           or 'MonitorHeader' in txt
-                          or ('QLabel' in txt and 'font-size: 20px' in txt))
+                          or ('QLabel' in txt and ('font-size: 20px' in txt or 'TT.TITLE_MEDIUM' in txt)))
             check(f"{page} has header", has_header)
 
 

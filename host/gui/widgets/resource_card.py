@@ -10,6 +10,7 @@ from PyQt5.QtGui import QColor, QPainter, QPen
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -47,7 +48,7 @@ class ResourceCard(QFrame):
 
         self._title_lbl = QLabel(title)
         self._title_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: 10px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: TT.CAPTION['size']px; background: transparent;")
         layout.addWidget(self._title_lbl)
 
         # Ring + value
@@ -60,14 +61,14 @@ class ResourceCard(QFrame):
         ring_row.addWidget(self._ring)
         self._val_lbl = QLabel("—")
         self._val_lbl.setStyleSheet(
-            f"color: {TC.TEXT_PRIMARY}; font-size: 16px; font-weight: bold; background: transparent;")
+            f"color: {TC.TEXT_PRIMARY}; font-size: TT.TITLE_SMALL['size']px; font-weight: bold; background: transparent;")
         ring_row.addWidget(self._val_lbl, 1)
         ring_row.addStretch(1)
         layout.addLayout(ring_row)
 
         self._sub_lbl = QLabel("")
         self._sub_lbl.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: 10px; background: transparent;")
+            f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; background: transparent;")
         layout.addWidget(self._sub_lbl)
 
     def set_resource(self, value, unit="%", sub=""):
@@ -77,7 +78,7 @@ class ResourceCard(QFrame):
         self._val_lbl.setText(f"{value:.0f}{unit}")
         color = TC.bar_color(value)
         self._val_lbl.setStyleSheet(
-            f"color: {color}; font-size: 16px; font-weight: bold; background: transparent;")
+            f"color: {color}; font-size: TT.TITLE_SMALL['size']px; font-weight: bold; background: transparent;")
         self._sub_lbl.setText(sub)
         self._ring.update()
 

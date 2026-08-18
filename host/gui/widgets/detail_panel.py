@@ -16,9 +16,8 @@ import logging
 from PyQt5.QtWidgets import (QGroupBox, QHBoxLayout, QLabel, QScrollArea,
                              QVBoxLayout, QWidget)
 
-from host.gui.theme import (
-    COLOR_TEXT, COLOR_NA, usage_color, temp_color, score_color, rtt_color, apply_color,
-)
+from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme import usage_color, temp_color, score_color, rtt_color, apply_color
 from common.i18n import tr
 
 log = logging.getLogger("host.gui.widgets.detail_panel")
@@ -98,10 +97,10 @@ class DetailPanel(QScrollArea):
             for label_key, field in fields:
                 col = QVBoxLayout()
                 lbl_title = QLabel(tr(label_key))
-                lbl_title.setStyleSheet(f"color: {COLOR_NA}; font-size: 11px;")
+                lbl_title.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px;")
                 col.addWidget(lbl_title)
                 lbl_val = QLabel("—")
-                lbl_val.setStyleSheet(f"color: {COLOR_TEXT}; font-size: 13px; font-weight: bold;")
+                lbl_val.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY['size']px; font-weight: bold;")
                 col.addWidget(lbl_val)
                 layout.addLayout(col)
                 self._labels[field] = lbl_val
@@ -178,9 +177,9 @@ class DetailPanel(QScrollArea):
         if color:
             apply_color(lbl, color)
         else:
-            apply_color(lbl, COLOR_TEXT)
+            apply_color(lbl, TC.TEXT_PRIMARY)
 
     def clear(self):
         for lbl in self._labels.values():
             lbl.setText("—")
-            apply_color(lbl, COLOR_TEXT)
+            apply_color(lbl, TC.TEXT_PRIMARY)

@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 from common.i18n import tr
 
@@ -32,7 +33,7 @@ class NavButton(QPushButton):
             QPushButton {{
                 text-align: left; padding: 0 16px; border: none;
                 border-left: 3px solid transparent;
-                background: transparent; color: {TC.TEXT_SECONDARY}; font-size: 13px;
+                background: transparent; color: {TC.TEXT_SECONDARY}; font-size: TT.BODY['size']px;
                 border-radius: 0 6px 6px 0;
             }}
             QPushButton:hover {{
@@ -62,7 +63,7 @@ class NodeItem(QFrame):
         self._dot.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 8px; background: transparent;")
         layout.addWidget(self._dot)
         self._label = QLabel(alias)
-        self._label.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: 12px; background: transparent;")
+        self._label.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         layout.addWidget(self._label, 1)
         self.setCursor(Qt.PointingHandCursor)
         self.setStyleSheet(f"NodeItem:hover {{ background: {TC.BG_HOVER}; border-radius: 6px; }}")
@@ -115,10 +116,10 @@ class SideNav(QWidget):
         logo_layout = QHBoxLayout(logo_frame)
         logo_layout.setContentsMargins(14, 0, 14, 0)
         logo_icon = QLabel("🖥")
-        logo_icon.setStyleSheet(f"font-size: 16px; background: transparent;")
+        logo_icon.setStyleSheet(f"font-size: TT.TITLE_SMALL['size']px; background: transparent;")
         logo_layout.addWidget(logo_icon)
         logo_text = QLabel("PC 监控")
-        logo_text.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {TC.ACCENT_PRIMARY}; background: transparent;")
+        logo_text.setStyleSheet(f"font-size: TT.BODY['size']px; font-weight: 700; color: {TC.ACCENT_PRIMARY}; background: transparent;")
         logo_layout.addWidget(logo_text)
         root.addWidget(logo_frame)
 
@@ -132,7 +133,7 @@ class SideNav(QWidget):
             # Section header
             section_lbl = QLabel(tr(section_key))
             section_lbl.setStyleSheet(
-                f"color: {TC.TEXT_DISABLED}; font-size: 10px; font-weight: 600; "
+                f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; font-weight: 600; "
                 f"letter-spacing: 1px; padding: 12px 8px 4px 8px; background: transparent;")
             nav_layout.addWidget(section_lbl)
 
@@ -154,7 +155,7 @@ class SideNav(QWidget):
         # Node section
         self._node_title = QLabel(tr("nav.connected"))
         self._node_title.setContentsMargins(14, 8, 14, 4)
-        self._node_title.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 10px; font-weight: 600; background: transparent; letter-spacing: 1px;")
+        self._node_title.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; font-weight: 600; background: transparent; letter-spacing: 1px;")
         root.addWidget(self._node_title)
 
         # Node list

@@ -18,6 +18,7 @@ from datetime import datetime
 log = logging.getLogger("host.gui.widgets.chart_widget")
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 
 try:
     import pyqtgraph as pg
@@ -237,7 +238,7 @@ else:
             layout = QVBoxLayout(self)
             layout.setContentsMargins(8, 8, 8, 8)
             lbl = QLabel(f"[{title}] pyqtgraph 未安装，图表不可用")
-            lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 12px;")
+            lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px;")
             lbl.setAlignment(Qt.AlignCenter)
             layout.addWidget(lbl)
 

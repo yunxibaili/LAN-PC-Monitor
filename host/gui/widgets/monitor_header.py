@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -40,11 +41,11 @@ class MonitorHeader(QFrame):
         node_row.setSpacing(S.SM)
         self._node_lbl = QLabel("未选择节点")
         self._node_lbl.setStyleSheet(
-            f"font-size: 18px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
+            f"font-size: TT.TITLE_SMALL['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
         node_row.addWidget(self._node_lbl)
         self._status_badge = QLabel("OFFLINE")
         self._status_badge.setStyleSheet(
-            f"background: {TC.TEXT_DISABLED}; color: {TC.TEXT_ON_COLOR}; font-size: 10px; "
+            f"background: {TC.TEXT_DISABLED}; color: {TC.TEXT_ON_COLOR}; font-size: TT.CAPTION['size']px; "
             f"font-weight: 600; padding: 3px 10px; border-radius: 8px;")
         node_row.addWidget(self._status_badge)
         node_row.addStretch(1)
@@ -52,7 +53,7 @@ class MonitorHeader(QFrame):
 
         self._subtitle_lbl = QLabel("选择节点开始监控")
         self._subtitle_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         left.addWidget(self._subtitle_lbl)
 
         layout.addLayout(left, 1)
@@ -70,7 +71,7 @@ class MonitorHeader(QFrame):
         sm = {"connected": "ONLINE", "offline": "OFFLINE", "connecting": "CONNECTING"}
         self._status_badge.setText(sm.get(status, status.upper()))
         self._status_badge.setStyleSheet(
-            f"background: {sc}; color: {TC.TEXT_ON_COLOR}; font-size: 10px; "
+            f"background: {sc}; color: {TC.TEXT_ON_COLOR}; font-size: TT.CAPTION['size']px; "
             f"font-weight: 600; padding: 3px 10px; border-radius: 8px;")
         self._subtitle_lbl.setText(f"{node_id} · 实时监控")
 
@@ -91,12 +92,12 @@ class MonitorHeader(QFrame):
             vl.setSpacing(0)
             v_lbl = QLabel(str(value))
             v_lbl.setStyleSheet(
-                f"color: {TC.TEXT_PRIMARY}; font-size: 14px; font-weight: bold; background: transparent;")
+                f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY['size']px; font-weight: bold; background: transparent;")
             v_lbl.setAlignment(Qt.AlignCenter)
             vl.addWidget(v_lbl)
             k_lbl = QLabel(key)
             k_lbl.setStyleSheet(
-                f"color: {TC.TEXT_DISABLED}; font-size: 10px; background: transparent;")
+                f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; background: transparent;")
             k_lbl.setAlignment(Qt.AlignCenter)
             vl.addWidget(k_lbl)
             self._stats_row.addWidget(w)
@@ -107,6 +108,6 @@ class MonitorHeader(QFrame):
         self._subtitle_lbl.setText("选择节点开始监控")
         self._status_badge.setText("OFFLINE")
         self._status_badge.setStyleSheet(
-            f"background: {TC.TEXT_DISABLED}; color: {TC.TEXT_ON_COLOR}; font-size: 10px; "
+            f"background: {TC.TEXT_DISABLED}; color: {TC.TEXT_ON_COLOR}; font-size: TT.CAPTION['size']px; "
             f"font-weight: 600; padding: 3px 10px; border-radius: 8px;")
         self.set_stats({})

@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -37,14 +38,14 @@ class HeaderBar(QWidget):
         # 左：页面标题
         self._title = QLabel("Dashboard")
         self._title.setStyleSheet(
-            f"font-size: 15px; font-weight: 600; color: {TC.TEXT_PRIMARY}; background: transparent;")
+            f"font-size: TT.TITLE_SMALL['size']px; font-weight: 600; color: {TC.TEXT_PRIMARY}; background: transparent;")
         layout.addWidget(self._title)
         layout.addStretch(1)
 
         # 右：连接状态
         self._conn_label = QLabel("0/0 Connected")
         self._conn_label.setStyleSheet(
-            f"font-size: 12px; color: {TC.TEXT_SECONDARY}; background: transparent;")
+            f"font-size: TT.BODY_SMALL['size']px; color: {TC.TEXT_SECONDARY}; background: transparent;")
         layout.addWidget(self._conn_label)
 
         layout.addSpacing(4)
@@ -77,7 +78,7 @@ class HeaderBar(QWidget):
                 border: 1px solid {TC.BORDER_DEFAULT};
                 border-radius: 8px;
                 color: {TC.TEXT_SECONDARY};
-                font-size: 14px;
+                font-size: TT.BODY['size']px;
             }}
             QPushButton:hover {{
                 background: {TC.BG_HOVER};

@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QLabel
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -33,14 +34,14 @@ class AlertSummaryCard(QFrame):
 
         self._lbl = QLabel(label)
         self._lbl.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: 11px; font-weight: 600; "
+            f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; font-weight: 600; "
             f"letter-spacing: 0.5px; background: transparent;")
         layout.addWidget(self._lbl)
 
         self._val = QLabel("0")
         self._val.setAlignment(Qt.AlignCenter)
         self._val.setStyleSheet(
-            f"color: {color}; font-size: 24px; font-weight: bold; background: transparent;")
+            f"color: {color}; font-size: TT.TITLE_LARGE['size']px; font-weight: bold; background: transparent;")
         layout.addWidget(self._val)
 
     def set_value(self, value: int) -> None:

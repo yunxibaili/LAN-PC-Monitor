@@ -19,9 +19,8 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QListWidget,
                              QListWidgetItem, QMenu, QVBoxLayout, QWidget)
 
-from host.gui.theme import (
-    COLOR_TEXT, COLOR_NA, COLOR_NORMAL, COLOR_WARN, COLOR_DANGER, rtt_color, score_color,
-)
+from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme import rtt_color, score_color
 from common.constants import LOCAL_NODE_ID
 from common.i18n import tr
 
@@ -40,43 +39,43 @@ class NodeListItemWidget(QWidget):
         left = QVBoxLayout()
         left.setSpacing(0)
         self._alias = QLabel(alias)
-        self._alias.setStyleSheet(f"font-weight: bold; font-size: 13px; color: {COLOR_TEXT};")
+        self._alias.setStyleSheet(f"font-weight: bold; font-size: TT.BODY['size']px; color: {TC.TEXT_PRIMARY};")
         left.addWidget(self._alias)
         self._ip = QLabel(ip)
-        self._ip.setStyleSheet(f"font-size: 11px; color: {COLOR_NA};")
+        self._ip.setStyleSheet(f"font-size: TT.CAPTION['size']px; color: {TC.TEXT_DISABLED};")
         left.addWidget(self._ip)
         layout.addLayout(left, 1)
 
         right = QVBoxLayout()
         right.setSpacing(0)
         self._status = QLabel("●")
-        status_color = COLOR_NORMAL if is_local else COLOR_NA
-        self._status.setStyleSheet(f"font-size: 11px; color: {status_color};")
+        status_color = TC.STATUS_ONLINE if is_local else TC.TEXT_DISABLED
+        self._status.setStyleSheet(f"font-size: TT.CAPTION['size']px; color: {status_color};")
         right.addWidget(self._status)
         self._rtt = QLabel("")
-        self._rtt.setStyleSheet(f"font-size: 11px; color: {COLOR_NA};")
+        self._rtt.setStyleSheet(f"font-size: TT.CAPTION['size']px; color: {TC.TEXT_DISABLED};")
         right.addWidget(self._rtt)
         layout.addLayout(right)
 
         self._score = QLabel("")
-        self._score.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {COLOR_NA};")
+        self._score.setStyleSheet(f"font-size: TT.CAPTION['size']px; font-weight: bold; color: {TC.TEXT_DISABLED};")
         layout.addWidget(self._score)
 
     def set_status(self, status_text: str):
-        color = (COLOR_NORMAL if status_text == "connected"
-                 else COLOR_WARN if status_text in ("connecting", "reconnecting")
-                 else COLOR_DANGER)
-        self._status.setStyleSheet(f"font-size: 11px; color: {color};")
+        color = (TC.STATUS_ONLINE if status_text == "connected"
+                 else TC.STATUS_WARNING if status_text in ("connecting", "reconnecting")
+                 else TC.STATUS_ERROR)
+        self._status.setStyleSheet(f"font-size: TT.CAPTION['size']px; color: {color};")
 
     def set_rtt(self, rtt_ms: float):
         color = rtt_color(rtt_ms)
         self._rtt.setText(f"RTT {rtt_ms:.2f}ms")
-        self._rtt.setStyleSheet(f"font-size: 11px; color: {color};")
+        self._rtt.setStyleSheet(f"font-size: TT.CAPTION['size']px; color: {color};")
 
     def set_score(self, score, grade=""):
         color = score_color(score)
         self._score.setText(f"{score} {grade}")
-        self._score.setStyleSheet(f"font-size: 11px; font-weight: bold; color: {color};")
+        self._score.setStyleSheet(f"font-size: TT.CAPTION['size']px; font-weight: bold; color: {color};")
 
 
 class NodeListWidget(QListWidget):

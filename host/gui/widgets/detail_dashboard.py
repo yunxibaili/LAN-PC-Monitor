@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.widgets.resource_card import ResourceCard
 from host.gui.widgets.detail_panel import DetailPanel
@@ -43,16 +44,16 @@ class DetailDashboard(QFrame):
 
         name_row = QHBoxLayout()
         self._name_lbl = QLabel("未选择节点")
-        self._name_lbl.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
+        self._name_lbl.setStyleSheet(f"font-size: TT.TITLE_SMALL['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
         name_row.addWidget(self._name_lbl)
         name_row.addStretch(1)
         self._status_badge = QLabel("OFFLINE")
-        self._status_badge.setStyleSheet(f"background: {TC.TEXT_DISABLED}; color: {TC.TEXT_ON_COLOR}; font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 8px;")
+        self._status_badge.setStyleSheet(f"background: {TC.TEXT_DISABLED}; color: {TC.TEXT_ON_COLOR}; font-size: TT.CAPTION['size']px; font-weight: 600; padding: 3px 10px; border-radius: 8px;")
         name_row.addWidget(self._status_badge)
         header_layout.addLayout(name_row)
 
         self._ip_lbl = QLabel("")
-        self._ip_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
+        self._ip_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         header_layout.addWidget(self._ip_lbl)
 
         layout.addWidget(self._header)
@@ -86,7 +87,7 @@ class DetailDashboard(QFrame):
         sc = TC.status_color(data.identity.status)
         sm = {"connected": "ONLINE", "offline": "OFFLINE", "connecting": "CONNECTING"}
         self._status_badge.setText(sm.get(data.identity.status, data.identity.status))
-        self._status_badge.setStyleSheet(f"background: {sc}; color: {TC.TEXT_ON_COLOR}; font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 8px;")
+        self._status_badge.setStyleSheet(f"background: {sc}; color: {TC.TEXT_ON_COLOR}; font-size: TT.CAPTION['size']px; font-weight: 600; padding: 3px 10px; border-radius: 8px;")
         self._ip_lbl.setText(f"{data.identity.ip}:{data.identity.port}" if data.identity.ip else "")
 
         # Resource Cards

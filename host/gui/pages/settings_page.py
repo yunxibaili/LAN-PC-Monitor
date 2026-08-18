@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.pages.base_page import PageBase
 from common.i18n import tr
@@ -55,7 +56,7 @@ class _SidebarItem(QFrame):
         layout.setContentsMargins(12, 0, 12, 0)
         self._lbl = QLabel(label)
         self._lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: 13px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY['size']px; background: transparent;")
         layout.addWidget(self._lbl)
 
     def set_active(self, active):
@@ -68,7 +69,7 @@ class _SidebarItem(QFrame):
                 }}
             """)
             self._lbl.setStyleSheet(
-                f"color: {TC.TEXT_PRIMARY}; font-size: 13px; font-weight: 600; background: transparent;")
+                f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY['size']px; font-weight: 600; background: transparent;")
         else:
             self.setStyleSheet(f"""
                 _SidebarItem {{
@@ -80,7 +81,7 @@ class _SidebarItem(QFrame):
                 }}
             """)
             self._lbl.setStyleSheet(
-                f"color: {TC.TEXT_SECONDARY}; font-size: 13px; background: transparent;")
+                f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY['size']px; background: transparent;")
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -118,12 +119,12 @@ class SettingsPage(PageBase):
         header.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
         title = QLabel(tr("settings.title_nav"))
         title.setStyleSheet(
-            f"font-size: 20px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
+            f"font-size: TT.TITLE_MEDIUM['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
         header.addWidget(title)
         header.addStretch(1)
         self._status_lbl = QLabel("")
         self._status_lbl.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: 12px; background: transparent;")
+            f"color: {TC.TEXT_DISABLED}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         header.addWidget(self._status_lbl)
         root.addLayout(header)
 
@@ -174,7 +175,7 @@ class SettingsPage(PageBase):
         bottom.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
         self._dirty_lbl = QLabel("")
         self._dirty_lbl.setStyleSheet(
-            f"color: {TC.STATUS_WARNING}; font-size: 12px; background: transparent;")
+            f"color: {TC.STATUS_WARNING}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         bottom.addWidget(self._dirty_lbl)
         bottom.addStretch(1)
         self._save_btn = QPushButton("Save")
@@ -264,7 +265,7 @@ class SettingsPage(PageBase):
 
         self._add_section_title(layout, "Monitoring")
         sub = QLabel("Data retention policy (days)")
-        sub.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
+        sub.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         layout.addWidget(sub)
 
         row1 = self._add_form_row(layout, "Metrics retention")
@@ -362,7 +363,7 @@ class SettingsPage(PageBase):
     def _add_section_title(self, layout, text):
         lbl = QLabel(text)
         lbl.setStyleSheet(
-            f"font-size: 16px; font-weight: bold; color: {TC.TEXT_PRIMARY}; "
+            f"font-size: TT.TITLE_SMALL['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY}; "
             f"background: transparent; margin-bottom: 8px;")
         layout.addWidget(lbl)
 
@@ -372,7 +373,7 @@ class SettingsPage(PageBase):
         lbl = QLabel(label_text)
         lbl.setFixedWidth(140)
         lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: 13px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY['size']px; background: transparent;")
         row.addWidget(lbl)
         layout.addLayout(row)
         return row
@@ -494,5 +495,5 @@ class SettingsPage(PageBase):
     def _show_save_feedback(self):
         self._status_lbl.setText("✓ Saved")
         self._status_lbl.setStyleSheet(
-            f"color: {TC.STATUS_ONLINE}; font-size: 12px; font-weight: 600; background: transparent;")
+            f"color: {TC.STATUS_ONLINE}; font-size: TT.BODY_SMALL['size']px; font-weight: 600; background: transparent;")
         QTimer.singleShot(2000, lambda: self._status_lbl.setText(""))

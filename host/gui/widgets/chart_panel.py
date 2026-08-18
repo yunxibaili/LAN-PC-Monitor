@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.widgets.chart_widget import ChartWidget
 
@@ -42,7 +43,7 @@ class SummaryCard(QFrame):
 
         self._title_lbl = QLabel(title)
         self._title_lbl.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: 10px; font-weight: 600; "
+            f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; font-weight: 600; "
             f"letter-spacing: 0.5px; background: transparent;")
         layout.addWidget(self._title_lbl)
 
@@ -54,7 +55,7 @@ class SummaryCard(QFrame):
 
         self._sub_lbl = QLabel("")
         self._sub_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: 11px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: TT.CAPTION['size']px; background: transparent;")
         layout.addWidget(self._sub_lbl)
 
     def set_value(self, value, sub="", color=None):

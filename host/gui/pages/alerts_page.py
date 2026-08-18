@@ -22,6 +22,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.pages.base_page import PageBase
 from host.gui.widgets.alert_summary_card import AlertSummaryCard
@@ -53,12 +54,12 @@ class AlertsPage(PageBase):
         header.setSpacing(S.SM)
         title = QLabel(tr("alerts.title"))
         title.setStyleSheet(
-            f"font-size: 20px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
+            f"font-size: TT.TITLE_MEDIUM['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
         header.addWidget(title)
         header.addStretch(1)
         self._status_lbl = QLabel("")
         self._status_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         header.addWidget(self._status_lbl)
         root.addLayout(header)
 
@@ -98,7 +99,7 @@ class AlertsPage(PageBase):
         self._empty_label = QLabel("暂无告警")
         self._empty_label.setAlignment(Qt.AlignCenter)
         self._empty_label.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: 15px; padding: 40px 0; background: transparent;")
+            f"color: {TC.TEXT_DISABLED}; font-size: TT.TITLE_SMALL['size']px; padding: 40px 0; background: transparent;")
         root.addWidget(self._empty_label)
 
         # ---- Detail Panel ----

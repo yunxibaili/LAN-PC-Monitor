@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -35,7 +36,7 @@ class AlertDetail(QFrame):
 
         self._title = QLabel("告警详情")
         self._title.setStyleSheet(
-            f"color: {TC.TEXT_PRIMARY}; font-size: 14px; font-weight: 600; background: transparent;")
+            f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY['size']px; font-weight: 600; background: transparent;")
         layout.addWidget(self._title)
 
         self._fields = {}
@@ -54,10 +55,10 @@ class AlertDetail(QFrame):
             lbl = QLabel(f"{label_text}:")
             lbl.setFixedWidth(80)
             lbl.setStyleSheet(
-                f"color: {TC.TEXT_DISABLED}; font-size: 12px; background: transparent;")
+                f"color: {TC.TEXT_DISABLED}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
             val = QLabel("—")
             val.setStyleSheet(
-                f"color: {TC.TEXT_PRIMARY}; font-size: 12px; background: transparent;")
+                f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
             row.addWidget(lbl)
             row.addWidget(val, 1)
             layout.addLayout(row)
@@ -71,7 +72,7 @@ class AlertDetail(QFrame):
         color = TC.STATUS_ERROR if level == "red" else TC.STATUS_WARNING
         self._fields["severity"].setText(sev)
         self._fields["severity"].setStyleSheet(
-            f"color: {color}; font-size: 12px; font-weight: bold; background: transparent;")
+            f"color: {color}; font-size: TT.BODY_SMALL['size']px; font-weight: bold; background: transparent;")
         self._fields["name"].setText(item.name or "—")
         self._fields["node"].setText(item.node_alias or item.node_id or "—")
         self._fields["path"].setText(item.path or "—")

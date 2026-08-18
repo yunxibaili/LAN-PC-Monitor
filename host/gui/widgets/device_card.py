@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
 
 
@@ -49,18 +50,18 @@ class DeviceCard(QFrame):
         name_col.setSpacing(0)
         self._name = QLabel("")
         self._name.setStyleSheet(
-            f"font-size:15px; font-weight:600; color:{TC.TEXT_PRIMARY};"
+            f"font-size:TT.TITLE_SMALL['size']px; font-weight:600; color:{TC.TEXT_PRIMARY};"
             f" background:transparent;")
         self._alias = QLabel("")
         self._alias.setStyleSheet(
-            f"font-size:11px; color:{TC.TEXT_SECONDARY}; background:transparent;")
+            f"font-size:TT.CAPTION['size']px; color:{TC.TEXT_SECONDARY}; background:transparent;")
         name_col.addWidget(self._name)
         name_col.addWidget(self._alias)
         header.addLayout(name_col, 1)
 
         self._badge = QLabel("")
         self._badge.setStyleSheet(
-            f"font-size:10px; font-weight:600; padding:3px 10px;"
+            f"font-size:TT.CAPTION['size']px; font-weight:600; padding:3px 10px;"
             f" border-radius:10px; background:transparent;")
         header.addWidget(self._badge)
         layout.addLayout(header)
@@ -80,13 +81,13 @@ class DeviceCard(QFrame):
         footer = QHBoxLayout()
         self._ip = QLabel("")
         self._ip.setStyleSheet(
-            f"font-size:11px; color:{TC.TEXT_SECONDARY};"
+            f"font-size:TT.CAPTION['size']px; color:{TC.TEXT_SECONDARY};"
             f" font-family:Consolas,monospace; background:transparent;")
         footer.addWidget(self._ip)
         footer.addStretch(1)
         self._time = QLabel("")
         self._time.setStyleSheet(
-            f"font-size:11px; color:{TC.TEXT_DISABLED}; background:transparent;")
+            f"font-size:TT.CAPTION['size']px; color:{TC.TEXT_DISABLED}; background:transparent;")
         footer.addWidget(self._time)
         layout.addLayout(footer)
 
@@ -95,11 +96,11 @@ class DeviceCard(QFrame):
         wrap.setSpacing(3)
         lbl = QLabel(label)
         lbl.setStyleSheet(
-            f"font-size:10px; color:{TC.TEXT_DISABLED};"
+            f"font-size:TT.CAPTION['size']px; color:{TC.TEXT_DISABLED};"
             f" font-weight:600; background:transparent;")
         val = QLabel("—")
         val.setStyleSheet(
-            f"font-size:16px; font-weight:700; color:{TC.TEXT_PRIMARY};"
+            f"font-size:TT.TITLE_SMALL['size']px; font-weight:700; color:{TC.TEXT_PRIMARY};"
             f" background:transparent;")
         bar = QProgressBar()
         bar.setRange(0, 100)
@@ -133,25 +134,25 @@ class DeviceCard(QFrame):
             if device.cpu >= 80 or device.ram >= 80:
                 self._badge.setText("⚠ Warning")
                 self._badge.setStyleSheet(
-                    f"font-size:10px; font-weight:600; padding:3px 10px;"
+                    f"font-size:TT.CAPTION['size']px; font-weight:600; padding:3px 10px;"
                     f" border-radius:10px; color:{TC.STATUS_WARNING};"
                     f" background:rgba(245,158,11,0.12);")
             else:
                 self._badge.setText("● Online")
                 self._badge.setStyleSheet(
-                    f"font-size:10px; font-weight:600; padding:3px 10px;"
+                    f"font-size:TT.CAPTION['size']px; font-weight:600; padding:3px 10px;"
                     f" border-radius:10px; color:{TC.STATUS_ONLINE};"
                     f" background:rgba(34,197,94,0.12);")
         elif device.status in ("timeout", "reconnecting"):
             self._badge.setText("● Connecting")
             self._badge.setStyleSheet(
-                f"font-size:10px; font-weight:600; padding:3px 10px;"
+                f"font-size:TT.CAPTION['size']px; font-weight:600; padding:3px 10px;"
                 f" border-radius:10px; color:{TC.STATUS_WARNING};"
                 f" background:rgba(245,158,11,0.12);")
         else:
             self._badge.setText("● Offline")
             self._badge.setStyleSheet(
-                f"font-size:10px; font-weight:600; padding:3px 10px;"
+                f"font-size:TT.CAPTION['size']px; font-weight:600; padding:3px 10px;"
                 f" border-radius:10px; color:{TC.STATUS_ERROR};"
                 f" background:rgba(239,68,68,0.12);")
 
@@ -167,12 +168,12 @@ class DeviceCard(QFrame):
         if not is_online:
             color = TC.TEXT_DISABLED
             d["val"].setStyleSheet(
-                f"font-size:16px; font-weight:700; color:{color};"
+                f"font-size:TT.TITLE_SMALL['size']px; font-weight:700; color:{color};"
                 f" background:transparent;")
             return
         color = _bar_color(value)
         d["val"].setStyleSheet(
-            f"font-size:16px; font-weight:700; color:{color};"
+            f"font-size:TT.TITLE_SMALL['size']px; font-weight:700; color:{color};"
             f" background:transparent;")
         clamped = max(0, min(100, int(value)))
         d["bar"].setValue(clamped)

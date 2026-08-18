@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QHBoxLayout, QLabel,
 from common.i18n import tr
 from common.utils import make_host_id
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 
 log = logging.getLogger("host.gui.discovery_dialog")
 
@@ -58,7 +59,7 @@ class DiscoveryDialog(QDialog):
         # P1-3: Token 输入行（发现的 Agent 需要用户输入 token 才能连接）
         token_row = QHBoxLayout()
         token_lbl = QLabel("Token:")
-        token_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 12px;")
+        token_lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px;")
         self._token_input = QLineEdit()
         self._token_input.setPlaceholderText("输入 Agent token 以连接（首次连接必需）")
         self._token_input.setEchoMode(QLineEdit.Password)
@@ -69,7 +70,7 @@ class DiscoveryDialog(QDialog):
                 border-radius: 6px;
                 padding: 6px 10px;
                 color: {TC.TEXT_PRIMARY};
-                font-size: 12px;
+                font-size: TT.BODY_SMALL['size']px;
             }}
             QLineEdit:focus {{ border-color: {TC.ACCENT_PRIMARY}; }}
         """)
