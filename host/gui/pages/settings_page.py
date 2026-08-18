@@ -95,12 +95,12 @@ class SettingsPage(PageBase):
 
     _SECTIONS = ["General", "Connection", "Monitoring", "Appearance", "Alerts"]
 
-    _SECTION_DISPLAY = {
-        "General": tr("settings.tab.general"),
-        "Connection": tr("settings.tab.nodes"),
-        "Monitoring": tr("settings.tab.collector"),
-        "Appearance": tr("settings.theme"),
-        "Alerts": tr("settings.tab.alerts"),
+    _SECTION_I18N = {
+        "General": "settings.tab.general",
+        "Connection": "settings.tab.nodes",
+        "Monitoring": "settings.tab.collector",
+        "Appearance": "settings.theme",
+        "Alerts": "settings.tab.alerts",
     }
 
     def __init__(self, parent=None):
@@ -149,8 +149,8 @@ class SettingsPage(PageBase):
 
         self._sidebar_items = {}
         for section in self._SECTIONS:
-            display = self._SECTION_DISPLAY.get(section, section)
-            item = _SidebarItem(display)
+            i18n_key = self._SECTION_I18N.get(section, section)
+            item = _SidebarItem(tr(i18n_key))
             item.clicked.connect(lambda s=section: self._switch_section(s))
             sidebar_layout.addWidget(item)
             self._sidebar_items[section] = item
@@ -206,7 +206,7 @@ class SettingsPage(PageBase):
         layout.setContentsMargins(S.LG, S.LG, S.LG, S.LG)
         layout.setSpacing(S.MD)
 
-        self._add_section_title(layout, "General")
+        self._add_section_title(layout, tr("settings.tab.general"))
 
         # Language
         row = self._add_form_row(layout, "Language")
@@ -238,7 +238,7 @@ class SettingsPage(PageBase):
         layout.setContentsMargins(S.LG, S.LG, S.LG, S.LG)
         layout.setSpacing(S.MD)
 
-        self._add_section_title(layout, "Connection")
+        self._add_section_title(layout, tr("settings.tab.nodes"))
 
         self._auto_disc_check = QCheckBox("Auto-discover nodes (UDP broadcast + mDNS)")
         self._auto_disc_check.stateChanged.connect(self._mark_dirty)
@@ -263,8 +263,8 @@ class SettingsPage(PageBase):
         layout.setContentsMargins(S.LG, S.LG, S.LG, S.LG)
         layout.setSpacing(S.MD)
 
-        self._add_section_title(layout, "Monitoring")
-        sub = QLabel("Data retention policy (days)")
+        self._add_section_title(layout, tr("settings.tab.collector"))
+        sub = QLabel("数据保留策略（天）")
         sub.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
         layout.addWidget(sub)
 
@@ -301,7 +301,7 @@ class SettingsPage(PageBase):
         layout.setContentsMargins(S.LG, S.LG, S.LG, S.LG)
         layout.setSpacing(S.MD)
 
-        self._add_section_title(layout, "Appearance")
+        self._add_section_title(layout, tr("settings.theme"))
 
         row = self._add_form_row(layout, "UI Scale")
         self._scale_spin = QDoubleSpinBox()
@@ -320,7 +320,7 @@ class SettingsPage(PageBase):
         layout.setContentsMargins(S.LG, S.LG, S.LG, S.LG)
         layout.setSpacing(S.MD)
 
-        self._add_section_title(layout, "Alerts")
+        self._add_section_title(layout, tr("settings.tab.alerts"))
 
         self._alert_popup_check = QCheckBox("Enable alert popups")
         self._alert_popup_check.stateChanged.connect(self._mark_dirty)

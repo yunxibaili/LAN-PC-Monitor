@@ -38,7 +38,7 @@ class NavButton(QPushButton):
                 border-radius: 0 6px 6px 0;
             }}
             QPushButton:hover {{
-                background: rgba(255,255,255,0.04);
+                background: {TC.BG_HOVER};
                 color: {TC.TEXT_PRIMARY};
             }}
             QPushButton:checked {{

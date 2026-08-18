@@ -69,7 +69,7 @@ class NavItem(QFrame):
             return f"""
                 NavItem {{
                     border-left: 3px solid {TC.ACCENT_PRIMARY};
-                    background: rgba(26,187,156,0.08);
+                    background: rgba(59,130,246,0.08);
                     border-radius: 0 6px 6px 0;
                 }}
             """
@@ -80,7 +80,7 @@ class NavItem(QFrame):
                 border-radius: 0 6px 6px 0;
             }}
             NavItem:hover {{
-                background: rgba(255,255,255,0.04);
+                background: {TC.BG_HOVER};
             }}
         """
 
