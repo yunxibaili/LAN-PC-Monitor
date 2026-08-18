@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAN-PC-Monitor — Devices Mockup v1</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft YaHei','Segoe UI',sans-serif; background:#0F1117; color:#E6EDF3; display:flex; height:100vh; }
+
+.sidebar { width:240px; background:#161B22; border-right:1px solid #21262D; display:flex; flex-direction:column; flex-shrink:0; }
+.sidebar-logo { padding:20px 20px 16px; border-bottom:1px solid #21262D; }
+.sidebar-logo h2 { font-size:16px; font-weight:700; }
+.sidebar-logo span { font-size:11px; color:#8B949E; }
+.nav-section { padding:16px 12px 4px; font-size:10px; font-weight:600; color:#484F58; letter-spacing:1px; text-transform:uppercase; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:10px 16px; margin:2px 8px; border-radius:8px; color:#8B949E; font-size:13px; cursor:pointer; }
+.nav-item:hover { background:#1C2333; color:#E6EDF3; }
+.nav-item.active { background:rgba(59,130,246,0.12); color:#3B82F6; }
+
+.main { flex:1; display:flex; flex-direction:column; overflow:auto; }
+.header { height:56px; border-bottom:1px solid #21262D; display:flex; align-items:center; justify-content:space-between; padding:0 24px; background:#161B22; flex-shrink:0; }
+.header-title { font-size:18px; font-weight:600; }
+.header-right { display:flex; gap:12px; }
+.btn { padding:8px 16px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; border:none; }
+.btn-primary { background:#3B82F6; color:#fff; }
+.btn-ghost { background:transparent; border:1px solid #21262D; color:#8B949E; }
+
+.content { padding:24px; overflow:auto; }
+
+/* Stats */
+.stats-row { display:flex; gap:24px; margin-bottom:24px; }
+.stat { display:flex; align-items:center; gap:8px; }
+.stat-num { font-size:28px; font-weight:700; }
+.stat-label { font-size:12px; color:#8B949E; }
+
+/* Device Grid */
+.device-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+
+.device-card { background:#1C2333; border:1px solid #21262D; border-radius:12px; padding:20px; transition:border-color .15s; cursor:pointer; }
+.device-card:hover { border-color:#3B82F6; }
+.device-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+.device-name { font-size:16px; font-weight:600; }
+.device-alias { font-size:11px; color:#8B949E; margin-top:2px; }
+.device-status { display:flex; align-items:center; gap:6px; font-size:11px; font-weight:600; padding:4px 10px; border-radius:12px; }
+.device-status.online { background:rgba(34,197,94,0.12); color:#22C55E; }
+.device-status.offline { background:rgba(239,68,68,0.12); color:#EF4444; }
+.device-status.warning { background:rgba(245,158,11,0.12); color:#F59E0B; }
+.device-status .dot { width:6px; height:6px; border-radius:50%; }
+
+.device-metrics { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px; }
+.device-metric { text-align:center; }
+.device-metric .val { font-size:18px; font-weight:700; }
+.device-metric .lbl { font-size:10px; color:#484F58; text-transform:uppercase; margin-top:2px; }
+.device-metric .bar { height:4px; background:#21262D; border-radius:2px; margin-top:6px; overflow:hidden; }
+.device-metric .bar-fill { height:100%; border-radius:2px; }
+
+.device-footer { display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #21262D; }
+.device-ip { font-size:11px; color:#8B949E; font-family:Consolas,monospace; }
+.device-time { font-size:11px; color:#484F58; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo"><h2>LAN-PC-Monitor</h2><span>Local Network Monitor</span></div>
+  <div class="nav-section">MONITOR</div>
+  <div class="nav-item">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </div>
+  <div class="nav-item active">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    Devices
+  </div>
+  <div class="nav-item">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    History
+  </div>
+  <div class="nav-item">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Alerts
+  </div>
+  <div class="nav-section">SYSTEM</div>
+  <div class="nav-item">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    Settings
+  </div>
+</aside>
+
+<div class="main">
+  <div class="header">
+    <div class="header-title">Devices</div>
+    <div class="header-right">
+      <button class="btn btn-ghost">Scan Network</button>
+      <button class="btn btn-primary">+ Add Device</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-num" style="color:#22C55E">8</div>
+        <div class="stat-label">Online</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" style="color:#EF4444">2</div>
+        <div class="stat-label">Offline</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" style="color:#F59E0B">1</div>
+        <div class="stat-label">Warning</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">11</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </div>
+
+    <!-- Device Grid -->
+    <div class="device-grid">
+      <!-- PC-001 -->
+      <div class="device-card">
+        <div class="device-card-header">
+          <div>
+            <div class="device-name">PC-001</div>
+            <div class="device-alias">Gaming PC</div>
+          </div>
+          <div class="device-status online"><div class="dot" style="background:#22C55E"></div> Online</div>
+        </div>
+        <div class="device-metrics">
+          <div class="device-metric">
+            <div class="val" style="color:#22C55E">45%</div>
+            <div class="lbl">CPU</div>
+            <div class="bar"><div class="bar-fill" style="width:45%;background:#22C55E"></div></div>
+          </div>
+          <div class="device-metric">
+            <div class="val" style="color:#22C55E">62%</div>
+            <div class="lbl">RAM</div>
+            <div class="bar"><div class="bar-fill" style="width:62%;background:#22C55E"></div></div>
+          </div>
+          <div class="device-metric">
+            <div class="val" style="color:#22C55E">78%</div>
+            <div class="lbl">GPU</div>
+            <div class="bar"><div class="bar-fill" style="width:78%;background:#22C55E"></div></div>
+          </div>
+        </div>
+        <div class="device-footer">
+          <div class="device-ip">192.168.1.101:12345</div>
+          <div class="device-time">2 sec ago</div>
+        </div>
+      </div>
+
+      <!-- PC-002 -->
+      <div class="device-card">
+        <div class="device-card-header">
+          <div>
+            <div class="device-name">PC-002</div>
+            <div class="device-alias">Work Station</div>
+          </div>
+          <div class="device-status online"><div class="dot" style="background:#22C55E"></div> Online</div>
+        </div>
+        <div class="device-metrics">
+          <div class="device-metric">
+            <div class="val" style="color:#22C55E">32%</div>
+            <div class="lbl">CPU</div>
+            <div class="bar"><div class="bar-fill" style="width:32%;background:#22C55E"></div></div>
+          </div>
+          <div class="device-metric">
+            <div class="val" style="color:#22C55E">48%</div>
+            <div class="lbl">RAM</div>
+            <div class="bar"><div class="bar-fill" style="width:48%;background:#22C55E"></div></div>
+          </div>
+          <div class="device-metric">
+            <div class="val" style="color:#22C55E">12%</div>
+            <div class="lbl">GPU</div>
+            <div class="bar"><div class="bar-fill" style="width:12%;background:#22C55E"></div></div>
+          </div>
+        </div>
+        <div class="device-footer">
+          <div class="device-ip">192.168.1.102:12345</div>
+          <div class="device-time">3 sec ago</div>
+        </div>
+      </div>
+
+      <!-- PC-003 (Warning) -->
+      <div class="device-card">
+        <div class="device-card-header">
+          <div>
+            <div class="device-name">PC-003</div>
+            <div class="device-alias">Dev Server</div>
+          </div>
+          <div class="device-status warning"><div class="dot" style="background:#F59E0B"></div> Warning</div>
+        </div>
+        <div class="device-metrics">
+          <div class="device-metric">
+            <div class="val" style="color:#F59E0B">88%</div>
+            <div class="lbl">CPU</div>
+            <div class="bar"><div class="bar-fill" style="width:88%;background:#F59E0B"></div></div>
+          </div>
+          <div class="device-metric">
+            <div class="val" style="color:#F59E0B">82%</div>
+            <div class="lbl">RAM</div>
+            <div class="bar"><div class="bar-fill" style="width:82%;background:#F59E0B"></div></div>
+          </div>
+          <div class="device-metric">
+            <div class="val" style="color:#22C55E">45%</div>
+            <div class="lbl">GPU</div>
+            <div class="bar"><div class="bar-fill" style="width:45%;background:#22C55E"></div></div>
+          </div>
+        </div>
+        <div class="device-footer">
+          <div class="device-ip">192.168.1.103:12345</div>
+          <div class="device-time">1 sec ago</div>
+        </div>
+      </div>
+
+      <!-- Server-01 -->
+      <div class="device-card">
+        <div class="device-card-header">
+          <div>
+            <div class="device-name">Server-01</div>
+            <div class="device-alias">NAS</div>
+          </div>
+          <div class="device-status online"><div class="dot" style="background:#22C55E"></div> Online</div>
+        </div>
+        <div class="device-metrics">
+          <div class="device-metric">
+            <div class="val" style="color:#22C55E">15%</div>
+            <div class="lbl">CPU</div>
+            <div class="bar"><div class="bar-fill" style="width:15%;background:#22C55E"></div></div>
+          </div>
+          <div class="device-metric">
+            <div class="val" style="color:#22C55E">35%</div>
+            <div class="lbl">RAM</div>
+            <div class="bar"><div class="bar-fill" style="width:35%;background:#22C55E"></div></div>
+          </div>
+          <div class="device-metric">
+            <div class="val" style="color:#484F58">—</div>
+            <div class="lbl">GPU</div>
+            <div class="bar"><div class="bar-fill" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div class="device-footer">
+          <div class="device-ip">192.168.1.200:12345</div>
+          <div class="device-time">1 sec ago</div>
+        </div>
+      </div>
+
+      <!-- Offline device -->
+      <div class="device-card" style="opacity:0.5">
+        <div class="device-card-header">
+          <div>
+            <div class="device-name">PC-004</div>
+            <div class="device-alias">Laptop</div>
+          </div>
+          <div class="device-status offline"><div class="dot" style="background:#EF4444"></div> Offline</div>
+        </div>
+        <div class="device-metrics">
+          <div class="device-metric"><div class="val" style="color:#484F58">—</div><div class="lbl">CPU</div></div>
+          <div class="device-metric"><div class="val" style="color:#484F58">—</div><div class="lbl">RAM</div></div>
+          <div class="device-metric"><div class="val" style="color:#484F58">—</div><div class="lbl">GPU</div></div>
+        </div>
+        <div class="device-footer">
+          <div class="device-ip">192.168.1.105:12345</div>
+          <div class="device-time">Last seen 2 hours ago</div>
+        </div>
+      </div>
+
+      <!-- Offline device 2 -->
+      <div class="device-card" style="opacity:0.5">
+        <div class="device-card-header">
+          <div>
+            <div class="device-name">PC-005</div>
+            <div class="device-alias">Media Center</div>
+          </div>
+          <div class="device-status offline"><div class="dot" style="background:#EF4444"></div> Offline</div>
+        </div>
+        <div class="device-metrics">
+          <div class="device-metric"><div class="val" style="color:#484F58">—</div><div class="lbl">CPU</div></div>
+          <div class="device-metric"><div class="val" style="color:#484F58">—</div><div class="lbl">RAM</div></div>
+          <div class="device-metric"><div class="val" style="color:#484F58">—</div><div class="lbl">GPU</div></div>
+        </div>
+        <div class="device-footer">
+          <div class="device-ip">192.168.1.108:12345</div>
+          <div class="device-time">Last seen 5 hours ago</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
