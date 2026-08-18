@@ -12,8 +12,7 @@ def light_qss():
     font-size: {M.FONT_SIZE_MD}px;
     color: {C.TEXT_PRIMARY};
 }}
-QMainWindow, QDialog {{ background-color: {C.BG_BASE}; }}
-QWidget {{ background: transparent; }}
+QMainWindow, QDialog, QWidget {{ background-color: {C.BG_BASE}; }}
 QLabel#panel_title {{
     color: {C.PRIMARY}; font-weight: bold; font-size: {M.FONT_SIZE_LG}px;
     border-bottom: 1px solid {C.BORDER_DEFAULT}; padding-bottom: {M.SPACING_SM}px;
