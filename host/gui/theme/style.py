@@ -96,3 +96,10 @@ QSplitter::handle {{ background: {C.BORDER_DEFAULT}; width: 1px; }}
 QStatusBar {{ background: {C.BG_SURFACE}; color: {C.TEXT_SECONDARY}; border-top: 1px solid {C.BORDER_DEFAULT}; font-size: {M.FONT_SIZE_SM}px; }}
 QToolTip {{ background-color: {C.BG_ELEVATED}; color: {C.TEXT_PRIMARY}; border: 1px solid {C.BORDER_DEFAULT}; border-radius: {M.RADIUS_SM}px; padding: {M.SPACING_XS}px; }}
 """
+
+
+class ThemeStyle:
+    """QSS 样式生成器（向后兼容入口）。"""
+    @staticmethod
+    def dark_qss() -> str:
+        return dark_qss()

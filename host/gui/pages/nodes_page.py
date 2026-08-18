@@ -17,6 +17,7 @@ from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.pages.base_page import PageBase
 from host.gui.widgets.device_card import DeviceCard
+from common.i18n import tr
 
 log = logging.getLogger("host.gui.devices_page")
 
@@ -40,13 +41,13 @@ class DevicesPage(PageBase):
 
         # Header
         header = QHBoxLayout()
-        title = QLabel("Devices")
+        title = QLabel(tr("devices.title"))
         title.setStyleSheet(
             f"font-size: 20px; font-weight:bold; color:{TC.TEXT_PRIMARY};"
             f" background:transparent;")
         header.addWidget(title)
         header.addStretch(1)
-        self._subtitle = QLabel("Network device status")
+        self._subtitle = QLabel(tr("devices.subtitle"))
         self._subtitle.setStyleSheet(
             f"color:{TC.TEXT_SECONDARY}; font-size:13px; background:transparent;")
         header.addWidget(self._subtitle)
@@ -75,7 +76,7 @@ class DevicesPage(PageBase):
         root.addWidget(self._scroll, 1)
 
         # Empty state
-        self._empty = QLabel("No devices detected\n\nStart Agent on remote machines")
+        self._empty = QLabel(tr("devices.no_device"))
         self._empty.setAlignment(Qt.AlignCenter)
         self._empty.setStyleSheet(
             f"color:{TC.TEXT_DISABLED}; font-size:14px; background:transparent;"

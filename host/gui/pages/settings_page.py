@@ -27,6 +27,7 @@ from PyQt5.QtWidgets import (
 from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.pages.base_page import PageBase
+from common.i18n import tr
 
 log = logging.getLogger("host.gui.settings_page")
 
@@ -93,6 +94,14 @@ class SettingsPage(PageBase):
 
     _SECTIONS = ["General", "Connection", "Monitoring", "Appearance", "Alerts"]
 
+    _SECTION_DISPLAY = {
+        "General": tr("settings.tab.general"),
+        "Connection": tr("settings.tab.nodes"),
+        "Monitoring": tr("settings.tab.collector"),
+        "Appearance": tr("settings.theme"),
+        "Alerts": tr("settings.tab.alerts"),
+    }
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._vm = None
@@ -107,7 +116,7 @@ class SettingsPage(PageBase):
         # ---- Header ----
         header = QHBoxLayout()
         header.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
-        title = QLabel("Settings")
+        title = QLabel(tr("settings.title_nav"))
         title.setStyleSheet(
             f"font-size: 20px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
         header.addWidget(title)
@@ -139,7 +148,8 @@ class SettingsPage(PageBase):
 
         self._sidebar_items = {}
         for section in self._SECTIONS:
-            item = _SidebarItem(section)
+            display = self._SECTION_DISPLAY.get(section, section)
+            item = _SidebarItem(display)
             item.clicked.connect(lambda s=section: self._switch_section(s))
             sidebar_layout.addWidget(item)
             self._sidebar_items[section] = item

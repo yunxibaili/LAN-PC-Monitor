@@ -24,6 +24,7 @@ from host.gui.widgets.monitor_header import MonitorHeader
 from host.gui.widgets.metric_selector import MetricSelector
 from host.gui.widgets.chart_panel import ChartPanel
 from host.viewmodels.monitor_vm import METRIC_DEFS
+from common.i18n import tr
 
 log = logging.getLogger("host.gui.monitor_page")
 

@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
 
 from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.spacing import ThemeSpacing as S
+from common.i18n import tr
 
 
 class NavButton(QPushButton):
@@ -77,12 +78,12 @@ class SideNav(QWidget):
     node_clicked = pyqtSignal(str)
 
     NAV_ITEMS = [
-        ("dashboard", "Dashboard", "▣"),
-        ("nodes",     "Nodes",     "▣"),
-        ("monitor",   "Monitor",   "▣"),
-        ("alerts",    "Alerts",    "⚠"),
-        ("history",   "History",   "📈"),
-        ("settings",  "Settings",  "⚙"),
+        ("dashboard", "dashboard", "▣"),
+        ("nodes",     "devices",   "▣"),
+        ("monitor",   "monitor",   "▣"),
+        ("alerts",    "alerts",    "⚠"),
+        ("history",   "history",   "📈"),
+        ("settings",  "settings",  "⚙"),
     ]
 
     def __init__(self, parent=None):
@@ -107,7 +108,7 @@ class SideNav(QWidget):
         logo_icon = QLabel("🖥")
         logo_icon.setStyleSheet(f"font-size: 16px; background: transparent;")
         logo_layout.addWidget(logo_icon)
-        logo_text = QLabel("PC Monitor")
+        logo_text = QLabel("PC 监控")
         logo_text.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {TC.ACCENT_PRIMARY}; background: transparent;")
         logo_layout.addWidget(logo_text)
         root.addWidget(logo_frame)
@@ -117,8 +118,8 @@ class SideNav(QWidget):
         nav_layout = QVBoxLayout(nav_frame)
         nav_layout.setContentsMargins(8, 8, 8, 8)
         nav_layout.setSpacing(2)
-        for nav_id, label, icon in self.NAV_ITEMS:
-            btn = NavButton(label, icon, parent=self)
+        for nav_id, i18n_key, icon in self.NAV_ITEMS:
+            btn = NavButton(tr(i18n_key), icon, parent=self)
             btn.clicked.connect(lambda checked, n=nav_id: self._on_nav_click(n))
             nav_layout.addWidget(btn)
             self._buttons[nav_id] = btn
@@ -132,9 +133,9 @@ class SideNav(QWidget):
         root.addWidget(sep)
 
         # Node section
-        self._node_title = QLabel("Connected Computers")
+        self._node_title = QLabel(tr("nav.connected"))
         self._node_title.setContentsMargins(14, 8, 14, 4)
-        self._node_title.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 10px; font-weight: 600; background: transparent;")
+        self._node_title.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 10px; font-weight: 600; background: transparent; letter-spacing: 1px;")
         root.addWidget(self._node_title)
 
         # Node list

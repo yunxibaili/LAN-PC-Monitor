@@ -19,6 +19,7 @@ from host.gui.pages.base_page import PageBase
 from host.gui.widgets.chart_widget import ChartWidget
 from host.gui.widgets.chart_panel import SummaryCard
 from host.viewmodels.history_vm import HistoryViewModel
+from common.i18n import tr
 
 log = logging.getLogger("host.gui.history_page")
 
@@ -103,7 +104,7 @@ class HistoryPage(PageBase):
 
         # ---- Header ----
         header = QHBoxLayout()
-        title = QLabel("History")
+        title = QLabel(tr("history.title"))
         title.setStyleSheet(
             f"font-size: 20px; font-weight: bold; color: {TC.TEXT_PRIMARY};"
             f" background: transparent;")
@@ -114,7 +115,7 @@ class HistoryPage(PageBase):
         # ---- Time Range Buttons ----
         time_row = QHBoxLayout()
         time_row.setSpacing(S.SM)
-        time_lbl = QLabel("Time Range:")
+        time_lbl = QLabel(tr("history.time_range"))
         time_lbl.setStyleSheet(
             f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
         time_row.addWidget(time_lbl)
@@ -142,7 +143,7 @@ class HistoryPage(PageBase):
         # ---- Metric Checkboxes ----
         metric_row = QHBoxLayout()
         metric_row.setSpacing(S.SM)
-        metric_lbl = QLabel("Metrics:")
+        metric_lbl = QLabel(tr("history.metrics"))
         metric_lbl.setStyleSheet(
             f"color: {TC.TEXT_SECONDARY}; font-size: 12px; background: transparent;")
         metric_row.addWidget(metric_lbl)
@@ -193,10 +194,7 @@ class HistoryPage(PageBase):
         root.addWidget(chart_area, 1)
 
         # ---- Empty State ----
-        self._empty = QLabel(
-            "No history data available\n\n"
-            "Start monitoring to collect metrics, "
-            "then select a time range above")
+        self._empty = QLabel(tr("history.no_data"))
         self._empty.setAlignment(Qt.AlignCenter)
         self._empty.setStyleSheet(
             f"color: {TC.TEXT_DISABLED}; font-size: 14px; background: transparent;")

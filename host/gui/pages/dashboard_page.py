@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.theme.typography import ThemeTypography as TT
+from common.i18n import tr
 from host.gui.pages.base_page import PageBase
 from host.gui.widgets.node_card import NodeCard
 from host.gui.widgets.chart_panel import SummaryCard
@@ -123,17 +124,17 @@ class DashboardPage(PageBase):
 
         # Page Header
         hdr = QHBoxLayout()
-        title = QLabel("Dashboard")
+        title = QLabel(tr("dashboard.title"))
         title.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {TC.TEXT_PRIMARY};")
         hdr.addWidget(title)
         hdr.addStretch(1)
-        self._subtitle = QLabel("System overview and performance at a glance")
+        self._subtitle = QLabel(tr("dashboard.subtitle"))
         self._subtitle.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY_SMALL['size']}px;")
         hdr.addWidget(self._subtitle)
         root.addLayout(hdr)
 
-        # System Overview（4 个 MetricBar 全在一行）
-        overview_label = QLabel("System Overview")
+        # System Overview
+        overview_label = QLabel(tr("dashboard.system_overview"))
         overview_label.setStyleSheet(
             f"font-size: {TT.TITLE_SMALL['size']}px; font-weight: 600; color: {TC.TEXT_PRIMARY};")
         root.addWidget(overview_label)
@@ -141,7 +142,7 @@ class DashboardPage(PageBase):
         root.addWidget(self._system_overview)
 
         # Node Overview
-        self._nodes_label = QLabel("Node Overview")
+        self._nodes_label = QLabel(tr("dashboard.node_overview"))
         self._nodes_label.setStyleSheet(
             f"font-size: 16px; font-weight: 600; color: {TC.TEXT_PRIMARY}; margin-top: 4px;")
         root.addWidget(self._nodes_label)
@@ -158,7 +159,7 @@ class DashboardPage(PageBase):
         self._scroll.setWidget(self._grid_container)
         root.addWidget(self._scroll, 1)
 
-        self._empty = QLabel("No online nodes detected")
+        self._empty = QLabel(tr("devices.no_device"))
         self._empty.setAlignment(Qt.AlignCenter)
         self._empty.setStyleSheet(
             f"color: {TC.TEXT_DISABLED}; font-size: 14px; padding: 40px 0;")
@@ -168,16 +169,16 @@ class DashboardPage(PageBase):
         # Summary row
         summary_row = QHBoxLayout()
         summary_row.setSpacing(S.SM)
-        self._card_total = SummaryCard("Total Nodes", "0", size=28)
-        self._card_online = SummaryCard("Online", "0", TC.SUCCESS, size=28)
-        self._card_alerts = SummaryCard("Alerts", "0", TC.WARNING, size=28)
+        self._card_total = SummaryCard(tr("dashboard.total_nodes"), "0", size=28)
+        self._card_online = SummaryCard(tr("dashboard.online"), "0", TC.SUCCESS, size=28)
+        self._card_alerts = SummaryCard(tr("dashboard.alerts"), "0", TC.WARNING, size=28)
         summary_row.addWidget(self._card_total)
         summary_row.addWidget(self._card_online)
         summary_row.addWidget(self._card_alerts)
         root.addLayout(summary_row)
 
         # Recent Alerts
-        self._alerts_title = QLabel("Recent Alerts")
+        self._alerts_title = QLabel(tr("dashboard.recent_alerts"))
         self._alerts_title.setStyleSheet(
             f"font-size: 14px; font-weight: 600; color: {TC.TEXT_PRIMARY}; margin-top: 4px;")
         root.addWidget(self._alerts_title)
@@ -309,7 +310,7 @@ class DashboardPage(PageBase):
 
         alerts = self._alert_store.alerts(limit=5)
         if not alerts:
-            lbl = QLabel("No recent alerts")
+            lbl = QLabel(tr("dashboard.no_alerts"))
             lbl.setStyleSheet(
                 f"color:{TC.TEXT_DISABLED}; font-size:12px; padding:12px;"
                 f" background:transparent;")

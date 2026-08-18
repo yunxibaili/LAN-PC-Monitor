@@ -25,6 +25,7 @@ from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.pages.base_page import PageBase
 from host.gui.widgets.alert_summary_card import AlertSummaryCard
+from common.i18n import tr
 from host.gui.widgets.alert_card import AlertCard
 from host.gui.widgets.alert_toolbar import AlertToolbar
 from host.gui.widgets.alert_detail import AlertDetail
@@ -50,7 +51,7 @@ class AlertsPage(PageBase):
         # ---- Page Header ----
         header = QHBoxLayout()
         header.setSpacing(S.SM)
-        title = QLabel("Alerts")
+        title = QLabel(tr("alerts.title"))
         title.setStyleSheet(
             f"font-size: 20px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
         header.addWidget(title)
