@@ -109,7 +109,7 @@ class SideNav(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        self.setStyleSheet(f"background: {TC.BG_SURFACE}; border-right: 1px solid {TC.BORDER_DEFAULT};")
+        self.setStyleSheet(f"background: {TC.BG_SURFACE}; border-right: 1px solid {TC.BORDER_SUBTLE};")
 
         # Logo
         logo_frame = QFrame()
@@ -152,16 +152,12 @@ class SideNav(QWidget):
         nav_layout.addStretch(1)
         root.addWidget(nav_frame)
 
-        # Separator
-        sep = QFrame()
-        sep.setFixedHeight(1)
-        sep.setStyleSheet(f"background: {TC.BORDER_DEFAULT}; margin: 0 14px;")
-        root.addWidget(sep)
-
-        # Node section
+        # Node section（无硬分隔线，用间距自然分隔）
         self._node_title = QLabel(tr("nav.connected"))
-        self._node_title.setContentsMargins(14, 8, 14, 4)
-        self._node_title.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; font-weight: 600; background: transparent; letter-spacing: 1px;")
+        self._node_title.setContentsMargins(14, 12, 14, 4)
+        self._node_title.setStyleSheet(
+            f"color: {TC.TEXT_DISABLED}; font-size: {TT.CAPTION['size']}px;"
+            f" font-weight: 600; background: transparent; letter-spacing: 1px;")
         root.addWidget(self._node_title)
 
         # Node list

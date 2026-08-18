@@ -79,6 +79,7 @@ class NavItem(QFrame):
                 border-left: 3px solid transparent;
                 background: transparent;
                 border-radius: 0 6px 6px 0;
+                margin-left: 0px;
             }}
             NavItem:hover {{
                 background: {TC.BG_HOVER};
