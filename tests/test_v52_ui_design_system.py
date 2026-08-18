@@ -166,7 +166,7 @@ def test_page_header_usage():
             # 检查是否有标题组件（PageHeader / MonitorHeader / QLabel 标题）
             has_header = ('PageHeader' in txt or 'page_header' in txt
                           or 'MonitorHeader' in txt
-                          or ('QLabel' in txt and ('font-size: 20px' in txt or 'TT.TITLE_MEDIUM' in txt)))
+                          or ('QLabel' in txt and ('font-size: 20px' in txt or 'TT.TITLE_MEDIUM' in txt or 'TT.TITLE_LARGE' in txt)))
             check(f"{page} has header", has_header)
 
 

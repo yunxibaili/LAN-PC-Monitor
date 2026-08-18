@@ -46,6 +46,7 @@ class ThemeColors:
     CHART_GREEN = "#22C55E"
     CHART_RED = "#EF4444"
     CHART_PURPLE = "#A855F7"
+    CHART_ORANGE = "#F97316"
     CHART_CYAN = "#06B6D4"
     CHART_AREA = "rgba(59,130,246,0.08)"
     CHART_GRID = "rgba(0,0,0,0.06)"
