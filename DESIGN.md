@@ -14,18 +14,18 @@
 
 | Token | 值 | 用途 |
 |-------|-----|------|
-| `primary-bg` | `#111827` | 主背景（最深） |
-| `secondary-bg` | `#1F2937` | 表面容器（卡片/侧栏） |
-| `card-bg` | `#273449` | 卡片背景 |
-| `border` | `#374151` | 边框/分隔线 |
+| `primary-bg` | `#FFFFFF` | 主背景（白色） |
+| `secondary-bg` | `#F9FAFB` | 表面容器（卡片/侧栏） |
+| `card-bg` | `#F3F4F6` | 卡片背景 |
+| `border` | `#E5E7EB` | 边框/分隔线 |
 
 #### 文字层
 
 | Token | 值 | 用途 |
 |-------|-----|------|
-| `text-primary` | `#F9FAFB` | 主要文字 |
-| `text-secondary` | `#9CA3AF` | 次要文字 |
-| `text-disabled` | `#4B5563` | 禁用 |
+| `text-primary` | `#111827` | 主要文字 |
+| `text-secondary` | `#6B7280` | 次要文字 |
+| `text-disabled` | `#9CA3AF` | 禁用 |
 
 #### 语义色
 

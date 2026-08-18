@@ -3,6 +3,7 @@
 > **Version**: v5.4
 > **定位**: Professional Monitoring Console（专业运维监控控制台）
 > **不是**: 后台管理系统、商城、普通 Dashboard
+> **模式**: 亮色模式优先，所有元素直接借鉴参考项目，不自行生成
 
 ---
 
@@ -14,7 +15,7 @@
 |----------|---------|-----------|
 | [Gentelella](https://github.com/ColorlibHQ/gentelella) | Sidebar 结构、Card 布局、Dashboard 密度、颜色语义 | Bootstrap、网页布局、商业后台风格 |
 | Grafana | 信息层级、图表表达、实时数据展示 | 面板拖拽、插件体系 |
-| Windows Fluent | 控件规范、深色模式、桌面应用手感 | 动画、圆角过度 |
+| Windows Fluent | 控件规范、桌面应用手感 | 动画、圆角过度 |
 
 ### 核心关键词
 
@@ -22,7 +23,6 @@
 clean          干净简洁
 dense info     信息密度高
 technical      技术感
-dark friendly  深色友好
 real-time      实时数据
 low distraction 低干扰
 ```
@@ -39,24 +39,24 @@ low distraction 低干扰
 
 ---
 
-## 2. 颜色系统
+## 2. 颜色系统（亮色模式）
 
 ### 背景层
 
 | Token | 值 | 用途 |
 |-------|-----|------|
-| Primary | `#111827` | 主背景（最深） |
-| Secondary | `#1F2937` | 表面容器（卡片/侧栏） |
-| Card | `#273449` | 卡片背景（最亮） |
-| Border | `#374151` | 边框/分隔线 |
+| Primary | `#FFFFFF` | 主背景（白色） |
+| Secondary | `#F9FAFB` | 表面容器（卡片/侧栏） |
+| Card | `#F3F4F6` | 卡片背景 |
+| Border | `#E5E7EB` | 边框/分隔线 |
 
 ### 文字层
 
 | Token | 值 | 用途 |
 |-------|-----|------|
-| Primary | `#F9FAFB` | 主要文字/标题 |
-| Secondary | `#9CA3AF` | 次要文字/描述 |
-| Disabled | `#4B5563` | 禁用/占位 |
+| Primary | `#111827` | 主要文字/标题 |
+| Secondary | `#6B7280` | 次要文字/描述 |
+| Disabled | `#9CA3AF` | 禁用/占位 |
 
 ### 语义色
 
@@ -80,8 +80,8 @@ low distraction 低干扰
 
 ```python
 from host.gui.theme.colors import ThemeColors as TC
-bg = TC.BACKGROUND_PRIMARY   # #111827
-text = TC.TEXT_PRIMARY        # #F9FAFB
+bg = TC.BACKGROUND_PRIMARY   # #FFFFFF
+text = TC.TEXT_PRIMARY        # #111827
 status = TC.STATUS_ONLINE    # #22C55E
 ```
 
@@ -113,7 +113,7 @@ status = TC.STATUS_ONLINE    # #22C55E
 ### Sidebar 规范
 
 - 宽度: 220px
-- 背景: `#1F2937`
+- 背景: `#F9FAFB`（亮色）
 - Active: 左侧 3px accent bar (`#3B82F6`)
 - 图标: 16-18px SVG（currentColor）
 - 文字: 14px
@@ -169,7 +169,7 @@ status = TC.STATUS_ONLINE    # #22C55E
 
 ```
 背景: transparent
-网格: rgba(255,255,255,0.08)
+网格: rgba(0,0,0,0.06)
 线宽: 2px
 填充: 线下方 10% 透明度
 
