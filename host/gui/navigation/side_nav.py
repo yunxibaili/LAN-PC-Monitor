@@ -14,8 +14,9 @@ from PyQt5.QtWidgets import (
 )
 
 from host.gui.theme.colors import ThemeColors as TC
-from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
+from host.gui.theme.icons import ThemeIcons
+from host.gui.widgets.nav_item import NavItem
 from common.i18n import tr
 
 
@@ -85,14 +86,14 @@ class SideNav(QWidget):
 
     NAV_ITEMS = [
         ("monitor", "nav.section_monitor", [
-            ("dashboard", "nav.dashboard", "▣"),
-            ("nodes",     "nav.devices",   "▣"),
-            ("monitor",   "nav.monitor",   "▣"),
-            ("alerts",    "nav.alerts",    "⚠"),
+            ("dashboard", "nav.dashboard", ThemeIcons.DASHBOARD),
+            ("nodes",     "nav.devices",   ThemeIcons.DEVICES),
+            ("monitor",   "nav.monitor",   ThemeIcons.MONITOR),
+            ("alerts",    "nav.alerts",    ThemeIcons.ALERTS),
         ]),
         ("system", "nav.section_system", [
-            ("history",   "nav.history",   "📈"),
-            ("settings",  "nav.settings",  "⚙"),
+            ("history",   "nav.history",   ThemeIcons.HISTORY),
+            ("settings",  "nav.settings",  ThemeIcons.SETTINGS),
         ]),
     ]
 
@@ -133,15 +134,15 @@ class SideNav(QWidget):
             # Section header
             section_lbl = QLabel(tr(section_key))
             section_lbl.setStyleSheet(
-                f"color: {TC.TEXT_DISABLED}; font-size: TT.CAPTION['size']px; font-weight: 600; "
+                f"color: {TC.TEXT_DISABLED}; font-size: 10px; font-weight: 600; "
                 f"letter-spacing: 1px; padding: 12px 8px 4px 8px; background: transparent;")
             nav_layout.addWidget(section_lbl)
 
-            for nav_id, i18n_key, icon in items:
-                btn = NavButton(tr(i18n_key), icon, parent=self)
-                btn.clicked.connect(lambda checked, n=nav_id: self._on_nav_click(n))
-                nav_layout.addWidget(btn)
-                self._buttons[nav_id] = btn
+            for nav_id, i18n_key, icon_svg in items:
+                item = NavItem(nav_id, tr(i18n_key), icon_svg, parent=self)
+                item.clicked.connect(lambda n: self._on_nav_click(n))
+                nav_layout.addWidget(item)
+                self._buttons[nav_id] = item
 
         nav_layout.addStretch(1)
         root.addWidget(nav_frame)
@@ -179,8 +180,11 @@ class SideNav(QWidget):
         self.page_changed.emit(nav_id)
 
     def _select(self, nav_id):
-        for nid, btn in self._buttons.items():
-            btn.setChecked(nid == nav_id)
+        for nid, item in self._buttons.items():
+            if hasattr(item, 'set_active'):
+                item.set_active(nid == nav_id)
+            elif hasattr(item, 'setChecked'):
+                item.setChecked(nid == nav_id)
 
     def add_node(self, node_id, alias):
         if node_id in self._node_items:
