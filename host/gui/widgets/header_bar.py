@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-HeaderBar —— 顶部标题栏（v5.2 Phase 4-2A）。
+HeaderBar —— 顶部标题栏（Gentelella v4 topbar 精确适配）。
 
-桌面应用标题栏，包含：当前页面标题 / 连接状态 / 通知 / 设置按钮。
-纯展示组件，不访问 Store。
+CSS 来源：gentelella-master/src/scss/v4/_layout.scss
+.topbar / .tb-btn
 """
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
@@ -14,7 +14,7 @@ from host.gui.theme.spacing import ThemeSpacing as S
 
 
 class HeaderBar(QWidget):
-    """桌面应用顶部标题栏。"""
+    """桌面应用顶部标题栏（Gentelella topbar 风格）。"""
 
     settings_clicked = pyqtSignal()
     notification_clicked = pyqtSignal()
@@ -22,6 +22,7 @@ class HeaderBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(56)
+        # Gentelella topbar: bg white, border-bottom, padding 0 24px
         self.setStyleSheet(f"""
             HeaderBar {{
                 background-color: {TC.BG_BASE};
@@ -32,32 +33,34 @@ class HeaderBar(QWidget):
 
     def _setup_ui(self):
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(16, 0, 16, 0)
+        layout.setContentsMargins(24, 0, 24, 0)
         layout.setSpacing(12)
 
         # 左：页面标题
         self._title = QLabel("Dashboard")
         self._title.setStyleSheet(
-            f"font-size: TT.TITLE_SMALL['size']px; font-weight: 600; color: {TC.TEXT_PRIMARY}; background: transparent;")
+            f"font-size: {TT.TITLE_SMALL['size']}px; font-weight: 600;"
+            f" color: {TC.TEXT_PRIMARY}; background: transparent;")
         layout.addWidget(self._title)
         layout.addStretch(1)
 
         # 右：连接状态
         self._conn_label = QLabel("0/0 Connected")
         self._conn_label.setStyleSheet(
-            f"font-size: TT.BODY_SMALL['size']px; color: {TC.TEXT_SECONDARY}; background: transparent;")
+            f"font-size: {TT.BODY_SMALL['size']}px; color: {TC.TEXT_SECONDARY};"
+            f" background: transparent;")
         layout.addWidget(self._conn_label)
 
         layout.addSpacing(4)
 
-        # 通知按钮
+        # 通知按钮 (Gentelella .tb-btn: 32x32, radius 4px, transparent)
         self._notif_btn = QPushButton()
         self._notif_btn.setFixedSize(32, 32)
         self._notif_btn.setIcon(self._svg_icon(
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">'
             '<path d="M12 3a6 6 0 00-6 6c0 6-3 7-3 7h18s-3-1-3-7a6 6 0 00-6-6z"/>'
             '<path d="M10.5 21a1.5 1.5 0 003 0"/></svg>'))
-        self._notif_btn.setStyleSheet(self._icon_btn_style())
+        self._notif_btn.setStyleSheet(self._tb_btn_style())
         self._notif_btn.clicked.connect(self.notification_clicked.emit)
         layout.addWidget(self._notif_btn)
 
@@ -69,7 +72,7 @@ class HeaderBar(QWidget):
             '<circle cx="12" cy="12" r="3"/>'
             '<path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1'
             'M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>'))
-        self._settings_btn.setStyleSheet(self._icon_btn_style())
+        self._settings_btn.setStyleSheet(self._tb_btn_style())
         self._settings_btn.clicked.connect(self.settings_clicked.emit)
         layout.addWidget(self._settings_btn)
 
@@ -80,29 +83,29 @@ class HeaderBar(QWidget):
         self._conn_label.setText(f"{connected}/{total} Connected")
 
     @staticmethod
-    def _icon_btn_style() -> str:
+    def _tb_btn_style() -> str:
+        # Gentelella .tb-btn: 32x32, no border, transparent bg, radius 4px
         return f"""
             QPushButton {{
-                background: {TC.BG_CARD};
-                border: 1px solid {TC.BORDER_DEFAULT};
-                border-radius: 8px;
+                width: 32px; height: 32px;
+                border: none; background: transparent;
+                border-radius: 4px;
                 color: {TC.TEXT_SECONDARY};
             }}
             QPushButton:hover {{
-                background: {TC.BG_HOVER};
+                background: {TC.BG_BASE};
                 color: {TC.TEXT_PRIMARY};
             }}
         """
 
     @staticmethod
     def _svg_icon(svg_str: str):
-        """将 SVG 字符串转为 QIcon。"""
         from PyQt5.QtGui import QIcon, QPixmap, QPainter, QColor
         from PyQt5.QtSvg import QSvgRenderer
         try:
             renderer = QSvgRenderer(bytearray(svg_str.encode("utf-8")))
             if renderer.isValid():
-                pixmap = QPixmap(20, 20)
+                pixmap = QPixmap(18, 18)
                 pixmap.fill(QColor("transparent"))
                 painter = QPainter(pixmap)
                 renderer.render(painter)

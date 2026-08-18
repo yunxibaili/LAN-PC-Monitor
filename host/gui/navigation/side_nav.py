@@ -109,38 +109,48 @@ class SideNav(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        self.setStyleSheet(f"background: {TC.BG_SURFACE}; border-right: 1px solid {TC.BORDER_SUBTLE};")
+        # Gentelella sidebar: background, no right border (用 content 区域背景统一)
+        self.setStyleSheet(f"background: {TC.BG_SURFACE};")
 
-        # Logo
+        # Brand area (Gentelella .sidebar-brand: height 56px, padding 0 16px, gap 10px)
         logo_frame = QFrame()
         logo_frame.setFixedHeight(56)
-        logo_frame.setStyleSheet(f"background: {TC.BG_SURFACE}; border-bottom: 1px solid {TC.BORDER_DEFAULT};")
+        logo_frame.setStyleSheet(
+            f"background: {TC.BG_SURFACE}; border-bottom: 1px solid {TC.BORDER_DEFAULT};")
         logo_layout = QHBoxLayout(logo_frame)
-        logo_layout.setContentsMargins(14, 0, 14, 0)
+        logo_layout.setContentsMargins(16, 0, 16, 0)
+        logo_layout.setSpacing(10)
+
+        # Brand icon (Gentelella .brand-icon: 28x28, radius 6px)
         logo_icon = QLabel("PC")
         logo_icon.setFixedSize(28, 28)
         logo_icon.setStyleSheet(
-            f"background: {TC.ACCENT_PRIMARY}; color: {TC.TEXT_ON_COLOR}; border-radius: 6px;"
-            f" font-size: 11px; font-weight: 700;")
+            f"background: {TC.ACCENT_PRIMARY}; color: {TC.TEXT_ON_COLOR};"
+            f" border-radius: 6px; font-size: 13px; font-weight: 700;")
         logo_icon.setAlignment(Qt.AlignCenter)
         logo_layout.addWidget(logo_icon)
+
+        # Brand name (Gentelella .brand-name: 15px, 600 weight)
         logo_text = QLabel("PC 监控")
-        logo_text.setStyleSheet(f"font-size: TT.BODY['size']px; font-weight: 700; color: {TC.ACCENT_PRIMARY}; background: transparent;")
+        logo_text.setStyleSheet(
+            f"font-size: 15px; font-weight: 600; color: {TC.TEXT_PRIMARY};"
+            f" background: transparent; letter-spacing: -0.2px;")
         logo_layout.addWidget(logo_text)
         root.addWidget(logo_frame)
 
-        # Nav buttons with section headers
+        # Nav area (Gentelella .sidebar-nav: flex:1, padding 8px 0)
         nav_frame = QWidget()
+        nav_frame.setStyleSheet("background: transparent;")
         nav_layout = QVBoxLayout(nav_frame)
         nav_layout.setContentsMargins(8, 8, 8, 8)
-        nav_layout.setSpacing(2)
+        nav_layout.setSpacing(1)
 
         for group_id, section_key, items in self.NAV_ITEMS:
-            # Section header
+            # Section label (Gentelella .nav-label: 16px 12px 4px, 10px, 600, 0.5px)
             section_lbl = QLabel(tr(section_key))
             section_lbl.setStyleSheet(
-                f"color: {TC.TEXT_DISABLED}; font-size: {TT.CAPTION['size']}px; font-weight: 600; "
-                f"letter-spacing: 1px; padding: 12px 8px 4px 8px; background: transparent;")
+                f"color: rgba(107,114,128,0.5); font-size: 10px; font-weight: 600; "
+                f"letter-spacing: 0.5px; padding: 16px 12px 4px 12px; background: transparent;")
             nav_layout.addWidget(section_lbl)
 
             for nav_id, i18n_key, icon_svg in items:
@@ -152,9 +162,13 @@ class SideNav(QWidget):
         nav_layout.addStretch(1)
         root.addWidget(nav_frame)
 
-        # Node section（无硬分隔线，用间距自然分隔）
+        # Node section
         self._node_title = QLabel(tr("nav.connected"))
-        self._node_title.setContentsMargins(14, 12, 14, 4)
+        self._node_title.setContentsMargins(20, 12, 20, 4)
+        self._node_title.setStyleSheet(
+            f"color: {TC.TEXT_DISABLED}; font-size: {TT.CAPTION['size']}px;"
+            f" font-weight: 600; background: transparent; letter-spacing: 0.5px;")
+        root.addWidget(self._node_title)
         self._node_title.setStyleSheet(
             f"color: {TC.TEXT_DISABLED}; font-size: {TT.CAPTION['size']}px;"
             f" font-weight: 600; background: transparent; letter-spacing: 1px;")

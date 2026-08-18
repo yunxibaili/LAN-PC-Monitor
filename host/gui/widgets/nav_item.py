@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-NavItem —— 侧边栏导航项（Gentelella 风格，SVG 图标 + 文字）。
+NavItem —— 侧边栏导航项（Gentelella v4 精确适配）。
 
-替代 QPushButton，支持 inline SVG 渲染。
+CSS 来源：gentelella-master/src/scss/v4/_layout.scss
+.nav-link / .nav-link:hover / .nav-link.active
 """
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QFrame
@@ -10,17 +11,9 @@ from PyQt5.QtWidgets import QHBoxLayout, QLabel, QFrame
 from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.typography import ThemeTypography as TT
 
-# SVG 渲染：Qt5Svg 可选依赖
-try:
-    from PyQt5.QtGui import QPixmap, QPainter, QColor
-    from PyQt5.QtSvg import QSvgRenderer
-    _HAS_SVG = True
-except ImportError:
-    _HAS_SVG = False
-
 
 class NavItem(QFrame):
-    """侧栏导航项：SVG 图标 + 文字，点击切换。"""
+    """侧栏导航项：图标 + 文字，点击切换。"""
     clicked = pyqtSignal(str)
 
     def __init__(self, nav_id: str, text: str, svg: str = "", parent=None):
@@ -28,14 +21,14 @@ class NavItem(QFrame):
         self.nav_id = nav_id
         self._active = False
         self.setCursor(Qt.PointingHandCursor)
-        self.setFixedHeight(36)
-        self.setStyleSheet(self._base_style(False))
+        self.setFixedHeight(32)
+        self.setStyleSheet(self._style(False))
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 0, 16, 0)
+        layout.setContentsMargins(12, 0, 12, 0)
         layout.setSpacing(10)
 
-        # SVG 图标（16x16）
+        # 图标
         self._icon_lbl = QLabel()
         self._icon_lbl.setFixedSize(18, 18)
         self._icon_lbl.setStyleSheet("background: transparent;")
@@ -46,14 +39,14 @@ class NavItem(QFrame):
         # 文字
         self._text_lbl = QLabel(text)
         self._text_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY['size']}px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY['size']}px;"
+            f" background: transparent;")
         layout.addWidget(self._text_lbl, 1)
 
     def _set_svg(self, svg_str: str):
-        """将 SVG 字符串渲染为 QPixmap（Qt5Svg 可选）。"""
-        if not _HAS_SVG:
-            return
         try:
+            from PyQt5.QtGui import QPixmap, QPainter, QColor
+            from PyQt5.QtSvg import QSvgRenderer
             renderer = QSvgRenderer(bytearray(svg_str.encode("utf-8")))
             if renderer.isValid():
                 pixmap = QPixmap(18, 18)
@@ -65,36 +58,36 @@ class NavItem(QFrame):
         except Exception:
             pass
 
-    def _base_style(self, active: bool) -> str:
+    def _style(self, active: bool) -> str:
+        # Gentelella nav-link: padding 6px 12px, radius 4px, min-height 32px
         if active:
             return f"""
                 NavItem {{
-                    border-left: 3px solid {TC.ACCENT_PRIMARY};
                     background: rgba(59,130,246,0.08);
-                    border-radius: 0 6px 6px 0;
+                    border-radius: 4px;
                 }}
             """
         return f"""
             NavItem {{
-                border-left: 3px solid transparent;
                 background: transparent;
-                border-radius: 0 6px 6px 0;
-                margin-left: 0px;
+                border-radius: 4px;
             }}
             NavItem:hover {{
-                background: {TC.BG_HOVER};
+                background: rgba(0,0,0,0.04);
             }}
         """
 
     def set_active(self, active: bool):
         self._active = active
-        self.setStyleSheet(self._base_style(active))
+        self.setStyleSheet(self._style(active))
         if active:
             self._text_lbl.setStyleSheet(
-                f"color: {TC.TEXT_PRIMARY}; font-size: {TT.BODY['size']}px; font-weight: 600; background: transparent;")
+                f"color: {TC.TEXT_PRIMARY}; font-size: {TT.BODY['size']}px;"
+                f" font-weight: 500; background: transparent;")
         else:
             self._text_lbl.setStyleSheet(
-                f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY['size']}px; background: transparent;")
+                f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY['size']}px;"
+                f" background: transparent;")
 
     def mousePressEvent(self, event):
         self.clicked.emit(self.nav_id)
