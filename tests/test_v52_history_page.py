@@ -116,11 +116,12 @@ def test_page_structure():
     page = HistoryPage()
     page.set_view_model(vm)
     check("has _chart", hasattr(page, '_chart'))
-    check("has _node_combo", hasattr(page, '_node_combo'))
-    check("has _metric_combo", hasattr(page, '_metric_combo'))
-    check("has _range_combo", hasattr(page, '_range_combo'))
-    check("has _load_btn", hasattr(page, '_load_btn'))
+    check("has _time_btns", hasattr(page, '_time_btns'))
+    check("has _metric_checks", hasattr(page, '_metric_checks'))
+    check("has _refresh_btn", hasattr(page, '_refresh_btn'))
     check("has _empty", hasattr(page, '_empty'))
+    check("time btns count=5", len(page._time_btns) == 5)
+    check("metric checks count=5", len(page._metric_checks) == 5)
     db.close()
 
 
