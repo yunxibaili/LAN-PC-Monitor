@@ -141,10 +141,14 @@ class WebSocketServer:
     # ---------- 内部实现 ----------
 
     def _check_token(self, token) -> bool:
-        """校验 token。空 token 配置下放行（测试用）。"""
+        """校验 token（P2-2: 恒时比较 + P2-3: 空 token 禁止放行）。"""
+        import hmac
         if not self.token:
-            return True
-        return token == self.token
+            log.warning("Agent token 为空，拒绝所有连接（P2-3）")
+            return False
+        if not token:
+            return False
+        return hmac.compare_digest(str(token), self.token)
 
     async def _handle_text(self, ws, data: str) -> None:
         """处理业务文本消息（loss_ping 等）。"""

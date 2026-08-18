@@ -110,8 +110,11 @@ class AgentService:
                                      socket.gethostname(), self.cfg["token"])
         self.app = app
 
-        # 连接串打印
-        print(f"\n  连接串: pcmonitor://{lan_ip}:{self.cfg['http_port']}?token={self.cfg['token']}\n")
+        # P2-4: stdout 不打印 token（安全）；完整连接串仅记日志
+        print(f"\n  Agent 已启动: http://{lan_ip}:{self.cfg['http_port']}\n")
+        print(f"  Token 已保存到 agent_config.json（启动日志含完整连接串）\n")
+        self.log.info("Agent 连接串: pcmonitor://%s:%d?token=%s",
+                      lan_ip, self.cfg["http_port"], self.cfg["token"])
         self.log.info("Agent 服务已启动（HTTP/WS %d, UDP %d）",
                       self.cfg["http_port"], self.cfg["udp_port"])
 

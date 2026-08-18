@@ -48,5 +48,31 @@ class ProcCollector(BaseCollector):
 
         return {
             "top_cpu": top_cpu,
-            "top_gpu": [],   # GPU Top3 由 gpu_collector 提供（P3）
+            "top_gpu": self._get_top_gpu(),
         }
+
+    @staticmethod
+    def _get_top_gpu() -> list:
+        """尝试获取 GPU Top3 进程（nvidia-ml-py）。"""
+        try:
+            import pynvml
+            pynvml.nvmlInit()
+            device_count = pynvml.nvmlDeviceGetCount()
+            procs = []
+            for i in range(device_count):
+                h = pynvml.nvmlDeviceGetHandleByIndex(i)
+                try:
+                    apps = pynvml.nvmlDeviceGetComputeRunningProcesses(h)
+                    for app in apps:
+                        try:
+                            name = pynvml.nvmlSystemGetProcessName(app.pid)
+                        except Exception:
+                            name = f"pid:{app.pid}"
+                        procs.append({"name": name, "usage_percent": round(app.usedGpuMemory / 1048576, 1) if app.usedGpuMemory else 0})
+                except Exception:
+                    pass
+            pynvml.nvmlShutdown()
+            procs.sort(key=lambda x: x["usage_percent"], reverse=True)
+            return procs[:3]
+        except Exception:
+            return []
