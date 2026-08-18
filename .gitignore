@@ -40,6 +40,10 @@ logs/
 *.sqlite
 *.sqlite3
 
+# 工具缓存（会话/构建缓存，不提交）
+.npm-cache/
+.recode/
+
 # Agent / IDE
 .claude/
 
