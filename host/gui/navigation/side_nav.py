@@ -117,8 +117,12 @@ class SideNav(QWidget):
         logo_frame.setStyleSheet(f"background: {TC.BG_SURFACE}; border-bottom: 1px solid {TC.BORDER_DEFAULT};")
         logo_layout = QHBoxLayout(logo_frame)
         logo_layout.setContentsMargins(14, 0, 14, 0)
-        logo_icon = QLabel("🖥")
-        logo_icon.setStyleSheet(f"font-size: TT.TITLE_SMALL['size']px; background: transparent;")
+        logo_icon = QLabel("PC")
+        logo_icon.setFixedSize(28, 28)
+        logo_icon.setStyleSheet(
+            f"background: {TC.ACCENT_PRIMARY}; color: {TC.TEXT_ON_COLOR}; border-radius: 6px;"
+            f" font-size: 11px; font-weight: 700;")
+        logo_icon.setAlignment(Qt.AlignCenter)
         logo_layout.addWidget(logo_icon)
         logo_text = QLabel("PC 监控")
         logo_text.setStyleSheet(f"font-size: TT.BODY['size']px; font-weight: 700; color: {TC.ACCENT_PRIMARY}; background: transparent;")
