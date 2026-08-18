@@ -5,6 +5,5 @@ wmi>=1.5.1
 pywin32>=305
 numpy>=1.24.0
 dxcam>=0.0.5
-netifaces>=0.11
 zeroconf>=0.132.0
 pyadl>=0.1

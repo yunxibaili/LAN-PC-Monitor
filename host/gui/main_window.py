@@ -192,7 +192,8 @@ class HostMainWindow(QMainWindow):
         self.settings_vm = SettingsViewModel(self.settings)
 
         # Storage Service（统一管理 SQLite 连接 + Repository）
-        self._storage = StorageService("history.db")
+        # v5.3.1：默认路径固定到用户数据目录，不再跟随启动 CWD
+        self._storage = StorageService()
         self._history_facade = self._storage.history_facade()
         self.history_vm = HistoryViewModel(self._history_facade)
         self._metric_persistence = MetricPersistenceService(

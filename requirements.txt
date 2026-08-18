@@ -22,8 +22,7 @@ numpy>=1.24.0           # 帧差分计算（dxcam 依赖）
 # 帧率降级（DXGI 截帧；仅 Windows）
 dxcam>=0.0.5
 
-# 网络（多网卡 IP 选取 + mDNS 零配置发现）
-netifaces>=0.11
+# 网络（psutil.net_if_addrs 选 IP + mDNS 零配置发现）
 zeroconf>=0.132.0      # mDNS/Bonjour 自动发现；未安装时自动降级仅 UDP 广播
 
 # 可选（AMD GPU）

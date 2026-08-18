@@ -13,6 +13,7 @@ StorageService —— 存储层组装与生命周期管理（v5.2 Phase 5-5B）�
   - UI 数据转换
 """
 import logging
+import os
 
 from host.storage.database import Database
 from host.storage.repositories.metrics_repo import MetricsRepository
@@ -24,10 +25,31 @@ from host.storage.retention import RetentionPolicy, RetentionService
 log = logging.getLogger("host.service.storage")
 
 
+def get_default_db_path() -> str:
+    """
+    返回用户数据目录下的数据库路径（v5.3.1 起，不再依赖进程 CWD）。
+
+    Windows: %APPDATA%/LAN-PC-Monitor/data/history.db
+    其它:    ~/.config/LAN-PC-Monitor/data/history.db
+    目录不存在时自动创建。
+    """
+    base = os.environ.get("APPDATA") or os.path.join(
+        os.path.expanduser("~"), ".config")
+    data_dir = os.path.join(base, "LAN-PC-Monitor", "data")
+    os.makedirs(data_dir, exist_ok=True)
+    return os.path.join(data_dir, "history.db")
+
+
 class StorageService:
     """统一管理 SQLite 连接 + Repository 组装。"""
 
-    def __init__(self, db_path: str = "history.db"):
+    def __init__(self, db_path: str = ""):
+        """
+        :param db_path: 数据库文件路径。空串/省略使用 get_default_db_path()
+                        （用户数据目录，与启动方式无关）；":memory:" 为测试用。
+        """
+        if not db_path:
+            db_path = get_default_db_path()
         self._db = Database(db_path)
         self._db.connect()
         self.metrics_repo = MetricsRepository(self._db)

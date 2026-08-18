@@ -8,9 +8,9 @@ import hashlib
 import socket
 
 try:
-    import netifaces
+    import psutil
 except ImportError:  # 未安装时降级为 socket 探测法
-    netifaces = None
+    psutil = None
 
 
 def bytes_to_mb(value: float) -> float:
@@ -49,16 +49,12 @@ def get_lan_ip(preferred_iface: str = "") -> str:
     :param preferred_iface: 首选网卡名（如 "以太网"），空串表示自动
     :return: 局域网 IP 字符串
     """
-    if netifaces is not None:
+    if psutil is not None:
         candidates = []  # (iface, ip)
-        for iface in netifaces.interfaces():
-            try:
-                addrs = netifaces.ifaddresses(iface)
-            except Exception:
-                continue
-            inet = addrs.get(netifaces.AF_INET, [])
+        for iface, addrs in psutil.net_if_addrs().items():
+            inet = [a for a in addrs if a.family == socket.AF_INET]
             for a in inet:
-                ip = a.get("addr", "")
+                ip = a.address or ""
                 if not ip or ip.startswith("127."):
                     continue
                 # 仅接受私网段
@@ -157,19 +153,9 @@ def get_default_gateway() -> str:
     """
     获取默认网关 IP（用于网关延迟测量，见《README.md》§8.6）。
 
-    Windows 下优先用 route print 解析；失败时用 netifaces.gateways()。
+    Windows 下用 route print 解析（兼容中英文，无需第三方库）。
     :return: 网关 IP 字符串；获取失败返回空串
     """
-    # 优先 netifaces.gateways()（跨平台，无子进程）
-    if netifaces is not None:
-        try:
-            gateways = netifaces.gateways()
-            default = gateways.get("default", {})
-            if netifaces.AF_INET in default:
-                return default[netifaces.AF_INET][0]
-        except Exception:
-            pass
-    # Windows 兜底：route print 解析
     try:
         import subprocess
         out = subprocess.run(["route", "print", "0.0.0.0"],
