@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
 
 from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.spacing import ThemeSpacing as S
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.icons import ThemeIcons
 from host.gui.widgets.nav_item import NavItem
 from common.i18n import tr
@@ -134,7 +135,7 @@ class SideNav(QWidget):
             # Section header
             section_lbl = QLabel(tr(section_key))
             section_lbl.setStyleSheet(
-                f"color: {TC.TEXT_DISABLED}; font-size: 10px; font-weight: 600; "
+                f"color: {TC.TEXT_DISABLED}; font-size: {TT.CAPTION['size']}px; font-weight: 600; "
                 f"letter-spacing: 1px; padding: 12px 8px 4px 8px; background: transparent;")
             nav_layout.addWidget(section_lbl)
 

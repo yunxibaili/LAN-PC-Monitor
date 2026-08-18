@@ -8,6 +8,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QFrame
 
 from host.gui.theme.colors import ThemeColors as TC
+from host.gui.theme.typography import ThemeTypography as TT
 
 # SVG 渲染：Qt5Svg 可选依赖
 try:
@@ -45,7 +46,7 @@ class NavItem(QFrame):
         # 文字
         self._text_lbl = QLabel(text)
         self._text_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: 13px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY['size']}px; background: transparent;")
         layout.addWidget(self._text_lbl, 1)
 
     def _set_svg(self, svg_str: str):
@@ -89,10 +90,10 @@ class NavItem(QFrame):
         self.setStyleSheet(self._base_style(active))
         if active:
             self._text_lbl.setStyleSheet(
-                f"color: {TC.TEXT_PRIMARY}; font-size: 13px; font-weight: 600; background: transparent;")
+                f"color: {TC.TEXT_PRIMARY}; font-size: {TT.BODY['size']}px; font-weight: 600; background: transparent;")
         else:
             self._text_lbl.setStyleSheet(
-                f"color: {TC.TEXT_SECONDARY}; font-size: 13px; background: transparent;")
+                f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY['size']}px; background: transparent;")
 
     def mousePressEvent(self, event):
         self.clicked.emit(self.nav_id)
