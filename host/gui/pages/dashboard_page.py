@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-DashboardPage —— 总览页（v5.2 Phase 4-2B）。
+DashboardPage —— 总览页（v5.3.2 Dashboard 2.0）。
 
-布局：PageHeader → SummaryCards → NodeCard Grid → TrendPanel → Recent Alerts
+布局：Header → SystemOverview → NodeCard Grid → Recent Alerts
 Signal 驱动，不访问 Store。
 """
 import logging
-import time
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QFrame, QGridLayout, QHBoxLayout, QLabel, QScrollArea,
     QVBoxLayout, QWidget,
@@ -19,6 +18,7 @@ from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.pages.base_page import PageBase
 from host.gui.widgets.node_card import NodeCard
 from host.gui.widgets.chart_panel import SummaryCard
+from host.gui.widgets.metric_bar import MetricBar
 
 log = logging.getLogger("host.gui.dashboard_page")
 
@@ -60,51 +60,44 @@ class AlertPreviewItem(QFrame):
         layout.addWidget(self._time)
 
 
-# ---------- TrendPanel ----------
+# ---------- SystemOverviewWidget ----------
 
-class TrendPanel(QFrame):
-    """System Trend：4 个迷你趋势卡。"""
+class SystemOverviewWidget(QFrame):
+    """System Overview：CPU / GPU / RAM / Network 全在同一行，带进度条。"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(90)
         self.setStyleSheet(f"""
-            TrendPanel {{
+            SystemOverviewWidget {{
                 background-color: {TC.BG_CARD};
                 border: 1px solid {TC.BORDER_DEFAULT};
                 border-radius: 12px;
             }}
         """)
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(S.MD, S.SM, S.MD, S.SM)
-        layout.setSpacing(S.SM)
-        self._trends = {}
-        for key, title in [("cpu", "CPU"), ("gpu", "GPU"), ("ram", "RAM"), ("net", "Network")]:
-            w = QWidget()
-            vl = QVBoxLayout(w)
-            vl.setContentsMargins(0, 0, 0, 0)
-            vl.setSpacing(0)
-            lbl = QLabel(title)
-            lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: 10px; background: transparent;")
-            val = QLabel("—")
-            val.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: 20px; font-weight: bold; background: transparent;")
-            vl.addWidget(lbl)
-            vl.addWidget(val)
-            layout.addWidget(w, 1)
-            self._trends[key] = val
+        layout.setContentsMargins(S.MD, 10, S.MD, 10)
+        layout.setSpacing(16)
 
-    def update(self, key, value):
-        val = self._trends.get(key)
-        if val:
-            val.setText(f"{value:.1f}")
-            color = TC.bar_color(value)
-            val.setStyleSheet(f"color: {color}; font-size: 20px; font-weight: bold; background: transparent;")
+        self._cpu = MetricBar("CPU", "%", parent=self)
+        self._gpu = MetricBar("GPU", "%", parent=self)
+        self._ram = MetricBar("RAM", "%", parent=self)
+        self._net = MetricBar("Network", "MB/s", parent=self)
+
+        for bar in (self._cpu, self._gpu, self._ram, self._net):
+            layout.addWidget(bar, 1)
+
+    def update_metrics(self, cpu: float = 0, gpu: float = 0, ram: float = 0,
+                       net: float = 0):
+        self._cpu.set_metric("CPU", cpu)
+        self._gpu.set_metric("GPU", gpu)
+        self._ram.set_metric("RAM", ram)
+        self._net.set_metric("Network", net, unit="MB/s")
 
 
 # ---------- DashboardPage ----------
 
 class DashboardPage(PageBase):
-    """总览页。"""
+    """总览页（v5.3.2 Dashboard 2.0）。"""
 
     PAGE_ID = "dashboard"
     card_clicked = pyqtSignal(str)
@@ -115,6 +108,11 @@ class DashboardPage(PageBase):
         self._cards = {}
         self._grid_cols = 2
         self._setup_ui()
+
+        # 2 秒节流刷新
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setInterval(2000)
+        self._refresh_timer.timeout.connect(self._flush_refresh)
 
     def _setup_ui(self):
         root = QVBoxLayout(self)
@@ -132,31 +130,25 @@ class DashboardPage(PageBase):
         hdr.addWidget(self._subtitle)
         root.addLayout(hdr)
 
-        # Summary Cards
-        summary_row = QHBoxLayout()
-        summary_row.setSpacing(S.SM)
-        self._card_total = SummaryCard("Total Nodes", "0", size=28)
-        self._card_online = SummaryCard("Online", "0", TC.SUCCESS, size=28)
-        self._card_cpu = SummaryCard("Avg CPU", "0%", size=28)
-        self._card_gpu = SummaryCard("Avg GPU", "0%", size=28)
-        self._card_alerts = SummaryCard("Alerts", "0", TC.WARNING, size=28)
-        summary_row.addWidget(self._card_total)
-        summary_row.addWidget(self._card_online)
-        summary_row.addWidget(self._card_cpu)
-        summary_row.addWidget(self._card_gpu)
-        summary_row.addWidget(self._card_alerts)
-        root.addLayout(summary_row)
+        # System Overview（4 个 MetricBar 全在一行）
+        overview_label = QLabel("System Overview")
+        overview_label.setStyleSheet(
+            f"font-size: 16px; font-weight: 600; color: {TC.TEXT_PRIMARY};")
+        root.addWidget(overview_label)
+        self._system_overview = SystemOverviewWidget()
+        root.addWidget(self._system_overview)
 
-        # Node Overview Label
+        # Node Overview
         self._nodes_label = QLabel("Node Overview")
-        self._nodes_label.setStyleSheet(f"font-size: 16px; font-weight: 600; color: {TC.TEXT_PRIMARY}; margin-top: 4px;")
+        self._nodes_label.setStyleSheet(
+            f"font-size: 16px; font-weight: 600; color: {TC.TEXT_PRIMARY}; margin-top: 4px;")
         root.addWidget(self._nodes_label)
 
         # NodeCard Grid
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setFrameShape(QFrame.NoFrame)
-        self._scroll.setStyleSheet(f"background: transparent; border: none;")
+        self._scroll.setStyleSheet("background: transparent; border: none;")
         self._grid_container = QWidget()
         self._grid_layout = QGridLayout(self._grid_container)
         self._grid_layout.setContentsMargins(0, 0, 0, 0)
@@ -166,17 +158,26 @@ class DashboardPage(PageBase):
 
         self._empty = QLabel("No online nodes detected")
         self._empty.setAlignment(Qt.AlignCenter)
-        self._empty.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 14px; padding: 40px 0;")
+        self._empty.setStyleSheet(
+            f"color: {TC.TEXT_DISABLED}; font-size: 14px; padding: 40px 0;")
         self._empty.hide()
         root.addWidget(self._empty)
 
-        # System Trend
-        self._trend = TrendPanel()
-        root.addWidget(self._trend)
+        # Summary row
+        summary_row = QHBoxLayout()
+        summary_row.setSpacing(S.SM)
+        self._card_total = SummaryCard("Total Nodes", "0", size=28)
+        self._card_online = SummaryCard("Online", "0", TC.SUCCESS, size=28)
+        self._card_alerts = SummaryCard("Alerts", "0", TC.WARNING, size=28)
+        summary_row.addWidget(self._card_total)
+        summary_row.addWidget(self._card_online)
+        summary_row.addWidget(self._card_alerts)
+        root.addLayout(summary_row)
 
         # Recent Alerts
         self._alerts_title = QLabel("Recent Alerts")
-        self._alerts_title.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {TC.TEXT_PRIMARY}; margin-top: 4px;")
+        self._alerts_title.setStyleSheet(
+            f"font-size: 14px; font-weight: 600; color: {TC.TEXT_PRIMARY}; margin-top: 4px;")
         root.addWidget(self._alerts_title)
         self._alerts_container = QWidget()
         self._alerts_layout = QVBoxLayout(self._alerts_container)
@@ -187,9 +188,18 @@ class DashboardPage(PageBase):
     def set_view_model(self, vm):
         self._vm = vm
 
+    def set_alert_store(self, alert_store):
+        """接收 AlertStore（可选，v5.3.2 增强告警预览）。"""
+        self._alert_store = alert_store
+
     def on_show(self):
         super().on_show()
         self._rebuild_grid()
+        self._refresh_timer.start()
+
+    def on_hide(self):
+        super().on_hide()
+        self._refresh_timer.stop()
 
     def _rebuild_grid(self):
         if not self._vm:
@@ -204,6 +214,7 @@ class DashboardPage(PageBase):
             self._empty.show()
             self._scroll.hide()
             self._update_summary(0, 0, 0)
+            self._system_overview.update_metrics(0, 0, 0, 0)
             return
 
         self._empty.hide()
@@ -219,34 +230,66 @@ class DashboardPage(PageBase):
             self._cards[data.node_id] = card
 
         self._update_summary_from_vm()
+        self._flush_refresh()
 
     def _calc_cols(self, width):
-        if width < 1000: return 1
-        elif width < 1600: return 2
-        elif width < 2200: return 3
+        if width < 1000:
+            return 1
+        elif width < 1600:
+            return 2
+        elif width < 2200:
+            return 3
         return 4
 
     def _update_summary(self, total, online, offline, alerts=0):
         self._card_total.set_value(total)
         self._card_online.set_value(online, color=TC.SUCCESS)
-        self._card_cpu.set_value("--%")
-        self._card_gpu.set_value("--%")
         self._card_alerts.set_value(alerts, color=TC.WARNING)
 
     def _update_summary_from_vm(self):
-        if not self._vm: return
+        if not self._vm:
+            return
         nodes = self._vm.get_nodes()
         total = len(nodes)
         online = sum(1 for n in nodes if n.status in ("connected", "online"))
-        self._update_summary(total, online, total - online)
+        alerts = 0
+        if hasattr(self, '_alert_store') and self._alert_store:
+            try:
+                alerts = self._alert_store.count()
+            except Exception:
+                pass
+        self._update_summary(total, online, total - online, alerts)
+
+    def _flush_refresh(self):
+        """2 秒节流刷新 System Overview + Summary Cards。"""
+        if not self._vm:
+            return
+        nodes = self._vm.get_nodes()
+        if not nodes:
+            return
+        online = [n for n in nodes if n.status in ("connected", "online")]
+        if not online:
+            return
+        # 聚合：取所有在线节点均值
+        avg = lambda fn: sum(fn(n) for n in online) / len(online)
+        self._system_overview.update_metrics(
+            cpu=avg(lambda n: n.cpu_usage),
+            gpu=avg(lambda n: n.gpu_usage),
+            ram=avg(lambda n: n.memory_usage),
+            net=avg(lambda n: n.network_rx + n.network_tx),
+        )
 
     def update_trends(self, node_id, frame):
-        if not frame: return
-        self._trend.update("cpu", frame.get("cpu", {}).get("total_usage", 0))
-        self._trend.update("gpu", frame.get("gpu", {}).get("usage_percent", 0))
-        self._trend.update("ram", frame.get("ram", {}).get("usage_percent", 0))
-        net = frame.get("net", {})
-        self._trend.update("net", net.get("upload_mb_s", 0) + net.get("download_mb_s", 0))
+        """外部调用（MainWindow 信号驱动）。"""
+        if not frame:
+            return
+        self._system_overview.update_metrics(
+            cpu=frame.get("cpu", {}).get("total_usage", 0),
+            gpu=frame.get("gpu", {}).get("usage_percent", 0),
+            ram=frame.get("ram", {}).get("usage_percent", 0),
+            net=frame.get("net", {}).get("upload_mb_s", 0)
+                 + frame.get("net", {}).get("download_mb_s", 0),
+        )
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
