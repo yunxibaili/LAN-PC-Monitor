@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-MetricBar —— 指标条组件（v5.2 Phase 4-1B Premium Upgrade）。
+MetricBar —— 指标条组件（v5.4 专业监控面板风格）。
 
-动态颜色 + 阈值变化 + 圆角 + 数值右对齐。
+布局：标签 + 数值（右对齐）+ 进度条
+进度条：8px 高度，圆角，阈值变色
 """
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QProgressBar, QVBoxLayout, QWidget
 
 from host.gui.theme.colors import ThemeColors as TC
-from host.gui.theme.metrics import ThemeMetrics as TM
+from host.gui.theme.typography import ThemeTypography as TT
 
 
 class MetricBar(QWidget):
@@ -22,36 +23,38 @@ class MetricBar(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+        layout.setContentsMargins(0, 4, 0, 4)
+        layout.setSpacing(6)
 
         # 顶部：标签 + 数值
         top = QHBoxLayout()
         self._name_label = QLabel(self._name)
         self._name_label.setStyleSheet(
-            f"color: {TC.TEXT_MUTED}; font-size: {TM.FONT_SIZE_SM}px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY_SMALL['size']}px;"
+            f" font-weight: 500; background: transparent;")
         top.addWidget(self._name_label)
         top.addStretch(1)
         self._value_label = QLabel("—")
         self._value_label.setStyleSheet(
-            f"color: {TC.TEXT_PRIMARY}; font-size: {TM.FONT_SIZE_MD}px; font-weight: bold; background: transparent;")
+            f"color: {TC.TEXT_PRIMARY}; font-size: {TT.TITLE_MEDIUM['size']}px;"
+            f" font-weight: 700; background: transparent;")
         top.addWidget(self._value_label)
         layout.addLayout(top)
 
-        # 进度条
+        # 进度条（8px 高度）
         self._bar = QProgressBar()
         self._bar.setRange(0, 100)
         self._bar.setValue(0)
-        self._bar.setFixedHeight(6)
+        self._bar.setFixedHeight(8)
         self._bar.setTextVisible(False)
         self._bar.setStyleSheet(f"""
             QProgressBar {{
                 border: none;
                 background-color: {TC.BAR_BG};
-                border-radius: 3px;
+                border-radius: 4px;
             }}
             QProgressBar::chunk {{
-                border-radius: 3px;
+                border-radius: 4px;
                 background-color: {TC.BAR_SUCCESS};
             }}
         """)
@@ -77,16 +80,16 @@ class MetricBar(QWidget):
 
         color = TC.bar_color(value, warn, danger)
         self._value_label.setStyleSheet(
-            f"color: {color}; font-size: {TM.FONT_SIZE_MD}px; font-weight: bold; background: transparent;")
-        pct = clamped
+            f"color: {color}; font-size: {TT.TITLE_MEDIUM['size']}px;"
+            f" font-weight: 700; background: transparent;")
         self._bar.setStyleSheet(f"""
             QProgressBar {{
                 border: none;
                 background-color: {TC.BAR_BG};
-                border-radius: 3px;
+                border-radius: 4px;
             }}
             QProgressBar::chunk {{
-                border-radius: 3px;
+                border-radius: 4px;
                 background-color: {color};
             }}
         """)

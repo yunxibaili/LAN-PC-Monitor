@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-StatCard —— 统计卡片组件（Gentelella 风格）。
+StatCard —— 统计卡片组件（v5.4 Gentelella 风格）。
 
-布局：左侧彩色图标 + 中间 Label/Value/Subtext + 右侧 Spark bars
-参考：Gentelella stat 组件（icon + content + spark）
+布局：彩色图标圆 + Label + 大数值 + 副文本
+参考：Gentelella stat 组件（icon + content）
 """
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
@@ -13,12 +13,12 @@ from host.gui.theme.typography import ThemeTypography as TT
 
 
 class StatCard(QFrame):
-    """统计卡片：图标 + 标签 + 数值 + 副文本 + 可选进度条。"""
+    """统计卡片：图标 + 标签 + 数值 + 副文本。"""
 
     def __init__(self, title="", value="0", icon_color=None, parent=None):
         super().__init__(parent)
         self._icon_color = icon_color or TC.ACCENT_PRIMARY
-        self.setFixedHeight(90)
+        self.setFixedHeight(100)
         self.setStyleSheet(f"""
             StatCard {{
                 background-color: {TC.BG_CARD};
@@ -30,28 +30,28 @@ class StatCard(QFrame):
 
     def _setup_ui(self, title, value):
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(16, 14, 16, 14)
-        layout.setSpacing(14)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(16)
 
-        # 左侧：彩色图标圆
+        # 左侧：彩色图标圆（40x40）
         icon_frame = QFrame()
-        icon_frame.setFixedSize(40, 40)
+        icon_frame.setFixedSize(44, 44)
         icon_frame.setStyleSheet(f"""
-            background-color: {self._icon_color}15;
-            border-radius: 20px;
+            background-color: {self._icon_color}12;
+            border-radius: 22px;
         """)
         icon_inner = QLabel("●")
         icon_inner.setAlignment(Qt.AlignCenter)
         icon_inner.setStyleSheet(
-            f"color: {self._icon_color}; font-size: 18px; background: transparent;")
+            f"color: {self._icon_color}; font-size: 20px; background: transparent;")
         icon_layout = QHBoxLayout(icon_frame)
         icon_layout.setContentsMargins(0, 0, 0, 0)
         icon_layout.addWidget(icon_inner)
         layout.addWidget(icon_frame)
 
-        # 中间：Label + Value
+        # 中间：Label + Value + Subtext
         content = QVBoxLayout()
-        content.setSpacing(2)
+        content.setSpacing(4)
 
         self._label = QLabel(title)
         self._label.setStyleSheet(
