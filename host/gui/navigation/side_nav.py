@@ -65,13 +65,18 @@ class NodeItem(QFrame):
         self._dot.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 8px; background: transparent;")
         layout.addWidget(self._dot)
         self._label = QLabel(alias)
-        self._label.setStyleSheet(f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
+        self._label.setStyleSheet(f"color: {TC.SIDEBAR_TEXT}; font-size: {TT.BODY_SMALL['size']}px; background: transparent;")
         layout.addWidget(self._label, 1)
         self.setCursor(Qt.PointingHandCursor)
-        self.setStyleSheet(f"NodeItem:hover {{ background: {TC.BG_HOVER}; border-radius: 6px; }}")
+        self.setStyleSheet(f"NodeItem:hover {{ background: {TC.SIDEBAR_HOVER}; border-radius: 4px; }}")
 
     def set_status(self, status):
-        color = TC.status_color(status)
+        if status in ("connected", "online"):
+            color = TC.STATUS_ONLINE
+        elif status in ("offline", "timeout", "auth_failed"):
+            color = TC.SIDEBAR_TEXT_MUTED
+        else:
+            color = TC.STATUS_WARNING
         self._dot.setStyleSheet(f"color: {color}; font-size: 8px; background: transparent;")
 
     def mousePressEvent(self, event):
@@ -109,19 +114,22 @@ class SideNav(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        # Gentelella sidebar: background, no right border (用 content 区域背景统一)
-        self.setStyleSheet(f"background: {TC.BG_SURFACE};")
+        # Gentelella: sidebar 暗色，即使内容区亮色
+        self.setStyleSheet(f"""
+            background: {TC.SIDEBAR_BG};
+            border-right: 1px solid {TC.SIDEBAR_BORDER};
+        """)
 
-        # Brand area (Gentelella .sidebar-brand: height 56px, padding 0 16px, gap 10px)
+        # Brand area
         logo_frame = QFrame()
         logo_frame.setFixedHeight(56)
         logo_frame.setStyleSheet(
-            f"background: {TC.BG_SURFACE}; border-bottom: 1px solid {TC.BORDER_DEFAULT};")
+            f"background: {TC.SIDEBAR_BG}; border-bottom: 1px solid {TC.SIDEBAR_BORDER};")
         logo_layout = QHBoxLayout(logo_frame)
         logo_layout.setContentsMargins(16, 0, 16, 0)
         logo_layout.setSpacing(10)
 
-        # Brand icon (Gentelella .brand-icon: 28x28, radius 6px)
+        # Brand icon (Gentelella .brand-icon: 28x28, radius 6px, primary bg)
         logo_icon = QLabel("PC")
         logo_icon.setFixedSize(28, 28)
         logo_icon.setStyleSheet(
@@ -130,15 +138,15 @@ class SideNav(QWidget):
         logo_icon.setAlignment(Qt.AlignCenter)
         logo_layout.addWidget(logo_icon)
 
-        # Brand name (Gentelella .brand-name: 15px, 600 weight)
+        # Brand name (Gentelella .brand-name: 15px, 600, white)
         logo_text = QLabel("PC 监控")
         logo_text.setStyleSheet(
-            f"font-size: 15px; font-weight: 600; color: {TC.TEXT_PRIMARY};"
+            f"font-size: 15px; font-weight: 600; color: {TC.SIDEBAR_TEXT_ACTIVE};"
             f" background: transparent; letter-spacing: -0.2px;")
         logo_layout.addWidget(logo_text)
         root.addWidget(logo_frame)
 
-        # Nav area (Gentelella .sidebar-nav: flex:1, padding 8px 0)
+        # Nav area
         nav_frame = QWidget()
         nav_frame.setStyleSheet("background: transparent;")
         nav_layout = QVBoxLayout(nav_frame)
@@ -146,10 +154,10 @@ class SideNav(QWidget):
         nav_layout.setSpacing(1)
 
         for group_id, section_key, items in self.NAV_ITEMS:
-            # Section label (Gentelella .nav-label: 16px 12px 4px, 10px, 600, 0.5px)
+            # Section label (Gentelella: uppercase, 10px, muted)
             section_lbl = QLabel(tr(section_key))
             section_lbl.setStyleSheet(
-                f"color: rgba(107,114,128,0.5); font-size: 10px; font-weight: 600; "
+                f"color: {TC.SIDEBAR_TEXT_MUTED}; font-size: 10px; font-weight: 600; "
                 f"letter-spacing: 0.5px; padding: 16px 12px 4px 12px; background: transparent;")
             nav_layout.addWidget(section_lbl)
 
@@ -166,7 +174,7 @@ class SideNav(QWidget):
         self._node_title = QLabel(tr("nav.connected"))
         self._node_title.setContentsMargins(20, 12, 20, 4)
         self._node_title.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: {TT.CAPTION['size']}px;"
+            f"color: {TC.SIDEBAR_TEXT_MUTED}; font-size: {TT.CAPTION['size']}px;"
             f" font-weight: 600; background: transparent; letter-spacing: 0.5px;")
         root.addWidget(self._node_title)
         root.addWidget(self._node_title)
@@ -184,6 +192,45 @@ class SideNav(QWidget):
         self._node_layout.addStretch(1)
         scroll.setWidget(self._node_container)
         root.addWidget(scroll, 1)
+
+        # Bottom user section (Gentelella .sidebar-user)
+        user_frame = QFrame()
+        user_frame.setStyleSheet(f"""
+            QFrame {{
+                background: transparent;
+                border-top: 1px solid {TC.SIDEBAR_BORDER};
+            }}
+            QFrame:hover {{ background: {TC.SIDEBAR_HOVER}; }}
+        """)
+        user_layout = QHBoxLayout(user_frame)
+        user_layout.setContentsMargins(12, 8, 12, 8)
+        user_layout.setSpacing(10)
+
+        # Avatar
+        avatar = QLabel("A")
+        avatar.setFixedSize(32, 32)
+        avatar.setStyleSheet(
+            f"background: qlineargradient(x1:0,y1:0,x2:1,y2:1,"
+            f"stop:0 {TC.ACCENT_PRIMARY}, stop:1 {TC.ACCENT_DK});"
+            f" color: {TC.TEXT_ON_COLOR}; border-radius: 16px;"
+            f" font-size: 12px; font-weight: 600;")
+        avatar.setAlignment(Qt.AlignCenter)
+        user_layout.addWidget(avatar)
+
+        user_info = QVBoxLayout()
+        user_info.setSpacing(0)
+        name_lbl = QLabel("LAN-PC-Monitor")
+        name_lbl.setStyleSheet(
+            f"color: {TC.SIDEBAR_TEXT_ACTIVE}; font-size: 12px; font-weight: 500;"
+            f" background: transparent;")
+        user_info.addWidget(name_lbl)
+        role_lbl = QLabel("v5.3.4")
+        role_lbl.setStyleSheet(
+            f"color: {TC.SIDEBAR_TEXT_MUTED}; font-size: 11px; background: transparent;")
+        user_info.addWidget(role_lbl)
+        user_layout.addLayout(user_info, 1)
+
+        root.addWidget(user_frame)
 
         self._select("dashboard")
 

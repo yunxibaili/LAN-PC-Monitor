@@ -18,6 +18,7 @@ class ThemeColors:
     TEXT_DISABLED = ThemeTokens.COLOR_TEXT_DISABLED        # #7E8896
 
     ACCENT_PRIMARY = ThemeTokens.COLOR_ACCENT             # #1ABB9C
+    ACCENT_DK = ThemeTokens.COLOR_ACCENT_DK               # #169F85
 
     STATUS_ONLINE = ThemeTokens.COLOR_SUCCESS             # #2FB344
     STATUS_OFFLINE = ThemeTokens.COLOR_OFFLINE            # #7E8896
@@ -84,6 +85,16 @@ class ThemeColors:
     DANGER = STATUS_ERROR
     PRIMARY = ACCENT_PRIMARY
     TEXT_MUTED = TEXT_DISABLED
+
+    # ---- Sidebar 暗色模式 ----
+    SIDEBAR_BG = ThemeTokens.SIDEBAR_BG
+    SIDEBAR_TEXT = ThemeTokens.SIDEBAR_TEXT
+    SIDEBAR_TEXT_HOVER = ThemeTokens.SIDEBAR_TEXT_HOVER
+    SIDEBAR_TEXT_ACTIVE = ThemeTokens.SIDEBAR_TEXT_ACTIVE
+    SIDEBAR_TEXT_MUTED = ThemeTokens.SIDEBAR_TEXT_MUTED
+    SIDEBAR_BORDER = ThemeTokens.SIDEBAR_BORDER
+    SIDEBAR_HOVER = ThemeTokens.SIDEBAR_HOVER
+    SIDEBAR_ACTIVE_BG = ThemeTokens.SIDEBAR_ACTIVE_BG
 
     @classmethod
     def status_color(cls, status):

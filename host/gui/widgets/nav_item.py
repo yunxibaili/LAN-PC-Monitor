@@ -59,11 +59,10 @@ class NavItem(QFrame):
             pass
 
     def _style(self, active: bool) -> str:
-        # Gentelella nav-link: padding 6px 12px, radius 4px, min-height 32px
         if active:
             return f"""
                 NavItem {{
-                    background: rgba(59,130,246,0.08);
+                    background: {TC.SIDEBAR_ACTIVE_BG};
                     border-radius: 4px;
                 }}
             """
@@ -73,7 +72,7 @@ class NavItem(QFrame):
                 border-radius: 4px;
             }}
             NavItem:hover {{
-                background: rgba(0,0,0,0.04);
+                background: {TC.SIDEBAR_HOVER};
             }}
         """
 
@@ -82,11 +81,11 @@ class NavItem(QFrame):
         self.setStyleSheet(self._style(active))
         if active:
             self._text_lbl.setStyleSheet(
-                f"color: {TC.TEXT_PRIMARY}; font-size: {TT.BODY['size']}px;"
+                f"color: {TC.SIDEBAR_TEXT_ACTIVE}; font-size: {TT.BODY['size']}px;"
                 f" font-weight: 500; background: transparent;")
         else:
             self._text_lbl.setStyleSheet(
-                f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY['size']}px;"
+                f"color: {TC.SIDEBAR_TEXT}; font-size: {TT.BODY['size']}px;"
                 f" background: transparent;")
 
     def mousePressEvent(self, event):
