@@ -11,8 +11,8 @@ COLOR_BG_CARD = "#FFFFFF"              # 卡片背景
 COLOR_TEXT_PRIMARY = "#1E2633"          # text
 COLOR_TEXT_SECONDARY = "#626D7D"        # text-secondary
 COLOR_TEXT_DISABLED = "#7E8896"         # text-muted
-COLOR_ACCENT = "#1ABB9C"              # primary（teal）
-COLOR_ACCENT_DK = "#169F85"           # primary 深色（渐变用）
+COLOR_ACCENT = "#3B82F6"              # primary（蓝色，统一双端）
+COLOR_ACCENT_DK = "#2563EB"           # primary 深色（渐变用）
 COLOR_SUCCESS = "#2FB344"             # green
 COLOR_WARNING = "#F59F00"             # yellow
 COLOR_DANGER = "#D63939"              # red
@@ -28,7 +28,7 @@ SIDEBAR_TEXT_ACTIVE = "#FFFFFF"
 SIDEBAR_TEXT_MUTED = "#7B8FA3"
 SIDEBAR_BORDER = "rgba(255,255,255,0.06)"
 SIDEBAR_HOVER = "rgba(255,255,255,0.04)"
-SIDEBAR_ACTIVE_BG = "rgba(26,187,156,0.08)"
+SIDEBAR_ACTIVE_BG = "rgba(59,130,246,0.12)"
 
 # ---- 间距令牌 (px) ----
 SPACING_XS = 4

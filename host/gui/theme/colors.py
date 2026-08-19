@@ -39,7 +39,7 @@ class ThemeColors:
     TEXT_INVERSE = "#FFFFFF"
     TEXT_ON_COLOR = "#FFFFFF"
 
-    BORDER_FOCUS = "#1ABB9C"
+    BORDER_FOCUS = "#3B82F6"
     BORDER_SUBTLE = "#EFF0F3"
 
     CHART_PRIMARY = "#066FD1"
