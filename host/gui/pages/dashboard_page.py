@@ -313,11 +313,17 @@ class DashboardPage(PageBase):
         if not online:
             return
         avg = lambda fn: sum(fn(n) for n in online) / len(online)
-        self._bar_cpu.set_metric("CPU", avg(lambda n: n.cpu_usage))
-        self._bar_gpu.set_metric("GPU", avg(lambda n: n.gpu_usage))
-        self._bar_ram.set_metric("RAM", avg(lambda n: n.memory_usage))
+        cpu_avg = avg(lambda n: n.cpu_usage)
+        gpu_avg = avg(lambda n: n.gpu_usage)
+        ram_avg = avg(lambda n: n.memory_usage)
         net_val = avg(lambda n: n.network_rx + n.network_tx)
+        self._bar_cpu.set_metric("CPU", cpu_avg)
+        self._bar_gpu.set_metric("GPU", gpu_avg)
+        self._bar_ram.set_metric("RAM", ram_avg)
         self._bar_net.set_metric("Network", net_val, unit="MB/s")
+        # 左侧实时指标卡片随数据更新（显示 CPU 实时）
+        if hasattr(self, '_chart_area'):
+            self._chart_area.set_metric("CPU 实时", cpu_avg)
         self._update_summary_from_vm()
         self._refresh_alerts()
 
@@ -379,11 +385,17 @@ class DashboardPage(PageBase):
     def update_trends(self, node_id, frame):
         if not frame:
             return
-        self._bar_cpu.set_metric("CPU", frame.get("cpu", {}).get("total_usage", 0))
-        self._bar_gpu.set_metric("GPU", frame.get("gpu", {}).get("usage_percent", 0))
-        self._bar_ram.set_metric("RAM", frame.get("ram", {}).get("usage_percent", 0))
+        cpu = frame.get("cpu", {}).get("total_usage", 0)
+        gpu = frame.get("gpu", {}).get("usage_percent", 0)
+        ram = frame.get("ram", {}).get("usage_percent", 0)
         net = frame.get("net", {})
-        self._bar_net.set_metric("Network", net.get("upload_mb_s", 0) + net.get("download_mb_s", 0), unit="MB/s")
+        net_val = net.get("upload_mb_s", 0) + net.get("download_mb_s", 0)
+        self._bar_cpu.set_metric("CPU", cpu)
+        self._bar_gpu.set_metric("GPU", gpu)
+        self._bar_ram.set_metric("RAM", ram)
+        self._bar_net.set_metric("Network", net_val, unit="MB/s")
+        if hasattr(self, '_chart_area'):
+            self._chart_area.set_metric("CPU 实时", cpu)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
