@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """SideNav —— Gentelella v4 暗色侧栏精确适配。"""
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget,
 )
@@ -41,19 +40,17 @@ class SideNav(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        self.setAutoFillBackground(True)
-        pal = self.palette()
-        pal.setColor(self.backgroundRole(), QColor(TC.SIDEBAR_BG))
-        self.setPalette(pal)
-        self.setStyleSheet(f"border-right: 1px solid {TC.SIDEBAR_BORDER};")
+        # Gentelella 暗色 sidebar——整个导航栏黑色背景（最可靠）
+        self.setStyleSheet(f"""
+            SideNav {{ background-color: #1A2332; }}
+            QLabel {{ color: {TC.SIDEBAR_TEXT}; background: transparent; }}
+            QFrame {{ background: transparent; }}
+            QScrollArea {{ background: transparent; border: none; }}
+        """ )
 
         # Brand area
         logo_frame = QFrame()
         logo_frame.setFixedHeight(56)
-        logo_frame.setAutoFillBackground(True)
-        pal2 = logo_frame.palette()
-        pal2.setColor(logo_frame.backgroundRole(), QColor(TC.SIDEBAR_BG))
-        logo_frame.setPalette(pal2)
         logo_frame.setStyleSheet(f"border-bottom: 1px solid {TC.SIDEBAR_BORDER};")
         logo_layout = QHBoxLayout(logo_frame)
         logo_layout.setContentsMargins(16, 0, 16, 0)
@@ -119,10 +116,6 @@ class SideNav(QWidget):
 
         # Bottom user section
         user_frame = QFrame()
-        user_frame.setAutoFillBackground(True)
-        pal3 = user_frame.palette()
-        pal3.setColor(user_frame.backgroundRole(), QColor(TC.SIDEBAR_BG))
-        user_frame.setPalette(pal3)
         user_frame.setStyleSheet(f"border-top: 1px solid {TC.SIDEBAR_BORDER};")
         user_layout = QHBoxLayout(user_frame)
         user_layout.setContentsMargins(12, 8, 12, 8)
