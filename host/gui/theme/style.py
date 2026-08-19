@@ -13,7 +13,8 @@ def light_qss():
     font-size: {TT.BODY['size']}px;
     color: {C.TEXT_PRIMARY};
 }}
-QMainWindow, QDialog, QWidget {{ background-color: {C.BG_BASE}; }}
+QMainWindow {{ background-color: {C.BG_BASE}; }}
+QDialog {{ background-color: {C.BG_BASE}; }}
 QLabel {{
     background: transparent;
 }}

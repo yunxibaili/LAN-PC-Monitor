@@ -34,7 +34,9 @@ _ELEVATED = _T.COLOR_BG_CARD
 
 DARK_QSS = f"""
     * {{ font-family: {_T.FONT_FAMILY}; }}
-    QMainWindow, QDialog, QWidget {{ background-color: {COLOR_BG}; color: {COLOR_TEXT}; }}
+    QMainWindow {{ background-color: {COLOR_BG}; color: {COLOR_TEXT}; }}
+    QDialog {{ background-color: {COLOR_BG}; color: {COLOR_TEXT}; }}
+    QWidget {{ background: transparent; color: {COLOR_TEXT}; }}
     QLabel {{ background: transparent; color: {COLOR_TEXT}; }}
     QLabel#panel_title {{
         color: {COLOR_ACCENT}; font-weight: bold; font-size: 14px;
