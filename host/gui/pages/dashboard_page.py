@@ -142,10 +142,12 @@ class DashboardPage(PageBase):
         chart_layout = QVBoxLayout(chart_card)
         chart_layout.setContentsMargins(S.SM, S.SM, S.SM, S.SM)
         chart_header = QHBoxLayout()
-        chart_title = QLabel("Performance History")
+        chart_title = QLabel(tr("dashboard.recent_alerts"))  # 占位，实际设为"实时指标"
+        chart_title.setText("实时指标")
         chart_title.setStyleSheet(
             f"font-size: {TT.TITLE_SMALL['size']}px; font-weight: 600;"
-            f" color: {TC.TEXT_PRIMARY}; background: transparent;")
+            f" color: {TC.TEXT_PRIMARY}; background: transparent;"
+            f" padding: 4px 4px 8px 4px; border-bottom: 1px solid {TC.BORDER_DEFAULT};")
         chart_header.addWidget(chart_title)
         chart_header.addStretch(1)
         chart_layout.addLayout(chart_header)
@@ -167,7 +169,8 @@ class DashboardPage(PageBase):
         alerts_title = QLabel(tr("dashboard.recent_alerts"))
         alerts_title.setStyleSheet(
             f"font-size: {TT.TITLE_SMALL['size']}px; font-weight: 600;"
-            f" color: {TC.TEXT_PRIMARY}; background: transparent;")
+            f" color: {TC.TEXT_PRIMARY}; background: transparent;"
+            f" padding: 4px 4px 8px 4px; border-bottom: 1px solid {TC.BORDER_DEFAULT};")
         alerts_header.addWidget(alerts_title)
         alerts_header.addStretch(1)
         alerts_layout.addLayout(alerts_header)
@@ -219,18 +222,6 @@ class DashboardPage(PageBase):
         summary_row.addWidget(self._card_online)
         summary_row.addWidget(self._card_alerts)
         root.addLayout(summary_row)
-
-        # ---- 最近告警标题 ----
-        self._alerts_title = QLabel(tr("dashboard.recent_alerts"))
-        self._alerts_title.setStyleSheet(
-            f"font-size: {TT.TITLE_SMALL['size']}px; font-weight: 600; "
-            f"color: {TC.TEXT_PRIMARY}; margin-top: 4px; background: transparent;")
-        root.addWidget(self._alerts_title)
-        self._alerts_main_container = QWidget()
-        self._alerts_main_layout = QVBoxLayout(self._alerts_main_container)
-        self._alerts_main_layout.setContentsMargins(0, 0, 0, 0)
-        self._alerts_main_layout.setSpacing(0)
-        root.addWidget(self._alerts_main_container)
 
     def set_view_model(self, vm):
         self._vm = vm
@@ -349,14 +340,17 @@ class DashboardPage(PageBase):
             return
 
         for a in alerts:
-            row = QHBoxLayout()
-            row.setContentsMargins(0, 6, 0, 6)
-            row.setSpacing(8)
+            row = QFrame()
+            row.setStyleSheet(
+                f"background: transparent; border-bottom: 1px solid {TC.BORDER_DEFAULT};")
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(4, 8, 4, 8)
+            row_layout.setSpacing(8)
             dot = QLabel("●")
             dot.setFixedWidth(12)
             color = TC.ALERT_DANGER if a.get("level") == "red" else TC.ALERT_WARN
             dot.setStyleSheet(f"color: {color}; font-size: 10px; background: transparent;")
-            row.addWidget(dot)
+            row_layout.addWidget(dot)
             col = QVBoxLayout()
             col.setSpacing(1)
             name = a.get("name") or a.get("path", "")
@@ -379,8 +373,8 @@ class DashboardPage(PageBase):
                 f"font-size: {TT.CAPTION['size']}px; color: {TC.TEXT_SECONDARY};"
                 f" background: transparent;")
             col.addWidget(ml)
-            row.addLayout(col, 1)
-            self._alerts_container.addLayout(row)
+            row_layout.addLayout(col, 1)
+            self._alerts_container.addWidget(row)
 
     def update_trends(self, node_id, frame):
         if not frame:

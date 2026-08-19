@@ -123,10 +123,10 @@ class MetricBar(QWidget):
                     f"color: {TC.SUCCESS}; font-size: {TT.CAPTION['size']}px;"
                     f" font-weight: 600; background: transparent;")
             else:
-                self._trend_lbl.setText("→")
+                # 平稳不显示箭头
+                self._trend_lbl.setText("")
                 self._trend_lbl.setStyleSheet(
-                    f"color: {TC.TEXT_DISABLED}; font-size: {TT.CAPTION['size']}px;"
-                    f" background: transparent;")
+                    f"background: transparent;")
         else:
             self._trend_lbl.setText("")
         self._prev_value = value
