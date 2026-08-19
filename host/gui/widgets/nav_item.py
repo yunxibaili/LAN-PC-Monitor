@@ -6,8 +6,8 @@ from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.typography import ThemeTypography as TT
 
 # 图标颜色：暗色 sidebar 上用浅色，active 用白色
-_ICON_COLOR = "#C5D0DC"       # SIDEBAR_TEXT_HOVER
-_ICON_COLOR_ACTIVE = "#FFFFFF"  # SIDEBAR_TEXT_ACTIVE
+_ICON_COLOR = TC.SIDEBAR_TEXT_HOVER
+_ICON_COLOR_ACTIVE = TC.SIDEBAR_TEXT_ACTIVE
 
 
 class NavItem(QFrame):

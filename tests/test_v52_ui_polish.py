@@ -119,10 +119,9 @@ def test_dashboard_layout():
     page = DashboardPage()
     check("DashboardPage 创建", page is not None)
     check("有 summary cards", hasattr(page, '_card_total'))
-    check("calc_cols(600)=1", page._calc_cols(600) == 1)
-    check("calc_cols(1200)=2", page._calc_cols(1200) == 2)
-    check("calc_cols(1800)=3", page._calc_cols(1800) == 3)
-    check("calc_cols(2400)=4", page._calc_cols(2400) == 4)
+    check("有实时折线图", hasattr(page, '_chart'))
+    check("有指标条 cpu", hasattr(page, '_bar_cpu'))
+    check("有指标条 gpu", hasattr(page, '_bar_gpu'))
 
 
 # ---------- 5. SideNav 状态 ----------
