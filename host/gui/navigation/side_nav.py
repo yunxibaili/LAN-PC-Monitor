@@ -40,13 +40,8 @@ class SideNav(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        # Gentelella 暗色 sidebar——整个导航栏黑色背景（最可靠）
-        self.setStyleSheet(f"""
-            SideNav {{ background-color: #1A2332; }}
-            QLabel {{ color: {TC.SIDEBAR_TEXT}; background: transparent; }}
-            QFrame {{ background: transparent; }}
-            QScrollArea {{ background: transparent; border: none; }}
-        """ )
+        # 背景由 paintEvent 强制填充暗色；这里只设右边框
+        self.setStyleSheet(f"border-right: 1px solid {TC.SIDEBAR_BORDER};")
 
         # Brand area
         logo_frame = QFrame()
@@ -141,6 +136,14 @@ class SideNav(QWidget):
         root.addWidget(user_frame)
 
         self._select("dashboard")
+
+    def paintEvent(self, event):
+        """强制填充暗色背景（不依赖 QSS 匹配）。"""
+        from PyQt5.QtGui import QColor, QPainter
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(TC.SIDEBAR_BG))
+        painter.end()
+        super().paintEvent(event)
 
     def _on_nav_click(self, nav_id):
         self._select(nav_id)
