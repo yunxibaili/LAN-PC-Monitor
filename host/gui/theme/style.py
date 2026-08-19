@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-"""ThemeStyle —— QSS 样式生成器（v5.4 亮色 Professional Monitoring Console）。"""
+"""ThemeStyle —— Gentelella v4 Light Mode QSS。"""
 from host.gui.theme.colors import ThemeColors as C
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.theme.typography import ThemeTypography as TT
 
 
 def light_qss():
-    """亮色主题 QSS。"""
     return f"""
 * {{
     font-family: {TT.FONT_FAMILY};
@@ -15,9 +14,6 @@ def light_qss():
 }}
 QMainWindow {{ background-color: {C.BG_BASE}; }}
 QDialog {{ background-color: {C.BG_BASE}; }}
-QLabel {{
-    background: transparent;
-}}
 QLabel#panel_title {{
     color: {C.PRIMARY}; font-weight: bold; font-size: {TT.TITLE_LARGE['size']}px;
     border-bottom: 1px solid {C.BORDER_DEFAULT}; padding-bottom: {S.SM}px;
@@ -104,15 +100,12 @@ QToolTip {{ background-color: {C.BG_ELEVATED}; color: {C.TEXT_PRIMARY}; border: 
 
 
 class ThemeStyle:
-    """QSS 样式生成器。"""
     @staticmethod
     def dark_qss() -> str:
         return light_qss()
-
     @staticmethod
     def light_qss() -> str:
         return light_qss()
 
 
-# 向后兼容别名
 dark_qss = light_qss

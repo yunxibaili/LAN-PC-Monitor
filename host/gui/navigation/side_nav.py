@@ -1,18 +1,10 @@
 # -*- coding: utf-8 -*-
-"""
-SideNav —— 左侧导航栏（v5.2 Phase 4-2A）。
-
-宽度 220px，桌面应用风格：
-- Logo + 版本
-- 导航菜单（蓝色高亮当前页）
-- 底部节点列表（带状态圆点）
-"""
+"""SideNav —— Gentelella v4 暗色侧栏精确适配。"""
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea,
-    QVBoxLayout, QWidget,
+    QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget,
 )
-
 from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.theme.typography import ThemeTypography as TT
@@ -21,85 +13,20 @@ from host.gui.widgets.nav_item import NavItem
 from common.i18n import tr
 
 
-class NavButton(QPushButton):
-    """导航项按钮（Gentelella 风格）。"""
-
-    def __init__(self, text="", icon="", parent=None):
-        super().__init__(parent)
-        display = f"  {icon}  {text}" if icon else f"    {text}"
-        self.setText(display)
-        self.setCheckable(True)
-        self.setFixedHeight(36)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setStyleSheet(f"""
-            QPushButton {{
-                text-align: left; padding: 0 16px; border: none;
-                border-left: 3px solid transparent;
-                background: transparent; color: {TC.TEXT_SECONDARY}; font-size: TT.BODY['size']px;
-                border-radius: 0 6px 6px 0;
-            }}
-            QPushButton:hover {{
-                background: {TC.BG_HOVER};
-                color: {TC.TEXT_PRIMARY};
-            }}
-            QPushButton:checked {{
-                border-left: 3px solid {TC.ACCENT_PRIMARY};
-                background: rgba(59,130,246,0.08);
-                color: {TC.TEXT_PRIMARY}; font-weight: 600;
-            }}
-        """)
-
-
-class NodeItem(QFrame):
-    """侧栏节点快速列表项。"""
-    clicked = pyqtSignal(str)
-
-    def __init__(self, node_id, alias, parent=None):
-        super().__init__(parent)
-        self.node_id = node_id
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(14, 5, 14, 5)
-        layout.setSpacing(7)
-        self._dot = QLabel("●")
-        self._dot.setFixedWidth(10)
-        self._dot.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 8px; background: transparent;")
-        layout.addWidget(self._dot)
-        self._label = QLabel(alias)
-        self._label.setStyleSheet(f"color: {TC.SIDEBAR_TEXT}; font-size: {TT.BODY_SMALL['size']}px; background: transparent;")
-        layout.addWidget(self._label, 1)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setStyleSheet(f"NodeItem:hover {{ background: {TC.SIDEBAR_HOVER}; border-radius: 4px; }}")
-
-    def set_status(self, status):
-        if status in ("connected", "online"):
-            color = TC.STATUS_ONLINE
-        elif status in ("offline", "timeout", "auth_failed"):
-            color = TC.SIDEBAR_TEXT_MUTED
-        else:
-            color = TC.STATUS_WARNING
-        self._dot.setStyleSheet(f"color: {color}; font-size: 8px; background: transparent;")
-
-    def mousePressEvent(self, event):
-        self.clicked.emit(self.node_id)
-        super().mousePressEvent(event)
-
-
 class SideNav(QWidget):
-    """侧边导航栏（220px）。"""
-
     page_changed = pyqtSignal(str)
     node_clicked = pyqtSignal(str)
 
     NAV_ITEMS = [
         ("monitor", "nav.section_monitor", [
             ("dashboard", "nav.dashboard", ThemeIcons.DASHBOARD),
-            ("nodes",     "nav.devices",   ThemeIcons.DEVICES),
-            ("monitor",   "nav.monitor",   ThemeIcons.MONITOR),
-            ("alerts",    "nav.alerts",    ThemeIcons.ALERTS),
+            ("nodes", "nav.devices", ThemeIcons.DEVICES),
+            ("monitor", "nav.monitor", ThemeIcons.MONITOR),
+            ("alerts", "nav.alerts", ThemeIcons.ALERTS),
         ]),
         ("system", "nav.section_system", [
-            ("history",   "nav.history",   ThemeIcons.HISTORY),
-            ("settings",  "nav.settings",  ThemeIcons.SETTINGS),
+            ("history", "nav.history", ThemeIcons.HISTORY),
+            ("settings", "nav.settings", ThemeIcons.SETTINGS),
         ]),
     ]
 
@@ -114,19 +41,24 @@ class SideNav(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        # Gentelella: sidebar 暗色
-        self.setStyleSheet(f"background-color: {TC.SIDEBAR_BG}; border-right: 1px solid {TC.SIDEBAR_BORDER};")
+        self.setAutoFillBackground(True)
+        pal = self.palette()
+        pal.setColor(self.backgroundRole(), QColor(TC.SIDEBAR_BG))
+        self.setPalette(pal)
+        self.setStyleSheet(f"border-right: 1px solid {TC.SIDEBAR_BORDER};")
 
         # Brand area
         logo_frame = QFrame()
         logo_frame.setFixedHeight(56)
-        logo_frame.setStyleSheet(
-            f"background-color: {TC.SIDEBAR_BG}; border-bottom: 1px solid {TC.SIDEBAR_BORDER};")
+        logo_frame.setAutoFillBackground(True)
+        pal2 = logo_frame.palette()
+        pal2.setColor(logo_frame.backgroundRole(), QColor(TC.SIDEBAR_BG))
+        logo_frame.setPalette(pal2)
+        logo_frame.setStyleSheet(f"border-bottom: 1px solid {TC.SIDEBAR_BORDER};")
         logo_layout = QHBoxLayout(logo_frame)
         logo_layout.setContentsMargins(16, 0, 16, 0)
         logo_layout.setSpacing(10)
 
-        # Brand icon (Gentelella .brand-icon: 28x28, radius 6px, primary bg)
         logo_icon = QLabel("PC")
         logo_icon.setFixedSize(28, 28)
         logo_icon.setStyleSheet(
@@ -135,7 +67,6 @@ class SideNav(QWidget):
         logo_icon.setAlignment(Qt.AlignCenter)
         logo_layout.addWidget(logo_icon)
 
-        # Brand name (Gentelella .brand-name: 15px, 600, white)
         logo_text = QLabel("PC 监控")
         logo_text.setStyleSheet(
             f"font-size: 15px; font-weight: 600; color: {TC.SIDEBAR_TEXT_ACTIVE};"
@@ -151,13 +82,11 @@ class SideNav(QWidget):
         nav_layout.setSpacing(1)
 
         for group_id, section_key, items in self.NAV_ITEMS:
-            # Section label (Gentelella: uppercase, 10px, muted)
             section_lbl = QLabel(tr(section_key))
             section_lbl.setStyleSheet(
                 f"color: {TC.SIDEBAR_TEXT_MUTED}; font-size: 10px; font-weight: 600; "
                 f"letter-spacing: 0.5px; padding: 16px 12px 4px 12px; background: transparent;")
             nav_layout.addWidget(section_lbl)
-
             for nav_id, i18n_key, icon_svg in items:
                 item = NavItem(nav_id, tr(i18n_key), icon_svg, parent=self)
                 item.clicked.connect(lambda n: self._on_nav_click(n))
@@ -174,14 +103,12 @@ class SideNav(QWidget):
             f"color: {TC.SIDEBAR_TEXT_MUTED}; font-size: {TT.CAPTION['size']}px;"
             f" font-weight: 600; background: transparent; letter-spacing: 0.5px;")
         root.addWidget(self._node_title)
-        root.addWidget(self._node_title)
 
-        # Node list
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setStyleSheet(f"background: transparent; border: none;")
+        scroll.setStyleSheet("background: transparent; border: none;")
         self._node_container = QWidget()
         self._node_layout = QVBoxLayout(self._node_container)
         self._node_layout.setContentsMargins(0, 0, 0, 0)
@@ -190,20 +117,16 @@ class SideNav(QWidget):
         scroll.setWidget(self._node_container)
         root.addWidget(scroll, 1)
 
-        # Bottom user section (Gentelella .sidebar-user)
+        # Bottom user section
         user_frame = QFrame()
-        user_frame.setStyleSheet(f"""
-            QFrame {{
-                background: transparent;
-                border-top: 1px solid {TC.SIDEBAR_BORDER};
-            }}
-            QFrame:hover {{ background: {TC.SIDEBAR_HOVER}; }}
-        """)
+        user_frame.setAutoFillBackground(True)
+        pal3 = user_frame.palette()
+        pal3.setColor(user_frame.backgroundRole(), QColor(TC.SIDEBAR_BG))
+        user_frame.setPalette(pal3)
+        user_frame.setStyleSheet(f"border-top: 1px solid {TC.SIDEBAR_BORDER};")
         user_layout = QHBoxLayout(user_frame)
         user_layout.setContentsMargins(12, 8, 12, 8)
         user_layout.setSpacing(10)
-
-        # Avatar
         avatar = QLabel("A")
         avatar.setFixedSize(32, 32)
         avatar.setStyleSheet(
@@ -213,20 +136,15 @@ class SideNav(QWidget):
             f" font-size: 12px; font-weight: 600;")
         avatar.setAlignment(Qt.AlignCenter)
         user_layout.addWidget(avatar)
-
         user_info = QVBoxLayout()
         user_info.setSpacing(0)
         name_lbl = QLabel("LAN-PC-Monitor")
-        name_lbl.setStyleSheet(
-            f"color: {TC.SIDEBAR_TEXT_ACTIVE}; font-size: 12px; font-weight: 500;"
-            f" background: transparent;")
+        name_lbl.setStyleSheet(f"color: {TC.SIDEBAR_TEXT_ACTIVE}; font-size: 12px; font-weight: 500; background: transparent;")
         user_info.addWidget(name_lbl)
         role_lbl = QLabel("v5.3.4")
-        role_lbl.setStyleSheet(
-            f"color: {TC.SIDEBAR_TEXT_MUTED}; font-size: 11px; background: transparent;")
+        role_lbl.setStyleSheet(f"color: {TC.SIDEBAR_TEXT_MUTED}; font-size: 11px; background: transparent;")
         user_info.addWidget(role_lbl)
         user_layout.addLayout(user_info, 1)
-
         root.addWidget(user_frame)
 
         self._select("dashboard")
@@ -237,10 +155,7 @@ class SideNav(QWidget):
 
     def _select(self, nav_id):
         for nid, item in self._buttons.items():
-            if hasattr(item, 'set_active'):
-                item.set_active(nid == nav_id)
-            elif hasattr(item, 'setChecked'):
-                item.setChecked(nid == nav_id)
+            item.set_active(nid == nav_id)
 
     def add_node(self, node_id, alias):
         if node_id in self._node_items:
@@ -261,5 +176,34 @@ class SideNav(QWidget):
         if item:
             item.set_status(status)
 
-    def update_node_title(self, online, total):
-        self._node_title.setText(f"ONLINE NODES ({online}/{total})")
+    def navigate_to(self, nav_id):
+        self._select(nav_id)
+        self.page_changed.emit(nav_id)
+
+
+class NodeItem(QFrame):
+    clicked = pyqtSignal(str)
+
+    def __init__(self, node_id, alias, parent=None):
+        super().__init__(parent)
+        self.node_id = node_id
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(14, 5, 14, 5)
+        layout.setSpacing(7)
+        self._dot = QLabel("●")
+        self._dot.setFixedWidth(10)
+        self._dot.setStyleSheet(f"color: {TC.TEXT_DISABLED}; font-size: 8px; background: transparent;")
+        layout.addWidget(self._dot)
+        self._label = QLabel(alias)
+        self._label.setStyleSheet(f"color: {TC.SIDEBAR_TEXT}; font-size: {TT.BODY_SMALL['size']}px; background: transparent;")
+        layout.addWidget(self._label, 1)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setStyleSheet(f"NodeItem:hover {{ background: {TC.SIDEBAR_HOVER}; border-radius: 4px; }}")
+
+    def set_status(self, status):
+        color = TC.STATUS_ONLINE if status in ("connected", "online") else TC.SIDEBAR_TEXT_MUTED if status in ("offline", "timeout") else TC.STATUS_WARNING
+        self._dot.setStyleSheet(f"color: {color}; font-size: 8px; background: transparent;")
+
+    def mousePressEvent(self, event):
+        self.clicked.emit(self.node_id)
+        super().mousePressEvent(event)
