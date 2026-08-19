@@ -114,17 +114,22 @@ class SideNav(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-        # Gentelella: sidebar 暗色，即使内容区亮色
-        self.setStyleSheet(f"""
-            background: {TC.SIDEBAR_BG};
-            border-right: 1px solid {TC.SIDEBAR_BORDER};
-        """)
+        # Gentelella: sidebar 暗色 — 强制覆盖 QWidget 全局背景
+        from PyQt5.QtGui import QColor
+        self.setAutoFillBackground(True)
+        pal = self.palette()
+        pal.setColor(self.backgroundRole(), QColor(TC.SIDEBAR_BG))
+        self.setPalette(pal)
+        self.setStyleSheet(f"border-right: 1px solid {TC.SIDEBAR_BORDER};")
 
         # Brand area
         logo_frame = QFrame()
         logo_frame.setFixedHeight(56)
-        logo_frame.setStyleSheet(
-            f"background: {TC.SIDEBAR_BG}; border-bottom: 1px solid {TC.SIDEBAR_BORDER};")
+        logo_frame.setAutoFillBackground(True)
+        pal2 = logo_frame.palette()
+        pal2.setColor(logo_frame.backgroundRole(), QColor(TC.SIDEBAR_BG))
+        logo_frame.setPalette(pal2)
+        logo_frame.setStyleSheet(f"border-bottom: 1px solid {TC.SIDEBAR_BORDER};")
         logo_layout = QHBoxLayout(logo_frame)
         logo_layout.setContentsMargins(16, 0, 16, 0)
         logo_layout.setSpacing(10)
