@@ -206,6 +206,7 @@ class DashboardPage(PageBase):
         super().on_show()
         self._update_summary_vm()
         self._flush_refresh()
+        self._render_trends()  # 切回时补全量图表渲染（不可见期间只缓存数据）
 
     def on_hide(self):
         super().on_hide()
@@ -238,7 +239,11 @@ class DashboardPage(PageBase):
         self._refresh_agents()
 
     def update_trends(self, node_id, frame):
-        """单帧到达时更新指标图块与折线图（唯一数据入口，读 frame 真值）。"""
+        """单帧到达时更新指标（唯一数据入口，读 frame 真值）。
+
+        性能优化：不可见时只缓存数据点（_series），不更新 MetricTile/图表，
+        避免隐藏在后台页面时仍做无用 GUI 重绘。切回时 on_show 补全量渲染。
+        """
         if not frame:
             return
         cpu = frame.get("cpu", {}).get("total_usage", 0)
@@ -246,15 +251,20 @@ class DashboardPage(PageBase):
         ram = frame.get("ram", {}).get("usage_percent", 0)
         net = frame.get("net", {})
         net_val = net.get("upload_mb_s", 0) + net.get("download_mb_s", 0)
-        self._tile_cpu.set_metric("CPU", cpu)
-        self._tile_gpu.set_metric("GPU", gpu)
-        self._tile_ram.set_metric("RAM", ram)
-        self._tile_net.set_metric("Network", net_val, unit="MB/s")
         now = time.time()
         self._series["CPU"].append(_Point(now, cpu))
         self._series["GPU"].append(_Point(now, gpu))
         self._series["RAM"].append(_Point(now, ram))
         self._series["NET"].append(_Point(now, net_val))
+        if self._visible:
+            self._tile_cpu.set_metric("CPU", cpu)
+            self._tile_gpu.set_metric("GPU", gpu)
+            self._tile_ram.set_metric("RAM", ram)
+            self._tile_net.set_metric("Network", net_val, unit="MB/s")
+            self._render_trends()
+
+    def _render_trends(self):
+        """渲染折线图（基于 _series 缓冲）。"""
         chart_series = {}
         for name in ("CPU", "GPU", "RAM", "NET"):
             points = list(self._series[name])

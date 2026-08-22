@@ -61,42 +61,43 @@ class MetricTile(GlassCard):
         self._name_lbl.setText(name)
         self._unit = unit or self._unit
         self._value_lbl.setText(self._fmt(value))
-        color = TC.bar_color(value, warn, danger)
-        self._value_lbl.setStyleSheet(
-            f"color: {color}; font-size: {TT.TITLE_MEDIUM['size']}px;"
-            f" font-weight: 700; background: transparent;")
 
-        # 趋势
+        # 值颜色（仅在颜色实际变化时更新 stylesheet，避免每帧重复 QSS 解析）
+        color = TC.bar_color(value, warn, danger)
+        if getattr(self, "_value_color", None) != color:
+            self._value_color = color
+            self._value_lbl.setStyleSheet(
+                f"color: {color}; font-size: {TT.TITLE_MEDIUM['size']}px;"
+                f" font-weight: 700; background: transparent;")
+
+        # 趋势方向（仅在方向变化时更新）
         diff = value - self._prev_value
         if self._prev_value > 0 and diff > 0.5:
-            self._trend_lbl.setText("↑")
-            self._trend_lbl.setStyleSheet(
-                f"color: {TC.DANGER}; font-size: {TT.TITLE_SMALL['size']}px;"
-                f" background: transparent;")
+            trend, trend_color = "↑", TC.DANGER
         elif self._prev_value > 0 and diff < -0.5:
-            self._trend_lbl.setText("↓")
-            self._trend_lbl.setStyleSheet(
-                f"color: {TC.SUCCESS}; font-size: {TT.TITLE_SMALL['size']}px;"
-                f" background: transparent;")
+            trend, trend_color = "↓", TC.SUCCESS
         else:
-            self._trend_lbl.setText("")
+            trend, trend_color = "", None
         self._prev_value = value
+        if trend != self._trend_lbl.text():
+            self._trend_lbl.setText(trend)
+            if trend and trend_color:
+                self._trend_lbl.setStyleSheet(
+                    f"color: {trend_color}; font-size: {TT.TITLE_SMALL['size']}px;"
+                    f" background: transparent;")
 
-        # 状态
+        # 状态（仅在等级变化时更新）
         if value >= danger:
-            self._status_lbl.setText("Critical")
-            self._status_lbl.setStyleSheet(
-                f"color: {TC.DANGER}; font-size: {TT.CAPTION['size']}px;"
-                f" font-weight: 600; background: transparent;")
+            status, status_color = "Critical", TC.DANGER
         elif value >= warn:
-            self._status_lbl.setText("Warning")
-            self._status_lbl.setStyleSheet(
-                f"color: {TC.WARNING}; font-size: {TT.CAPTION['size']}px;"
-                f" font-weight: 600; background: transparent;")
+            status, status_color = "Warning", TC.WARNING
         else:
-            self._status_lbl.setText("Normal")
+            status, status_color = "Normal", TC.STATUS_ONLINE
+        if getattr(self, "_status_cls", None) != status:
+            self._status_cls = status
+            self._status_lbl.setText(status)
             self._status_lbl.setStyleSheet(
-                f"color: {TC.STATUS_ONLINE}; font-size: {TT.CAPTION['size']}px;"
+                f"color: {status_color}; font-size: {TT.CAPTION['size']}px;"
                 f" font-weight: 600; background: transparent;")
 
     def _fmt(self, value):
