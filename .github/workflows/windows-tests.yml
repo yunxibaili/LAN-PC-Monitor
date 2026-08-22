@@ -44,3 +44,11 @@ jobs:
 
       - name: Run test_p0 (protocol/collectors smoke)
         run: python tests/test_p0.py
+
+      - name: Run persistence & storage suite (P18)
+        run: |
+          python tests/test_metric_persistence.py
+          python tests/test_metric_persistence_flow.py
+          python tests/test_v52_retention.py
+          python tests/test_v52_storage.py
+          python tests/test_v52_storage_service.py

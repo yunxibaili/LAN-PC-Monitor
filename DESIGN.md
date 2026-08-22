@@ -2,7 +2,7 @@
 
 > 基于 Gentelella / Grafana / Windows Fluent 设计原则提取。
 > **Professional Monitoring Console**——不是后台管理系统。
-> **Version**: v5.4
+> **Version**: v5.3.4
 
 ---
 

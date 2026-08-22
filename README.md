@@ -12,7 +12,7 @@
 ## Current Version
 
 - **版本**：v5.3.4（UI Experience + Runtime Fix）
-- **状态**：Active Development（v5.3 开发线）
+- **状态**：Active Development（v5.3.4 开发线）
 - **架构**：前后端分离（Agent 服务端 + Host 监控端）
 - **通信**：WebSocket + REST API
 - **UI**：SaaS 深色风格，Design System 统一主题

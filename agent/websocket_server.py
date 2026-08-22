@@ -192,13 +192,18 @@ class WebSocketServer:
             self._subscribers.discard(ws)
 
     async def push_loop(self) -> None:
-        """每秒从聚合器取最新帧广播（§4.2）。"""
+        """每秒从聚合器取最新帧广播（§4.2）。
+
+        P9: 节拍补偿 —— sleep(1.0 - 广播耗时)，避免广播耗时导致节拍漂移。
+        """
         while not self._stopping:
+            t0 = time.time()
             if self.aggregator is not None:
                 frame = self.aggregator.latest_frame()
                 if frame:
                     await self.broadcast_frame(frame)
-            await asyncio.sleep(1.0)
+            elapsed = time.time() - t0
+            await asyncio.sleep(max(0.0, 1.0 - elapsed))
 
     def start_push_loop(self) -> None:
         """在事件循环中启动推送协程（main 中调用）。"""

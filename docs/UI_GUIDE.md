@@ -1,6 +1,6 @@
 # LAN-PC-Monitor UI 设计规范
 
-> **Version**: v5.4
+> **Version**: v5.3.4
 > **定位**: Professional Monitoring Console（专业运维监控控制台）
 > **不是**: 后台管理系统、商城、普通 Dashboard
 > **模式**: 亮色模式优先，所有元素直接借鉴参考项目，不自行生成
