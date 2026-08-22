@@ -15,9 +15,9 @@ log = logging.getLogger("common.collectors.net_quality")
 
 
 class NetQualityCollector(BaseCollector):
-    """网络质量采集器：3 秒间隔（网关 ping 较重）。"""
+    """网络质量采集器：5 秒间隔（网关 ping 较重，延迟变化慢）。"""
 
-    def __init__(self, interval: float = 3.0):
+    def __init__(self, interval: float = 5.0):
         super().__init__(interval)
 
     def collect(self) -> dict:

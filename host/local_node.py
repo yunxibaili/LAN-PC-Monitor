@@ -37,7 +37,7 @@ class LocalCollectorPack(QObject):
         super().__init__()
         self.cfg = cfg
         self.interval = interval
-        self.collectors = create_collectors(cfg)
+        self.collectors = create_collectors(cfg, for_host=True)
         self._stop_event = threading.Event()
         self._self_monitor = None
 

@@ -20,6 +20,7 @@ class BaseCollector:
 
     def __init__(self, interval: float = 1.0):
         self.interval = interval
+        self.enabled = True   # 采集开关；False 时 collect 返回空/N-A（如 Host 裁剪 gpu/net_quality）
         self._lock = threading.Lock()
         self._data = {}
         self._stop_event = threading.Event()
@@ -28,6 +29,8 @@ class BaseCollector:
 
     def start(self) -> None:
         """启动采集线程（daemon，独立线程运行 _loop）。"""
+        if not self.enabled:
+            return
         threading.Thread(target=self._loop, daemon=True,
                          name=self.__class__.__name__).start()
 

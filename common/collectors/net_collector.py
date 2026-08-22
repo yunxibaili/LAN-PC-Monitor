@@ -17,6 +17,24 @@ from common.collectors.base import BaseCollector
 
 log = logging.getLogger("common.collectors.net")
 
+# P3: 模块级缓存 —— wmi.WMI() 实例复用 + 链路速率 60s 缓存（避免每秒新建 WMI 连接）
+_WMI_CACHE = None
+_LINK_SPEED_CACHE = {"ts": 0.0, "value": "N/A"}
+_LINK_SPEED_TTL = 60.0
+
+
+def _get_wmi():
+    """复用 wmi.WMI() 实例（模块级单例），避免每秒新建连接。"""
+    global _WMI_CACHE
+    try:
+        import wmi
+        if _WMI_CACHE is None:
+            _WMI_CACHE = wmi.WMI()
+        return _WMI_CACHE
+    except Exception:
+        _WMI_CACHE = None
+        return None
+
 
 class NetCollector(BaseCollector):
     """网络采集器：1 秒间隔。"""
@@ -41,18 +59,27 @@ class NetCollector(BaseCollector):
         return ""
 
     def _link_speed(self) -> object:
-        """链路速率（Mbps）：WMI Win32_NetworkAdapter，失败返回 N/A。"""
+        """链路速率（Mbps）：WMI Win32_NetworkAdapter，失败返回 N/A。
+
+        P3: wmi 实例复用 + 结果缓存 60s（链路速率变化慢，无需每秒查）。
+        """
+        now = time.time()
+        if now - _LINK_SPEED_CACHE["ts"] < _LINK_SPEED_TTL:
+            return _LINK_SPEED_CACHE["value"]
+        value = "N/A"
         try:
-            import wmi
-            c = wmi.WMI()
-            for adapter in c.Win32_NetworkAdapter(NetEnabled=True):
-                if adapter.Name and self._iface and self._iface.lower() in adapter.Name.lower():
-                    if adapter.Speed:
-                        return round(int(adapter.Speed) / 1_000_000, 0)
-            return "N/A"
+            c = _get_wmi()
+            if c is not None:
+                for adapter in c.Win32_NetworkAdapter(NetEnabled=True):
+                    if adapter.Name and self._iface and self._iface.lower() in adapter.Name.lower():
+                        if adapter.Speed:
+                            value = round(int(adapter.Speed) / 1_000_000, 0)
+                            break
         except Exception as e:
             log.debug("获取链路速率失败: %s", e)
-            return "N/A"
+        _LINK_SPEED_CACHE["ts"] = now
+        _LINK_SPEED_CACHE["value"] = value
+        return value
 
     def collect(self) -> dict:
         """采集网络指标。"""

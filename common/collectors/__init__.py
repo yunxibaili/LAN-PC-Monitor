@@ -22,11 +22,13 @@ from common.collectors.fps_collector import FpsCollector
 log = logging.getLogger("common.collectors")
 
 
-def create_collectors(cfg: dict) -> dict:
+def create_collectors(cfg: dict, for_host: bool = False) -> dict:
     """
     按配置创建全部采集器实例。
 
     :param cfg: 采集节点配置字典（agent_config.json / node_config.json）
+    :param for_host: True 表示 Host（监控端）本机节点 —— 裁剪对被监控端无意义的
+                     高开销采集器（FPS/GPU/net_quality），降低监控端后台 CPU 负担。
     :return: {"cpu":..., "ram":..., "disk":..., "net":..., "processes":...,
               "system":..., "gpu":..., "net_quality":..., "fps":...}
     注意：进程采集器 key 为 "processes"、系统信息采集器 key 为 "system"
@@ -38,8 +40,14 @@ def create_collectors(cfg: dict) -> dict:
 
     # 帧率模式：collectors.fps = "presentmon"(默认) | "dxgi" | false（§11.8）
     fps_mode = collectors_cfg.get("fps", "presentmon")
-    if fps_mode is False:
+    if fps_mode is False or for_host:
         fps_mode = "none"
+
+    # Host 监控端：裁剪对被监控项（FPS/GPU/网络质量）—— 监控端无需监控自身这些指标
+    if for_host:
+        collectors_cfg = dict(collectors_cfg)
+        collectors_cfg.setdefault("gpu", False)
+        collectors_cfg.setdefault("net_quality", False)
 
     collectors = {
         "cpu": CpuCollector(),
@@ -49,12 +57,14 @@ def create_collectors(cfg: dict) -> dict:
         "processes": ProcCollector(),
         "system": SysCollector(preferred_iface=preferred),
         "gpu": GpuCollector(gpu_index=gpu_index),
-        "net_quality": NetQualityCollector(),
+        "net_quality": NetQualityCollector(interval=5.0),
         "fps": FpsCollector(mode=fps_mode),
     }
     # 采集项开关（§13 增强点 #30）：关闭的采集器不启动
     if collectors_cfg.get("gpu") is False:
-        collectors["gpu"]._backend = "none"
+        collectors["gpu"].enabled = False
+    if collectors_cfg.get("net_quality") is False:
+        collectors["net_quality"].enabled = False
     return collectors
 
 

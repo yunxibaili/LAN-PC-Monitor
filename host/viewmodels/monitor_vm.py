@@ -78,6 +78,8 @@ class MonitorViewModel:
         """
         self._history_store = history_store
         self._node_store = node_store
+        # P1: 节流 —— 每秒只 emit 一次 data_changed（HistoryStore 每秒 7 指标→7 次 point_added）
+        self._last_emit_ts = 0.0
 
         # 订阅 HistoryStore 信号
         self._history_store.point_added.connect(self._on_point_added)
@@ -86,7 +88,11 @@ class MonitorViewModel:
     # ---------- 信号回调 ----------
 
     def _on_point_added(self, node_id: str, metric: str, value: float) -> None:
-        """新点写入 → 通知 MonitorPage。"""
+        """新点写入 → 通知 MonitorPage（节流：每秒最多 1 次，避免 7 指标×每秒 7 次冗余刷新）。"""
+        now = time.time()
+        if now - self._last_emit_ts < 1.0:
+            return
+        self._last_emit_ts = now
         self.data_changed.emit(node_id)
 
     def _on_node_removed(self, node_id: str) -> None:

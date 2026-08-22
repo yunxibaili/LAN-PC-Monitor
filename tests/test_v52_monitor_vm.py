@@ -230,6 +230,7 @@ def test_refresh_signal():
 
 def test_point_added_signal():
     print("\n--- 11. point_added signal ---")
+    import time as _t
     hs = HistoryStore(maxlen=60)
     ns = NodeStore()
     vm = MonitorViewModel(hs, ns)
@@ -240,8 +241,16 @@ def test_point_added_signal():
     hs.push("A", "cpu", 1.0)
     check("push 触发 data_changed", emitted == ["A"])
 
-    hs.push("A", "gpu", 2.0)
-    check("再次 push", emitted == ["A", "A"])
+    # P1 节流：1 秒内重复 push 不重复 emit（避免 7 指标×每秒冗余刷新）
+    before = len(emitted)
+    hs.push("A", "gpu", 2.0)          # 同秒内，节流抑制
+    hs.push("A", "ram", 3.0)
+    check("节流抑制重复 emit", len(emitted) == before)
+
+    # 间隔 >1s 后再次触发（模拟真实每秒一帧）
+    _t.sleep(1.05)
+    hs.push("A", "ram", 4.0)
+    check("超 1s 后再次触发", emitted[-1] == "A" and len(emitted) > before)
 
 
 # ---------- 12. node_removed signal ----------

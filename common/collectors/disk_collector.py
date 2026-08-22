@@ -21,6 +21,11 @@ import psutil
 from common.lhm import get_lhm
 from common.collectors.base import BaseCollector
 
+# P4: PDH 查询句柄复用（避免每秒 Open/Close Query）
+_PDH_QUERY = None      # win32pdh query 句柄
+_PDH_COUNTER = None    # win32pdh counter 句柄
+_PDH_READY = False
+
 log = logging.getLogger("common.collectors.disk")
 
 
@@ -115,19 +120,24 @@ class DiskCollector(BaseCollector):
     def _queue_depths() -> dict:
         """
         读取物理盘队列深度（Performance Counter，需管理员）。
+
+        P4: PDH 句柄模块级复用（OpenQuery/AddCounter 只做一次），
+        后续仅 CollectQueryData 采样，避免每秒 Open/Close 句柄风暴。
         counter 路径使用 raw string，避免 \\P / \\C 转义警告。
         """
+        global _PDH_QUERY, _PDH_COUNTER, _PDH_READY
         try:
             import win32pdh
-            query = win32pdh.OpenQuery()
-            path = r"\PhysicalDisk(_Total)\Current Disk Queue Length"
-            counter = win32pdh.AddCounter(query, path)
-            win32pdh.CollectQueryData(query)
+            if not _PDH_READY:
+                _PDH_QUERY = win32pdh.OpenQuery()
+                path = r"\PhysicalDisk(_Total)\Current Disk Queue Length"
+                _PDH_COUNTER = win32pdh.AddCounter(_PDH_QUERY, path)
+                _PDH_READY = True
+            win32pdh.CollectQueryData(_PDH_QUERY)
             time.sleep(0.05)
-            win32pdh.CollectQueryData(query)
+            win32pdh.CollectQueryData(_PDH_QUERY)
             _, value = win32pdh.GetFormattedCounterValue(
-                counter, win32pdh.PDH_FMT_DOUBLE)
-            win32pdh.CloseQuery(query)
+                _PDH_COUNTER, win32pdh.PDH_FMT_DOUBLE)
             return {"_Total": round(value, 2)}
         except Exception as e:
             log.debug("读取磁盘队列深度失败: %s", e)
