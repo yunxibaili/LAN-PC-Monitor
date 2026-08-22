@@ -56,7 +56,9 @@ def parse_args():
                         help="弹出本机仪表盘 GUI（PyQt5），后台服务同进程运行（管理员模式）")
     parser.add_argument("--tray", action="store_true",
                         help="系统托盘模式（默认后台无界面；--tray 增加托盘图标，可打开仪表盘/退出）")
-    return parser.parse_args()
+    # 使用 parse_known_args 以忽略 PyInstaller multiprocessing 传递的额外参数
+    args, _ = parser.parse_known_args()
+    return args
 
 
 # ---------- 后台服务（可运行在线程/事件循环） ----------
