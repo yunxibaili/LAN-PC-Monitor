@@ -1,9 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
-# Agent 打包配置（v5.0，见《README.md》§16.5）
+# Agent 打包配置（v5.5，见《README.md》§16.5）
 # 与 host.spec 严格隔离：不同 entry、不同输出名、不同依赖 hiddenimports。
 # - 输出：dist/PC_Monitor_Agent/PC_Monitor_Agent.exe
 # - 安装路径建议：%ProgramFiles%\\PC_Monitor\\Agent\\
-# - 仅包含 Agent + common + 共用依赖；不包含 PyQt5 与 host/*
+# - 包含 Agent + common + PyQt5（GUI 模式需要）；不包含 host/*
 from PyInstaller.utils.hooks import collect_submodules
 
 block_cipher = None
@@ -12,6 +12,10 @@ block_cipher = None
 hiddenimports = []
 hiddenimports += collect_submodules('agent')
 hiddenimports += collect_submodules('common')
+hiddenimports += collect_submodules('PyQt5')
+hiddenimports += collect_submodules('PyQt5.QtCore')
+hiddenimports += collect_submodules('PyQt5.QtWidgets')
+hiddenimports += collect_submodules('PyQt5.QtGui')
 
 a = Analysis(
     ['agent/__main__.py'],
@@ -20,16 +24,14 @@ a = Analysis(
     datas=[
         ('agent_config.json', '.'),
         ('i18n', 'i18n'),
-        ('tools', 'tools'),
     ],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        'PyQt5', 'PyQt5.QtCore', 'PyQt5.QtWidgets', 'PyQt5.QtGui',
-        'host',
-        'websocket', 'websocket-client', 'requests',  # 仅 Host 依赖
+        'host',  # Host 模块不包含
+        'websocket-client', 'requests',  # 仅 Host 依赖
     ],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,

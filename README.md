@@ -120,20 +120,16 @@ python -m host               # 集中监控大屏
 
 ## Documentation
 
-```
-docs/
-├── README.md              文档总入口
-├── ARCHITECTURE.md        架构 + 数据流
-├── UI_GUIDE.md            ⭐ UI 唯一规范（Professional Monitoring Console）
-├── DEVELOPMENT.md         开发规范
-├── ROADMAP.md             路线图
-├── known_issues.md        已知问题
-├── releases/v5.2.3.md     Release Notes
-├── design/                UI 设计稿（HTML 原型）
-└── archive/decisions.md   架构决策记录
-```
+| 文档 | 用途 |
+|------|------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构 + 数据流 + 层级规则 |
+| [docs/UI_GUIDE.md](docs/UI_GUIDE.md) | ⭐ UI 唯一规范（颜色/布局/组件） |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | 开发规范 + 贡献指南 |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | 路线图 |
+| [docs/known_issues.md](docs/known_issues.md) | 已知问题 |
+| [docs/archive/decisions.md](docs/archive/decisions.md) | 架构决策记录 |
 
-开发人员和 AI 只需阅读 `docs/README.md` + `docs/UI_GUIDE.md` 即可理解整个项目。
+**AI 阅读顺序**: `README.md` → `docs/ARCHITECTURE.md` → `docs/UI_GUIDE.md` → `docs/DEVELOPMENT.md`
 
 ## Configuration
 

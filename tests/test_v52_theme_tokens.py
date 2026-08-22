@@ -35,7 +35,8 @@ def check(name, cond, detail=""):
 def test_single_source():
     print("\n--- 1. 单来源检查 ---")
     # colors.py 基础 token 应引用 ThemeTokens，不应用独立 hex
-    p = os.path.join(ROOT, "host", "gui", "theme", "colors.py")
+    # 注意：colors.py 已迁移至 common/gui/theme/colors.py
+    p = os.path.join(ROOT, "common", "gui", "theme", "colors.py")
     with open(p, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
@@ -127,7 +128,7 @@ def test_token_completeness():
 def test_value_consistency():
     print("\n--- 4. 值一致性 ---")
     import common.theme_tokens as tt
-    from host.gui.theme.colors import ThemeColors as TC
+    from common.gui.theme.colors import ThemeColors as TC
     from host.gui.theme.spacing import ThemeSpacing as S
 
     pairs = [

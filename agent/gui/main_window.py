@@ -24,8 +24,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QLineEdit, QMainWindow,
                              QPushButton, QVBoxLayout, QWidget)
 
-from host.gui.theme.colors import ThemeColors as TC
-from host.gui.theme.components import remove_help_button
+from common.gui.theme.colors import ThemeColors as TC
+from common.gui.theme.components import remove_help_button
 from common.gui.detail_panel import DetailPanel
 from common.i18n import tr
 from common.utils import get_lan_ip

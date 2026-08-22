@@ -268,7 +268,27 @@ status = TC.STATUS_ONLINE    # #22C55E
 - [ ] 图表：多系列用不同线型，不仅靠颜色区分
 - [ ] 实时数据：标注更新时间，显示 stale 状态
 
-## 11. 致谢
+## 11. Dark Mode Tokens（附录）
+
+> 以下为深色模式备用值，当前项目以亮色模式为主。
+
+| Token | Dark Mode 值 |
+|-------|--------------|
+| BACKGROUND_PRIMARY | `#1A1A2E` |
+| BACKGROUND_SECONDARY | `#16213E` |
+| CARD_BACKGROUND | `#0F3460` |
+| BORDER_COLOR | `#334155` |
+| TEXT_PRIMARY | `#F1F5F9` |
+| TEXT_SECONDARY | `#94A3B8` |
+| STATUS_ONLINE | `#22C55E` |
+| STATUS_OFFLINE | `#6B7280` |
+| STATUS_WARNING | `#EAB308` |
+| STATUS_CRITICAL | `#EF4444` |
+| ACCENT_PRIMARY | `#3B82F6` |
+
+---
+
+## 12. 致谢
 
 本项目 UI 设计参考了 [Gentelella v4](https://github.com/ColorlibHQ/gentelella)（by ColorlibHQ）的设计原则（布局体系、信息密度、颜色语义），并结合 Grafana 的信息层级和 Windows Fluent 的桌面应用规范。
 
@@ -279,7 +299,7 @@ status = TC.STATUS_ONLINE    # #22C55E
 
 ---
 
-## 9. AI 开发指令
+## 13. AI 开发指令
 
 ### 设计前必须输出
 
