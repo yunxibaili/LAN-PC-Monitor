@@ -60,3 +60,7 @@ Thumbs.db
 # 参考文件（不提交）
 gentelella/
 gentelella-master/
+
+# AI 技能（skill 工具装到 .agents/skills；禁止误入 agent 生产包）
+agent/skills/
+agent/skills-*/

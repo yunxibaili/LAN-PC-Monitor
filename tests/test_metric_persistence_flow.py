@@ -75,6 +75,7 @@ def test_persistence_flow():
         persistence=persistence)
 
     dc._on_data(_frame(), "A")
+    persistence.flush()  # 批合并：flush 落库
 
     check("metrics 表有数据", repo.count() > 0)
     check("cpu.usage 记录存在", len(repo.query_range("A", "cpu.usage")) == 1)

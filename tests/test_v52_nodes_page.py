@@ -74,7 +74,7 @@ def test_node_add_card():
 
     ns.add_node("game-pc", alias="游戏主机", ip="192.168.1.100")
     fs.push("game-pc", make_frame())
-    page._rebuild_grid()
+    page._refresh()
     check("cards 数量 = 1", len(page._cards) == 1)
     check("game-pc card 存在", "game-pc" in page._cards)
 
@@ -92,10 +92,10 @@ def test_stats():
     ns.update_status("b", "offline")
     fs.push("a", make_frame(cpu=90))
     fs.push("b", make_frame())
-    page._rebuild_grid()
-    check("total=2", page._stat_total["val"].text() == "2")
-    check("online=1", page._stat_online["val"].text() == "1")
-    check("offline=1", page._stat_offline["val"].text() == "1")
+    page._refresh()
+    check("total=2", page._stat_total._value_lbl.text() == "2")
+    check("online=1", page._stat_online._value_lbl.text() == "1")
+    check("offline=1", page._stat_offline._value_lbl.text() == "1")
 
 
 def test_node_remove():
@@ -108,11 +108,11 @@ def test_node_remove():
 
     ns.add_node("a", alias="A"); ns.add_node("b", alias="B")
     fs.push("a", make_frame()); fs.push("b", make_frame())
-    page._rebuild_grid()
+    page._refresh()
     check("初始 2 cards", len(page._cards) == 2)
 
     ns.remove_node("a")
-    page._rebuild_grid()
+    page._refresh()
     check("删除后 1 card", len(page._cards) == 1)
     check("a 已移除", "a" not in page._cards)
 
@@ -125,13 +125,13 @@ def test_empty_state():
     page.set_view_model(vm)
     page.show()
 
-    page._rebuild_grid()
+    page._refresh()
     check("空状态提示可见", page._empty.isVisible())
     check("滚动区域隐藏", not page._scroll.isVisible())
 
     ns.add_node("a", alias="A")
     fs.push("a", make_frame())
-    page._rebuild_grid()
+    page._refresh()
     check("添加后提示隐藏", not page._empty.isVisible())
     check("滚动区域显示", page._scroll.isVisible())
 

@@ -158,16 +158,16 @@ def test_no_inline_qss():
 
 def test_page_header_usage():
     print("\n--- 9. 页面标题结构 ---")
-    pages = ['dashboard_page', 'nodes_page', 'monitor_page', 'alerts_page', 'settings_page']
+    # v5.4：所有页面统一数据优先布局，移除顶部纯文字标题栏
+    # （monitor 页的 MonitorHeader 是功能性节点信息头，保留）
+    pages = ['dashboard_page', 'nodes_page', 'alerts_page', 'history_page', 'settings_page']
     for page in pages:
         p = f'host/gui/pages/{page}.py'
         if os.path.isfile(p):
             txt = open(p, 'r', encoding='utf-8', errors='ignore').read()
-            # 检查是否有标题组件（PageHeader / MonitorHeader / QLabel 标题）
-            has_header = ('PageHeader' in txt or 'page_header' in txt
-                          or 'MonitorHeader' in txt
-                          or ('QLabel' in txt and ('font-size: 20px' in txt or 'TT.TITLE_MEDIUM' in txt or 'TT.TITLE_LARGE' in txt)))
-            check(f"{page} has header", has_header)
+            # 数据优先：不应再有页面级大标题（TITLE_MEDIUM / TITLE_LARGE）
+            no_big_title = ('TT.TITLE_MEDIUM' not in txt and 'TT.TITLE_LARGE' not in txt)
+            check(f"{page} 无页面级大标题（数据优先）", no_big_title)
 
 
 def main():

@@ -96,3 +96,18 @@ def format_size_gb(value):
         return f"{float(value):.1f} GB"
     except (TypeError, ValueError):
         return "N/A"
+
+
+def format_relative_time(seconds):
+    """格式化相对时间（秒 → "just now"/"3m ago"/"2h ago"）。
+    seconds <= 0 → "just now"。
+    """
+    if seconds is None or seconds < 5:
+        return "just now"
+    if seconds < 60:
+        return f"{int(seconds)}s ago"
+    if seconds < 3600:
+        return f"{int(seconds // 60)}m ago"
+    if seconds < 86400:
+        return f"{int(seconds // 3600)}h ago"
+    return f"{int(seconds // 86400)}d ago"

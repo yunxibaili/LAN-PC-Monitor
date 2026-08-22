@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAN-PC-Monitor · 监控页原型（浅色）</title>
+<style>
+  :root{
+    --bg:#F5F7FB; --card:#FFFFFF;
+    --border:#E6E7EB;
+    --text:#1E2633; --text2:#626D7D; --text3:#9CA3AF;
+    --green:#2FB344; --orange:#F59F00; --red:#D63939; --cyan:#0891B2; --blue:#3B82F6;
+    --radius:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;font-size:13px;}
+  .sidebar{width:220px;background:#1A2332;color:#B3BCCB;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;flex-shrink:0;}
+  .logo{height:56px;display:flex;align-items:center;gap:11px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,.06);}
+  .logo-badge{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#3B82F6,#2563EB);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;}
+  .logo-txt{font-size:15px;font-weight:600;color:#fff;}
+  .nav-sec{padding:16px 12px 4px 20px;font-size:10px;font-weight:600;letter-spacing:.5px;color:#7B8FA3;text-transform:uppercase;}
+  .nav-sec.mt{margin-top:8px;}
+  .nav-item{display:flex;align-items:center;gap:10px;margin:2px 8px;padding:9px 12px;border-radius:8px;color:#B3BCCB;cursor:pointer;font-weight:500;}
+  .nav-item:hover{background:rgba(255,255,255,.05);color:#CBD5E1;}
+  .nav-item.active{background:rgba(59,130,246,.16);color:#fff;position:relative;}
+  .nav-item.active::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:#3B82F6;}
+  .nav-item i{font-style:normal;width:18px;text-align:center;font-size:14px;}
+  .nodes-wrap{flex:1;overflow:auto;padding:4px 0;}
+  .nodes-title{padding:14px 20px 6px;font-size:10px;font-weight:600;letter-spacing:.5px;color:#7B8FA3;}
+  .node-row{display:flex;align-items:center;gap:8px;padding:6px 20px;color:#B3BCCB;cursor:pointer;}
+  .node-row.active{background:rgba(59,130,246,.16);color:#fff;}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .dot.g{background:#2FB344;box-shadow:0 0 0 0 rgba(47,179,68,.5);animation:pulse 2s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,179,68,.5)}70%{box-shadow:0 0 0 6px rgba(47,179,68,0)}100%{box-shadow:0 0 0 0 rgba(47,179,68,0)}}
+  .node-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .node-score{font-size:11px;color:#7B8FA3;}
+  .user-area{padding:10px 14px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;}
+  .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#169F85);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;}
+  .user-meta .n{font-size:12px;font-weight:500;color:#fff;}
+  .user-meta .r{font-size:11px;color:#7B8FA3;}
+  .content{flex:1;display:flex;flex-direction:column;overflow:auto;padding:22px 26px;gap:16px;}
+  .page-gap{display:flex;flex-direction:column;gap:16px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 2px 8px rgba(16,24,40,.04);}
+  .node-head{display:flex;align-items:center;gap:10px;padding:16px 18px;}
+  .node-head .icon{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#3B82F6,#2563EB);display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .node-head .nl .n{font-size:15px;font-weight:600;}
+  .node-head .nl .s{font-size:11px;color:var(--text3);margin-top:2px;}
+  .node-head .sp{flex:1;}
+  .pill{font-size:10px;font-weight:600;padding:3px 10px;border-radius:6px;}
+  .stats-mini{display:flex;gap:22px;font-size:11px;color:var(--text2);}
+  .stats-mini b{color:var(--text);font-weight:600;font-size:13px;}
+  .tabs{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .tab{font-size:12px;padding:7px 16px;border-radius:8px;background:#F3F4F6;color:var(--text2);cursor:pointer;font-weight:500;border:1px solid var(--border);}
+  .tab.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600;}
+  .chart-wrap{padding:14px 16px;}
+  .chart-lg{width:100%;height:300px;background:#F9FAFB;border:1px solid var(--border);border-radius:8px;}
+  .chart-h{display:flex;align-items:center;gap:8px;padding:4px 2px 10px;}
+  .chart-h .ttl{font-size:13px;font-weight:600;}
+  .chart-h .sp{flex:1;}
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:0 16px 16px;}
+  .stat-card{padding:14px 16px;border-left:3px solid var(--blue);background:#fff;border:1px solid var(--border);border-radius:10px;}
+  .stat-card.g{border-left-color:var(--green);} .stat-card.o{border-left-color:var(--orange);} .stat-card.r{border-left-color:var(--red);}
+  .stat-label{font-size:10px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;font-weight:600;}
+  .stat-val{font-size:26px;font-weight:700;line-height:1.15;margin-top:4px;}
+  .stat-sub{font-size:10px;color:var(--text2);margin-top:4px;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;}
+  .lg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+  .lg-dot{width:8px;height:3px;border-radius:2px;}
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-badge">PC</div><div class="logo-txt">PC 监控</div></div>
+    <div class="nav-sec">监控</div>
+    <div class="nav-item"><i>▣</i> 总览</div>
+    <div class="nav-item"><i>▣</i> 设备</div>
+    <div class="nav-item active"><i>▤</i> 监控</div>
+    <div class="nav-item"><i>⚠</i> 告警</div>
+    <div class="nav-sec mt">系统</div>
+    <div class="nav-item"><i>📈</i> 历史</div>
+    <div class="nav-item"><i>⚙</i> 设置</div>
+    <div class="nodes-wrap">
+      <div class="nodes-title">已连接设备</div>
+      <div class="node-row active"><span class="dot g"></span><span class="node-name">本机 (localhost)</span><span class="node-score">98</span></div>
+      <div class="node-row"><span class="dot g"></span><span class="node-name">PC-102</span><span class="node-score">88</span></div>
+      <div class="node-row"><span class="dot" style="background:#7B8FA3"></span><span class="node-name">PC-103</span><span class="node-score">--</span></div>
+    </div>
+    <div class="user-area">
+      <div class="avatar">A</div>
+      <div class="user-meta"><div class="n">LAN-PC-Monitor</div><div class="r">v5.5</div></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="page-gap">
+      <div class="card node-head">
+        <div class="icon">🖥</div>
+        <div class="nl"><div class="n">本机 (localhost)</div><div class="s">127.0.0.1 · 实时监控</div></div>
+        <div class="sp"></div>
+        <div class="stats-mini">
+          <div>POINTS <b>120</b></div>
+          <div>METRIC <b>CPU</b></div>
+          <div>LATEST <b>45.2%</b></div>
+        </div>
+        <span class="pill" style="color:var(--green);background:rgba(47,179,68,.12)">● ONLINE</span>
+      </div>
+
+      <div class="card">
+        <div class="tabs">
+          <div class="tab on">CPU</div>
+          <div class="tab">GPU</div>
+          <div class="tab">RAM</div>
+          <div class="tab">Network</div>
+          <div class="tab">FPS</div>
+          <div class="tab">磁盘</div>
+          <div class="tab">温度</div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-h"><span class="ttl">CPU 使用率</span><span class="sp"></span><span class="lg-item"><span class="lg-dot" style="background:#3B82F6"></span>CPU</span></div>
+          <svg class="chart-lg" viewBox="0 0 600 300" preserveAspectRatio="none">
+            <g stroke="rgba(30,38,51,.06)"><line x1="0" y1="60" x2="600" y2="60"/><line x1="0" y1="120" x2="600" y2="120"/><line x1="0" y1="180" x2="600" y2="180"/><line x1="0" y1="240" x2="600" y2="240"/></g>
+            <g stroke="rgba(30,38,51,.04)"><line x1="75" y1="0" x2="75" y2="300"/><line x1="150" y1="0" x2="150" y2="300"/><line x1="225" y1="0" x2="225" y2="300"/><line x1="300" y1="0" x2="300" y2="300"/><line x1="375" y1="0" x2="375" y2="300"/><line x1="450" y1="0" x2="450" y2="300"/><line x1="525" y1="0" x2="525" y2="300"/></g>
+            <polyline fill="none" stroke="#3B82F6" stroke-width="2.5" points="0,120 30,110 60,125 90,100 120,115 150,90 180,105 210,80 240,95 270,70 300,85 330,60 360,75 390,55 420,70 450,50 480,65 510,45 540,60 570,40 600,50"/>
+            <circle cx="600" cy="50" r="4" fill="#3B82F6"/>
+          </svg>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-label">当前</div><div class="stat-val">45.2%</div><div class="stat-sub">实时值</div></div>
+          <div class="stat-card"><div class="stat-label">平均</div><div class="stat-val">38.7%</div><div class="stat-sub">120 点</div></div>
+          <div class="stat-card o"><div class="stat-label">峰值</div><div class="stat-val">66.4%</div><div class="stat-sub">10:32:15</div></div>
+          <div class="stat-card g"><div class="stat-label">状态</div><div class="stat-val" style="font-size:22px;color:var(--green)">NORMAL</div><div class="stat-sub">阈值 &lt;80%</div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAN-PC-Monitor · 监控控制台原型（浅色）</title>
+<style>
+  :root{
+    --bg:#F5F7FB; --card:#FFFFFF;
+    --border:#E6E7EB; --border-strong:#D8DCE3;
+    --text:#1E2633; --text2:#626D7D; --text3:#9CA3AF;
+    --green:#2FB344; --orange:#F59F00; --red:#D63939; --cyan:#0891B2; --blue:#3B82F6;
+    --c-cpu:#3B82F6; --c-gpu:#F76707; --c-ram:#22C55E; --c-net:#0891B2;
+    --radius:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Segoe UI','Microsoft YaHei',sans-serif; background:var(--bg); color:var(--text);
+    display:flex; height:100vh; overflow:hidden; font-size:13px;
+  }
+  .sidebar{width:220px;background:#1A2332;color:#B3BCCB;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;flex-shrink:0;}
+  .logo{height:56px;display:flex;align-items:center;gap:11px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,.06);}
+  .logo-badge{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#3B82F6,#2563EB);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;}
+  .logo-txt{font-size:15px;font-weight:600;color:#fff;}
+  .nav-sec{padding:16px 12px 4px 20px;font-size:10px;font-weight:600;letter-spacing:.5px;color:#7B8FA3;text-transform:uppercase;}
+  .nav-sec.mt{margin-top:8px;}
+  .nav-item{display:flex;align-items:center;gap:10px;margin:2px 8px;padding:9px 12px;border-radius:8px;color:#B3BCCB;cursor:pointer;font-weight:500;}
+  .nav-item:hover{background:rgba(255,255,255,.05);color:#CBD5E1;}
+  .nav-item.active{background:rgba(59,130,246,.16);color:#fff;position:relative;}
+  .nav-item.active::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:#3B82F6;}
+  .nav-item i{font-style:normal;width:18px;text-align:center;font-size:14px;}
+  .nodes-wrap{flex:1;overflow:auto;padding:4px 0;}
+  .nodes-title{padding:14px 20px 6px;font-size:10px;font-weight:600;letter-spacing:.5px;color:#7B8FA3;}
+  .node-row{display:flex;align-items:center;gap:8px;padding:6px 20px;color:#B3BCCB;cursor:pointer;}
+  .node-row:hover{color:#CBD5E1;}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .dot.g{background:#2FB344;box-shadow:0 0 0 0 rgba(47,179,68,.5);animation:pulse 2s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,179,68,.5)}70%{box-shadow:0 0 0 6px rgba(47,179,68,0)}100%{box-shadow:0 0 0 0 rgba(47,179,68,0)}}
+  .node-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .node-score{font-size:11px;color:#7B8FA3;}
+  .user-area{padding:10px 14px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;}
+  .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#169F85);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;}
+  .user-meta .n{font-size:12px;font-weight:500;color:#fff;}
+  .user-meta .r{font-size:11px;color:#7B8FA3;}
+  .content{flex:1;display:flex;flex-direction:column;overflow:auto;padding:22px 26px;gap:16px;}
+  .page-gap{display:flex;flex-direction:column;gap:16px;}
+  .section-h{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .section-h .t{font-size:15px;font-weight:600;color:var(--text);}
+  .section-h .sub{font-size:11px;color:var(--text3);}
+  .section-h .right{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:11px;color:var(--text3);}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 2px 8px rgba(16,24,40,.04);position:relative;overflow:hidden;}
+  .card::before{content:'';position:absolute;inset:0;border-radius:var(--radius);background:linear-gradient(180deg,rgba(255,255,255,.5),transparent 30%);pointer-events:none;}
+  .card-h{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid var(--border);}
+  .card-h .ttl{font-size:12px;font-weight:600;color:var(--text);}
+  .card-h .unit{font-size:10px;color:var(--text3);}
+  .card-h .sp{flex:1;}
+  .bton{font-size:10px;padding:3px 9px;border-radius:6px;background:#F3F4F6;color:var(--text2);cursor:pointer;border:1px solid var(--border);}
+  .bton.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .card-b{padding:12px 16px 16px;}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .metric-tile{padding:16px;}
+  .mt-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .mt-name{font-size:11px;color:var(--text2);font-weight:500;}
+  .mt-val{font-size:22px;font-weight:700;line-height:1;color:var(--text);}
+  .mt-val small{font-size:11px;color:var(--text3);font-weight:500;}
+  .mt-trend{font-size:13px;}
+  .mt-status{font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;margin-top:6px;display:inline-block;}
+  .st-normal{color:var(--green);background:rgba(47,179,68,.12);}
+  .st-warn{color:var(--orange);background:rgba(245,158,11,.14);}
+  .st-crit{color:var(--red);background:rgba(214,57,57,.14);}
+  .spark{width:100%;height:26px;margin-top:6px;}
+  .two{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+  .chart-lg{width:100%;height:280px;background:#F9FAFB;border:1px solid var(--border);border-radius:8px;}
+  .legend{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap;}
+  .lg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+  .lg-dot{width:8px;height:3px;border-radius:2px;}
+  .alert-entry{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+  .alert-entry:last-child{border-bottom:none;}
+  .a-bar{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0;}
+  .a-body{flex:1;min-width:0;}
+  .a-title{font-size:11px;font-weight:600;color:var(--text);}
+  .a-meta{font-size:10px;color:var(--text3);margin-top:2px;}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .stat-card{padding:16px 18px;border-left:3px solid var(--blue);background:#fff;}
+  .stat-label{font-size:10px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;font-weight:600;}
+  .stat-val{font-size:30px;font-weight:700;line-height:1.15;margin-top:4px;color:var(--text);}
+  .stat-sub{font-size:11px;color:var(--text2);margin-top:4px;}
+  .node-tiles{display:flex;gap:14px;overflow-x:auto;padding-bottom:4px;}
+  .node-tile{min-width:300px;flex-shrink:0;padding:16px;}
+  .nt-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .nt-name{font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
+  .nt-status{font-size:10px;font-weight:600;padding:2px 8px;border-radius:6px;}
+  .nt-rings{display:flex;gap:12px;justify-content:center;margin-bottom:12px;}
+  .ring{text-align:center;width:76px;}
+  .ring svg{width:72px;height:72px;transform:rotate(-90deg);}
+  .ring .rv{font-size:12px;font-weight:700;margin-top:4px;color:var(--text);}
+  .nt-bottom{display:flex;gap:14px;font-size:11px;color:var(--text2);flex-wrap:wrap;}
+  .nt-bottom b{color:var(--text);font-weight:600;}
+  .muted{color:var(--text3);}
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-badge">PC</div><div class="logo-txt">PC 监控</div></div>
+    <div class="nav-sec">监控</div>
+    <div class="nav-item active"><i>▣</i> 总览</div>
+    <div class="nav-item"><i>▣</i> 设备</div>
+    <div class="nav-item"><i>▤</i> 监控</div>
+    <div class="nav-item"><i>⚠</i> 告警</div>
+    <div class="nav-sec mt">系统</div>
+    <div class="nav-item"><i>📈</i> 历史</div>
+    <div class="nav-item"><i>⚙</i> 设置</div>
+    <div class="nodes-wrap">
+      <div class="nodes-title">已连接设备</div>
+      <div class="node-row"><span class="dot g"></span><span class="node-name">本机 (localhost)</span><span class="node-score">98</span></div>
+    </div>
+    <div class="user-area">
+      <div class="avatar">A</div>
+      <div class="user-meta"><div class="n">LAN-PC-Monitor</div><div class="r">v5.5</div></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="page-gap">
+      <div>
+        <div class="section-h">
+          <span class="t">系统概览</span><span class="sub">本机实时 · 1s 刷新</span>
+          <span class="right"><span class="dot g"></span> 在线 · 6s 前更新</span>
+        </div>
+        <div class="tiles">
+          <div class="card metric-tile">
+            <div class="mt-head"><span class="mt-name">CPU</span><span class="mt-val">45.2<small>%</small></span><span class="mt-trend" style="color:var(--orange)">↑</span></div>
+            <svg class="spark" viewBox="0 0 100 26" preserveAspectRatio="none"><polyline fill="none" stroke="#3B82F6" stroke-width="1.5" points="0,18 10,15 20,16 30,12 40,14 50,10 60,13 70,8 80,11 90,9 100,10"/></svg>
+            <span class="mt-status st-normal">Normal</span>
+          </div>
+          <div class="card metric-tile">
+            <div class="mt-head"><span class="mt-name">GPU</span><span class="mt-val">62.0<small>%</small></span><span class="mt-trend" style="color:var(--red)">↑</span></div>
+            <svg class="spark" viewBox="0 0 100 26" preserveAspectRatio="none"><polyline fill="none" stroke="#F76707" stroke-width="1.5" points="0,20 10,18 20,14 30,16 40,9 50,12 60,6 70,10 80,5 90,7 100,6"/></svg>
+            <span class="mt-status st-warn">Warning</span>
+          </div>
+          <div class="card metric-tile">
+            <div class="mt-head"><span class="mt-name">RAM</span><span class="mt-val">50.1<small>%</small></span><span class="mt-trend" style="color:var(--green)">↓</span></div>
+            <svg class="spark" viewBox="0 0 100 26" preserveAspectRatio="none"><polyline fill="none" stroke="#22C55E" stroke-width="1.5" points="0,10 10,11 20,9 30,12 40,8 50,9 60,7 70,10 80,8 90,9 100,7"/></svg>
+            <span class="mt-status st-normal">Normal</span>
+          </div>
+          <div class="card metric-tile">
+            <div class="mt-head"><span class="mt-name">Network</span><span class="mt-val">57.3<small>MB/s</small></span><span class="mt-trend" style="color:var(--cyan)">↑</span></div>
+            <svg class="spark" viewBox="0 0 100 26" preserveAspectRatio="none"><polyline fill="none" stroke="#0891B2" stroke-width="1.5" points="0,16 10,14 20,17 30,10 40,13 50,8 60,12 70,9 80,11 90,7 100,5"/></svg>
+            <span class="mt-status st-normal">Normal</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="card">
+          <div class="card-h"><span class="ttl">实时指标</span><span class="unit">最近 30 秒</span><span class="sp"></span><span class="bton on">30s</span><span class="bton">1m</span><span class="bton">5m</span></div>
+          <div class="card-b">
+            <svg class="chart-lg" viewBox="0 0 300 280" preserveAspectRatio="none">
+              <g stroke="rgba(30,38,51,.06)"><line x1="0" y1="70" x2="300" y2="70"/><line x1="0" y1="140" x2="300" y2="140"/><line x1="0" y1="210" x2="300" y2="210"/></g>
+              <g stroke="rgba(30,38,51,.04)"><line x1="50" y1="0" x2="50" y2="280"/><line x1="150" y1="0" x2="150" y2="280"/><line x1="250" y1="0" x2="250" y2="280"/></g>
+              <polyline fill="none" stroke="#3B82F6" stroke-width="2" points="0,150 20,132 40,150 60,128 80,140 100,118 120,132 140,110 160,124 180,100 200,118 220,96 240,110 260,92 280,104 300,88"/>
+              <polyline fill="none" stroke="#22C55E" stroke-width="2" points="0,60 20,62 40,58 60,52 80,54 100,48 120,50 140,44 160,46 180,40 200,44 220,38 240,42 260,36 280,38 300,34"/>
+              <polyline fill="none" stroke="#F76707" stroke-width="2" points="0,220 20,214 40,218 60,206 80,212 100,202 120,210 140,198 160,204 180,196 200,202 220,192 240,198 260,190 280,194 300,188"/>
+              <polyline fill="none" stroke="#0891B2" stroke-width="2" points="0,180 20,176 40,180 60,170 80,174 100,166 120,172 140,162 160,168 180,160 200,166 220,158 240,162 260,156 280,160 300,154"/>
+            </svg>
+            <div class="legend">
+              <span class="lg-item"><span class="lg-dot" style="background:#3B82F6"></span>CPU</span>
+              <span class="lg-item"><span class="lg-dot" style="background:#22C55E"></span>RAM</span>
+              <span class="lg-item"><span class="lg-dot" style="background:#F76707"></span>GPU</span>
+              <span class="lg-item"><span class="lg-dot" style="background:#0891B2"></span>NET</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="ttl">最近告警</span><span class="sp"></span><span class="bton">查看全部</span></div>
+          <div class="card-b">
+            <div class="alert-entry"><div class="a-bar" style="background:var(--red)"></div><div class="a-body"><div class="a-title">CPU 使用率 96.2%</div><div class="a-meta">本机 (localhost) · 2m ago</div></div></div>
+            <div class="alert-entry"><div class="a-bar" style="background:var(--red)"></div><div class="a-body"><div class="a-title">GPU 温度 91°C</div><div class="a-meta">PC-102 · 18m ago</div></div></div>
+            <div class="alert-entry"><div class="a-bar" style="background:var(--orange)"></div><div class="a-body"><div class="a-title">内存使用率 83%</div><div class="a-meta">PC-102 · 45m ago</div></div></div>
+            <div class="alert-entry"><div class="a-bar" style="background:var(--orange)"></div><div class="a-body"><div class="a-title">网络质量下降</div><div class="a-meta">PC-103 · 1h ago</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-h"><span class="t">已接入副机</span><span class="sub">在线 1 / 1</span></div>
+        <div class="node-tiles">
+          <div class="card node-tile">
+            <div class="nt-head">
+              <span style="font-size:16px">🖥</span><span class="nt-name">本机 (localhost)</span>
+              <span class="nt-status" style="color:var(--green);background:rgba(47,179,68,.12)">ONLINE</span>
+            </div>
+            <div class="nt-rings">
+              <div class="ring"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(30,38,51,.10)" stroke-width="3"/><circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--green)" stroke-width="3" stroke-dasharray="97.4 97.4" stroke-dashoffset="73.8" stroke-linecap="round"/></svg><div class="rv">24%</div><div class="muted" style="font-size:10px">CPU</div></div>
+              <div class="ring"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(30,38,51,.10)" stroke-width="3"/><circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--orange)" stroke-width="3" stroke-dasharray="97.4 97.4" stroke-dashoffset="95.4" stroke-linecap="round"/></svg><div class="rv">2%</div><div class="muted" style="font-size:10px">GPU</div></div>
+              <div class="ring"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(30,38,51,.10)" stroke-width="3"/><circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--cyan)" stroke-width="3" stroke-dasharray="97.4 97.4" stroke-dashoffset="47.7" stroke-linecap="round"/></svg><div class="rv">51%</div><div class="muted" style="font-size:10px">RAM</div></div>
+            </div>
+            <div class="nt-bottom"><span>FPS <b>--</b></span><span>Temp <b>0.0°C</b></span><span>↑<b>10.0</b> ↓<b>10.1</b></span><span>Q: <b>98</b></span></div>
+          </div>
+          <div class="card node-tile" style="opacity:.55">
+            <div class="nt-head">
+              <span style="font-size:16px">🖥</span><span class="nt-name">PC-102</span>
+              <span class="nt-status" style="color:var(--orange);background:rgba(245,158,11,.14)">RECONNECTING</span>
+            </div>
+            <div class="nt-rings">
+              <div class="ring"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(30,38,51,.10)" stroke-width="3"/></svg><div class="rv">--</div><div class="muted" style="font-size:10px">CPU</div></div>
+              <div class="ring"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(30,38,51,.10)" stroke-width="3"/></svg><div class="rv">--</div><div class="muted" style="font-size:10px">GPU</div></div>
+              <div class="ring"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" fill="none" stroke="rgba(30,38,51,.10)" stroke-width="3"/></svg><div class="rv">--</div><div class="muted" style="font-size:10px">RAM</div></div>
+            </div>
+            <div class="nt-bottom"><span>FPS <b>--</b></span><span>Temp <b>--</b></span><span>—</span><span>Q: <b>--</b></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

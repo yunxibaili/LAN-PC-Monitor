@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAN-PC-Monitor · 告警页原型（浅色）</title>
+<style>
+  :root{
+    --bg:#F5F7FB; --card:#FFFFFF;
+    --border:#E6E7EB;
+    --text:#1E2633; --text2:#626D7D; --text3:#9CA3AF;
+    --green:#2FB344; --orange:#F59F00; --red:#D63939; --cyan:#0891B2; --blue:#3B82F6;
+    --radius:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;font-size:13px;}
+  .sidebar{width:220px;background:#1A2332;color:#B3BCCB;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;flex-shrink:0;}
+  .logo{height:56px;display:flex;align-items:center;gap:11px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,.06);}
+  .logo-badge{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#3B82F6,#2563EB);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;}
+  .logo-txt{font-size:15px;font-weight:600;color:#fff;}
+  .nav-sec{padding:16px 12px 4px 20px;font-size:10px;font-weight:600;letter-spacing:.5px;color:#7B8FA3;text-transform:uppercase;}
+  .nav-sec.mt{margin-top:8px;}
+  .nav-item{display:flex;align-items:center;gap:10px;margin:2px 8px;padding:9px 12px;border-radius:8px;color:#B3BCCB;cursor:pointer;font-weight:500;}
+  .nav-item:hover{background:rgba(255,255,255,.05);color:#CBD5E1;}
+  .nav-item.active{background:rgba(59,130,246,.16);color:#fff;position:relative;}
+  .nav-item.active::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:#3B82F6;}
+  .nav-item i{font-style:normal;width:18px;text-align:center;font-size:14px;}
+  .nodes-wrap{flex:1;overflow:auto;padding:4px 0;}
+  .nodes-title{padding:14px 20px 6px;font-size:10px;font-weight:600;letter-spacing:.5px;color:#7B8FA3;}
+  .node-row{display:flex;align-items:center;gap:8px;padding:6px 20px;color:#B3BCCB;cursor:pointer;}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .dot.g{background:#2FB344;box-shadow:0 0 0 0 rgba(47,179,68,.5);animation:pulse 2s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,179,68,.5)}70%{box-shadow:0 0 0 6px rgba(47,179,68,0)}100%{box-shadow:0 0 0 0 rgba(47,179,68,0)}}
+  .node-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .node-score{font-size:11px;color:#7B8FA3;}
+  .user-area{padding:10px 14px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;}
+  .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#169F85);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;}
+  .user-meta .n{font-size:12px;font-weight:500;color:#fff;}
+  .user-meta .r{font-size:11px;color:#7B8FA3;}
+  .content{flex:1;display:flex;flex-direction:column;overflow:auto;padding:22px 26px;gap:16px;}
+  .page-gap{display:flex;flex-direction:column;gap:16px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 2px 8px rgba(16,24,40,.04);}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .stat-card{padding:16px 18px;border-left:3px solid var(--blue);background:#fff;border:1px solid var(--border);border-radius:var(--radius);}
+  .stat-card.r{border-left-color:var(--red);} .stat-card.o{border-left-color:var(--orange);} .stat-card.g{border-left-color:var(--green);}
+  .stat-label{font-size:10px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;font-weight:600;}
+  .stat-val{font-size:30px;font-weight:700;line-height:1.15;margin-top:4px;}
+  .stat-sub{font-size:11px;color:var(--text2);margin-top:4px;}
+  .toolbar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .search{display:flex;align-items:center;gap:6px;background:#F3F4F6;border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--text3);min-width:200px;}
+  .sel{font-size:12px;padding:7px 14px;border-radius:8px;background:#F3F4F6;border:1px solid var(--border);color:var(--text2);cursor:pointer;}
+  .sel.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .sp{flex:1;}
+  .btn-clear{font-size:12px;padding:7px 14px;border-radius:8px;background:rgba(214,57,57,.1);border:1px solid rgba(214,57,57,.3);color:var(--red);cursor:pointer;}
+  .body{display:grid;grid-template-columns:1fr 340px;gap:16px;padding:14px;}
+  .list{display:flex;flex-direction:column;gap:8px;}
+  .alert-card{display:flex;gap:11px;padding:13px 15px;border:1px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;}
+  .alert-card:hover{border-color:var(--blue);box-shadow:0 2px 8px rgba(59,130,246,.1);}
+  .alert-card.sel{border-color:var(--blue);background:rgba(59,130,246,.04);}
+  .a-bar{width:4px;border-radius:2px;flex-shrink:0;}
+  .a-body{flex:1;min-width:0;}
+  .a-top{display:flex;align-items:center;gap:8px;}
+  .a-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .a-time{font-size:10px;color:var(--text3);flex-shrink:0;}
+  .a-meta{font-size:10px;color:var(--text2);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;}
+  .a-meta b{color:var(--text);font-weight:600;}
+  .badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.3px;flex-shrink:0;}
+  .detail{position:sticky;top:0;align-self:start;}
+  .detail-h{padding:14px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;}
+  .detail-b{padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+  .field{display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+  .field .k{color:var(--text3);}
+  .field .v{font-weight:600;color:var(--text);}
+  .field .v.big{font-size:18px;}
+  .divider{height:1px;background:var(--border);}
+  .empty{padding:60px 20px;text-align:center;color:var(--text3);font-size:12px;}
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-badge">PC</div><div class="logo-txt">PC 监控</div></div>
+    <div class="nav-sec">监控</div>
+    <div class="nav-item"><i>▣</i> 总览</div>
+    <div class="nav-item"><i>▣</i> 设备</div>
+    <div class="nav-item"><i>▤</i> 监控</div>
+    <div class="nav-item active"><i>⚠</i> 告警</div>
+    <div class="nav-sec mt">系统</div>
+    <div class="nav-item"><i>📈</i> 历史</div>
+    <div class="nav-item"><i>⚙</i> 设置</div>
+    <div class="nodes-wrap">
+      <div class="nodes-title">已连接设备</div>
+      <div class="node-row"><span class="dot g"></span><span class="node-name">本机 (localhost)</span><span class="node-score">98</span></div>
+      <div class="node-row"><span class="dot g"></span><span class="node-name">PC-102</span><span class="node-score">88</span></div>
+    </div>
+    <div class="user-area">
+      <div class="avatar">A</div>
+      <div class="user-meta"><div class="n">LAN-PC-Monitor</div><div class="r">v5.5</div></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="page-gap">
+      <div class="stats">
+        <div class="stat-card r"><div class="stat-label">严重</div><div class="stat-val">2</div><div class="stat-sub">Critical</div></div>
+        <div class="stat-card o"><div class="stat-label">警告</div><div class="stat-val">5</div><div class="stat-sub">Warning</div></div>
+        <div class="stat-card"><div class="stat-label">活动</div><div class="stat-val">7</div><div class="stat-sub">当前告警</div></div>
+        <div class="stat-card g"><div class="stat-label">已恢复</div><div class="stat-val">13</div><div class="stat-sub">Recovered</div></div>
+      </div>
+
+      <div class="card">
+        <div class="toolbar">
+          <div class="search">🔍 搜索告警关键词</div>
+          <div class="sel on">全部等级</div>
+          <div class="sel">严重</div>
+          <div class="sel">警告</div>
+          <div class="sel">全部节点</div>
+          <div class="sp"></div>
+          <div class="btn-clear">清除告警</div>
+        </div>
+        <div class="body">
+          <div class="list">
+            <div class="alert-card sel">
+              <div class="a-bar" style="background:var(--red)"></div>
+              <div class="a-body">
+                <div class="a-top"><span class="a-name">CPU 使用率超阈值</span><span class="badge" style="color:var(--red);background:rgba(214,57,57,.12)">CRITICAL</span><span class="a-time">2m ago</span></div>
+                <div class="a-meta"><span>节点 <b>本机 (localhost)</b></span><span>当前 <b>96.2%</b></span><span>阈值 <b>&gt;95%</b></span></div>
+              </div>
+            </div>
+            <div class="alert-card">
+              <div class="a-bar" style="background:var(--red)"></div>
+              <div class="a-body">
+                <div class="a-top"><span class="a-name">GPU 温度过高</span><span class="badge" style="color:var(--red);background:rgba(214,57,57,.12)">CRITICAL</span><span class="a-time">18m ago</span></div>
+                <div class="a-meta"><span>节点 <b>PC-102</b></span><span>当前 <b>91°C</b></span><span>阈值 <b>&gt;90°C</b></span></div>
+              </div>
+            </div>
+            <div class="alert-card">
+              <div class="a-bar" style="background:var(--orange)"></div>
+              <div class="a-body">
+                <div class="a-top"><span class="a-name">内存使用率偏高</span><span class="badge" style="color:var(--orange);background:rgba(245,158,11,.14)">WARNING</span><span class="a-time">45m ago</span></div>
+                <div class="a-meta"><span>节点 <b>PC-102</b></span><span>当前 <b>83%</b></span><span>阈值 <b>&gt;80%</b></span></div>
+              </div>
+            </div>
+            <div class="alert-card">
+              <div class="a-bar" style="background:var(--orange)"></div>
+              <div class="a-body">
+                <div class="a-top"><span class="a-name">网络质量下降</span><span class="badge" style="color:var(--orange);background:rgba(245,158,11,.14)">WARNING</span><span class="a-time">1h ago</span></div>
+                <div class="a-meta"><span>节点 <b>PC-103</b></span><span>评分 <b>68</b></span><span>阈值 <b>&lt;70</b></span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card detail">
+            <div class="detail-h"><span class="badge" style="color:var(--red);background:rgba(214,57,57,.12)">CRITICAL</span> CPU 使用率超阈值</div>
+            <div class="detail-b">
+              <div class="field"><span class="k">等级</span><span class="v" style="color:var(--red)">严重</span></div>
+              <div class="field"><span class="k">指标路径</span><span class="v">cpu.total_usage</span></div>
+              <div class="field"><span class="k">节点</span><span class="v">本机 (localhost)</span></div>
+              <div class="field"><span class="k">当前值</span><span class="v big" style="color:var(--red)">96.2%</span></div>
+              <div class="field"><span class="k">阈值</span><span class="v">95%</span></div>
+              <div class="divider"></div>
+              <div class="field"><span class="k">时间</span><span class="v">2 分钟前</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

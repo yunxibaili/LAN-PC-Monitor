@@ -21,11 +21,12 @@ import psutil
 
 log = logging.getLogger("common.self_monitor")
 
-# 降级/恢复阈值（§16.1）
-DEGRADE_CPU = 5.0    # CPU > 5% 触发降级
-RECOVER_CPU = 3.0    # CPU < 3% 恢复采集频率
+# 降级/恢复阈值
+# GUI 应用（含图表渲染/采集器）正常占用常超过 5%，阈值需放宽以避免频繁误降级。
+DEGRADE_CPU = 30.0   # CPU > 30% 触发降级（仅在明显高占用时）
+RECOVER_CPU = 15.0   # CPU < 15% 恢复采集频率
 # 连续超阈值次数达到才降级（防单次抖动）
-DEGRADE_STREAK = 2
+DEGRADE_STREAK = 3
 
 
 class SelfMonitor:
@@ -44,6 +45,7 @@ class SelfMonitor:
         self._stop_event = threading.Event()
         self._prewarmed = False   # cpu_percent 是否已预热（首次采样虚高）
         self._streak = 0          # 连续超阈值次数
+        self._degraded = False    # 是否已处于降级状态（防止重复降级刷屏）
 
     def start(self) -> None:
         """启动自监控线程。"""
@@ -57,7 +59,7 @@ class SelfMonitor:
     def check(self) -> None:
         """执行一次 CPU 占用检查并降级/恢复。"""
         try:
-            cpu = self.proc.cpu_percent(interval=1.0)
+            cpu = self.proc.cpu_percent(interval=0.4)
         except Exception:
             return
 
@@ -69,7 +71,7 @@ class SelfMonitor:
 
         if cpu > DEGRADE_CPU:
             self._streak += 1
-            if self._streak >= DEGRADE_STREAK:
+            if self._streak >= DEGRADE_STREAK and not self._degraded:
                 log.warning("监控程序 CPU 占用 %.1f%% 连续超阈值，启动降级", cpu)
                 if hasattr(self.aggregator, "interval"):
                     self.aggregator.interval = 2.0   # 1s → 2s
@@ -79,13 +81,16 @@ class SelfMonitor:
                         log.warning("已关闭帧率采集器以降低占用")
                     except Exception:
                         pass
-                self._streak = 0   # 降级后重置计数
+                self._degraded = True   # 已降级，后续不再重复降级
+                self._streak = 0
         elif cpu < RECOVER_CPU:
             self._streak = 0
-            if hasattr(self.aggregator, "interval") \
-                    and getattr(self.aggregator, "interval", 1.0) > 1.0:
-                self.aggregator.interval = 1.0
-                log.info("监控程序 CPU 占用恢复，采集频率恢复 1s")
+            if self._degraded:
+                self._degraded = False
+                if hasattr(self.aggregator, "interval") \
+                        and getattr(self.aggregator, "interval", 1.0) > 1.0:
+                    self.aggregator.interval = 1.0
+                    log.info("监控程序 CPU 占用恢复，采集频率恢复 1s")
         else:
             # 中间区间（3~5%）：不降级不恢复，重置连续计数
             self._streak = 0

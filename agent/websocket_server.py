@@ -170,15 +170,23 @@ class WebSocketServer:
     # ---------- 广播 ----------
 
     async def broadcast_frame(self, frame: dict) -> None:
-        """向所有订阅者广播一帧。失败连接剔除。"""
+        """向所有订阅者广播一帧。
+
+        防 HOL 阻塞（P2-6）：每个订阅者单独设 5s 超时，慢/不读的订阅者被剔除，
+        避免拖垮整轮广播。序列化失败时仅记录并跳过本帧（不杀死 push_loop）。
+        """
         if not self._subscribers:
             return
-        data = json.dumps(frame, ensure_ascii=False)
+        try:
+            data = json.dumps(frame, ensure_ascii=False)
+        except (TypeError, ValueError) as e:
+            log.warning("广播帧序列化失败，跳过本帧: %s", e)
+            return
         dead = []
         for ws in list(self._subscribers):
             try:
-                await ws.send_str(data)
-            except Exception:
+                await asyncio.wait_for(ws.send_str(data), timeout=5.0)
+            except (asyncio.TimeoutError, Exception):
                 dead.append(ws)
         for ws in dead:
             self._subscribers.discard(ws)

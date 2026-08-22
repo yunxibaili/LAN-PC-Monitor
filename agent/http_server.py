@@ -20,6 +20,7 @@ import time
 from aiohttp import web
 
 from common.utils import get_lan_ip
+from common.version import APP_VERSION
 from agent.config import save_config as _save_agent_config
 
 log = logging.getLogger("agent.http")
@@ -56,12 +57,19 @@ class RestServer:
     # ---------- 鉴权 ----------
 
     def _check_auth(self, request: web.Request) -> bool:
-        """校验 token（Bearer 头或 ?token= 查询参数）。空 token 放行。"""
+        """校验 token（Bearer 头或 ?token= 查询参数）。
+
+        安全策略（与 WS 侧一致）：token 为空时拒绝所有请求；恒时比较防侧信道。
+        """
+        import hmac
         token = self.cfg.get("token", "")
         if not token:
-            return True
+            log.warning("Agent token 为空，拒绝所有 REST 请求")
+            return False
         supplied = _bearer_token(request) or request.query.get("token")
-        return supplied == token
+        if not supplied:
+            return False
+        return hmac.compare_digest(str(supplied), token)
 
     def _require_auth(self, request: web.Request) -> bool:
         """鉴权失败时写 401 并返回 False。失败日志限流，避免刷屏。"""
@@ -95,7 +103,7 @@ class RestServer:
         system_uptime = frame.get("system", {}).get("uptime_seconds", 0)
         return web.json_response({
             "status": "ok",
-            "version": "5.3.4",
+            "version": APP_VERSION,
             "hostname": socket.gethostname(),
             "ip": get_lan_ip(self.cfg.get("preferred_iface", "")),
             "port": self.cfg.get("http_port", 12345),

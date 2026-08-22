@@ -203,6 +203,7 @@
   "dashboard.subtitle": "系统概览与实时性能",
   "dashboard.system_overview": "系统概览",
   "dashboard.node_overview": "设备概览",
+  "dashboard.agents_online": "已接入副机",
   "dashboard.recent_alerts": "最近告警",
   "dashboard.total_nodes": "设备总数",
   "dashboard.online": "在线",

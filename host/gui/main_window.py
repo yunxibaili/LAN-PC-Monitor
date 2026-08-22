@@ -16,7 +16,7 @@
 """
 import logging
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import (QFrame, QHBoxLayout, QLabel, QMainWindow,
                              QPushButton, QStackedWidget, QVBoxLayout,
                              QWidget)
@@ -53,6 +53,8 @@ from host.viewmodels.node_detail_vm import NodeDetailViewModel
 from host.viewmodels.settings_vm import SettingsViewModel
 from host.viewmodels.history_vm import HistoryViewModel
 from host.viewmodels.devices_vm import DevicesViewModel
+from host.viewmodels.monitor_vm import MonitorViewModel
+from host.viewmodels.alert_vm import AlertViewModel
 from host.facade.history_facade import HistoryFacade
 from host.service.storage_service import StorageService
 from host.service.metric_persistence import MetricPersistenceService
@@ -150,24 +152,38 @@ class HostMainWindow(QMainWindow):
         except Exception as e:
             log.warning("Startup retention failed: %s", e)
 
+    def _run_retention_periodic(self) -> None:
+        """运行时定期清理，防止长期运行不重启导致数据库无限增长。"""
+        try:
+            result = self._storage.run_retention()
+            log.debug("Periodic retention: %s", result)
+        except Exception as e:
+            log.warning("Periodic retention failed: %s", e)
+
+    def _flush_metric_persistence(self) -> None:
+        """定期刷写指标持久化缓冲（批合并）。"""
+        try:
+            n = self._metric_persistence.flush()
+            if n:
+                log.debug("Metric persistence flush: %d records", n)
+        except Exception as e:
+            log.warning("Metric persistence flush failed: %s", e)
+
     # ---------- UI 骨架 ----------
 
     def _init_ui(self) -> None:
-        """构建 v5.2 布局：HeaderBar + SideNav + contentStack。"""
+        """构建 v5.2 布局：SideNav + contentStack（无顶部栏）。"""
         self.setWindowTitle(tr("app.title.host"))
+        from host.gui.theme.style import glass_background_qss
         central = QWidget()
+        # 玻璃拟态背景：多层渐变光斑模拟背板模糊
+        central.setObjectName("glassBg")
+        central.setStyleSheet(glass_background_qss())
         root = QVBoxLayout(central)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
-        # 顶部 HeaderBar
-        from host.gui.widgets.header_bar import HeaderBar
-        self.header_bar = HeaderBar()
-        self.header_bar.settings_clicked.connect(
-            lambda: self.nav.navigate_to("settings"))
-        self._header_title = self.header_bar._title
-        self.top_label = self.header_bar._conn_label  # 兼容旧代码引用
-        root.addWidget(self.header_bar)
+        # 无顶部栏（用户要求删除）
 
         # 主体：SideNav + contentStack
         body = QHBoxLayout()
@@ -176,10 +192,13 @@ class HostMainWindow(QMainWindow):
         self.side_nav = SideNav()
         body.addWidget(self.side_nav)
         self.content_stack = QStackedWidget()
+        self.content_stack.setStyleSheet("background: transparent;")
         body.addWidget(self.content_stack, 1)
         root.addLayout(body, 1)
 
         self.setCentralWidget(central)
+        # 无顶部栏
+        self.top_label = type('Dummy', (), {'setText': lambda s, t: None})()
         self.statusBar().showMessage(tr("topbar.ready"))
 
     # ---------- ViewModels + Pages ----------
@@ -192,6 +211,8 @@ class HostMainWindow(QMainWindow):
             node_store=self.node_store, frame_store=self.frame_store)
         self.settings_vm = SettingsViewModel(self.settings)
         self.devices_vm = DevicesViewModel(self.node_store, self.frame_store)
+        self.monitor_vm = MonitorViewModel(self.history_store, self.node_store)
+        self.alert_vm = AlertViewModel(self.alert_store)
 
         # Storage Service（统一管理 SQLite 连接 + Repository）
         # v5.3.1：默认路径固定到用户数据目录，不再跟随启动 CWD
@@ -203,11 +224,22 @@ class HostMainWindow(QMainWindow):
             alerts_days=self.cfg.get("retention_alerts", 90),
             sessions_days=self.cfg.get("retention_sessions", 90),
         )
+        self._retention_policy = ret_policy
         self._storage.retention_service(ret_policy).run()
+        # 运行时定期清理（防止长期运行不重启导致数据库无限增长）
+        self._retention_timer = QTimer(self)
+        self._retention_timer.setInterval(24 * 60 * 60 * 1000)  # 每天
+        self._retention_timer.timeout.connect(self._run_retention_periodic)
+        self._retention_timer.start()
         self._history_facade = self._storage.history_facade()
         self.history_vm = HistoryViewModel(self._history_facade)
         self._metric_persistence = MetricPersistenceService(
             self._storage.metrics_repo)
+        # 定时 flush 批合并缓冲（防止长期缓存，数据最迟 2s 落库）
+        self._persist_flush_timer = QTimer(self)
+        self._persist_flush_timer.setInterval(2000)
+        self._persist_flush_timer.timeout.connect(self._flush_metric_persistence)
+        self._persist_flush_timer.start()
 
         # Pages
         self._pages = {}
@@ -231,7 +263,9 @@ class HostMainWindow(QMainWindow):
         self.nodes_page.set_view_model(self.devices_vm)
 
         self.monitor_page = self._pages["monitor"]
+        self.monitor_page.set_view_model(self.monitor_vm)
         self.alerts_page = self._pages["alerts"]
+        self.alerts_page.set_view_model(self.alert_vm)
         self.history_page = self._pages["history"]
         self.history_page.set_view_model(self.history_vm)
         self.settings_page = self._pages["settings"]
@@ -243,7 +277,7 @@ class HostMainWindow(QMainWindow):
         """创建 Controllers 并接线。"""
         self.nav = NavigationController(self.side_nav, self.content_stack,
                                         self._pages)
-        self.nav.connect_signals(header_title=self._header_title)
+        self.nav.connect_signals(header_title=None)
 
         self.data = DataController(
             self.cfg, self.frame_store, self.node_store, self.history_store,

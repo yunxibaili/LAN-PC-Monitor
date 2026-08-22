@@ -89,8 +89,8 @@ def test_multi_node():
         ns.update_status(f"node-{i}", "connected")
         fs.push(f"node-{i}", make_frame(cpu=10 * i))
 
+    page.update_trends("node-0", make_frame(cpu=10))
     page._update_summary_vm()
-    page._flush_refresh()
     check("有折线图", hasattr(page, '_chart'))
     check("CPU 缓冲有数据", len(page._series["CPU"]) > 0)
     check("total=4", page._card_total._value_lbl.text() == "4")

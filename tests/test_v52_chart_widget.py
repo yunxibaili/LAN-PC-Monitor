@@ -48,7 +48,10 @@ def test_init():
     w = ChartWidget(title="CPU", y_range=(0, 100))
     check("ChartWidget 创建", w is not None)
     if has_pyqtgraph():
-        check("有 plot 曲线", hasattr(w, '_curve'))
+        check("有 plot 曲线列表", hasattr(w, '_curves'))
+        vb = w.getViewBox()
+        check("鼠标缩放已禁用", vb is not None and not vb.state["mouseEnabled"][0]
+              and not vb.state["mouseEnabled"][1])
     else:
         check("回退 Widget", True)
 
@@ -62,7 +65,7 @@ def test_set_series():
     w.set_series(points)
     check("set_series 不崩溃", True)
     if has_pyqtgraph():
-        check("曲线已设置", w._curve is not None)
+        check("曲线已设置", len(w._curves) > 0)
 
 
 # ---------- 3. 空数据 ----------
@@ -82,10 +85,10 @@ def test_clear():
     print("\n--- 4. clear ---")
     w = ChartWidget(title="CPU")
     w.set_series([ChartPoint(1.0, 50.0)])
-    w.clear()
+    w.reset()
     check("clear 不崩溃", True)
     if has_pyqtgraph():
-        check("曲线已清空", True)  # 清空后 _curve 的数据为空
+        check("曲线已清空", len(w._curves) == 0 and not w._series_data)
 
 
 # ---------- 5. threshold ----------
@@ -111,7 +114,7 @@ def test_fallback():
     w = ChartWidget(title="GPU")
     w.set_series([ChartPoint(1.0, 60.0)])
     w.set_thresholds(warn=80, danger=95)
-    w.clear()
+    w.reset()
     check("回退 Widget 全接口可用", True)
 
 

@@ -203,6 +203,7 @@
   "dashboard.subtitle": "System overview and performance at a glance",
   "dashboard.system_overview": "System Overview",
   "dashboard.node_overview": "Node Overview",
+  "dashboard.agents_online": "Connected Agents",
   "dashboard.recent_alerts": "Recent Alerts",
   "dashboard.total_nodes": "Total Nodes",
   "dashboard.online": "Online",

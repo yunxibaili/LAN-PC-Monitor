@@ -56,7 +56,7 @@ class _SidebarItem(QFrame):
         layout.setContentsMargins(12, 0, 12, 0)
         self._lbl = QLabel(label)
         self._lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY['size']px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY['size']}px; background: transparent;")
         layout.addWidget(self._lbl)
 
     def set_active(self, active):
@@ -69,7 +69,7 @@ class _SidebarItem(QFrame):
                 }}
             """)
             self._lbl.setStyleSheet(
-                f"color: {TC.TEXT_PRIMARY}; font-size: TT.BODY['size']px; font-weight: 600; background: transparent;")
+                f"color: {TC.TEXT_PRIMARY}; font-size: {TT.BODY['size']}px; font-weight: 600; background: transparent;")
         else:
             self.setStyleSheet(f"""
                 _SidebarItem {{
@@ -81,7 +81,7 @@ class _SidebarItem(QFrame):
                 }}
             """)
             self._lbl.setStyleSheet(
-                f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY['size']px; background: transparent;")
+                f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY['size']}px; background: transparent;")
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -113,20 +113,6 @@ class SettingsPage(PageBase):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
-
-        # ---- Header ----
-        header = QHBoxLayout()
-        header.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
-        title = QLabel(tr("settings.title_nav"))
-        title.setStyleSheet(
-            f"font-size: TT.TITLE_MEDIUM['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
-        header.addWidget(title)
-        header.addStretch(1)
-        self._status_lbl = QLabel("")
-        self._status_lbl.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
-        header.addWidget(self._status_lbl)
-        root.addLayout(header)
 
         # ---- Body: Sidebar + ContentStack ----
         body = QHBoxLayout()
@@ -175,7 +161,7 @@ class SettingsPage(PageBase):
         bottom.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
         self._dirty_lbl = QLabel("")
         self._dirty_lbl.setStyleSheet(
-            f"color: {TC.STATUS_WARNING}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
+            f"color: {TC.STATUS_WARNING}; font-size: {TT.BODY_SMALL['size']}px; background: transparent;")
         bottom.addWidget(self._dirty_lbl)
         bottom.addStretch(1)
         self._save_btn = QPushButton("Save")
@@ -265,7 +251,7 @@ class SettingsPage(PageBase):
 
         self._add_section_title(layout, tr("settings.tab.collector"))
         sub = QLabel("数据保留策略（天）")
-        sub.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
+        sub.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY_SMALL['size']}px; background: transparent;")
         layout.addWidget(sub)
 
         row1 = self._add_form_row(layout, "Metrics retention")
@@ -363,7 +349,7 @@ class SettingsPage(PageBase):
     def _add_section_title(self, layout, text):
         lbl = QLabel(text)
         lbl.setStyleSheet(
-            f"font-size: TT.TITLE_SMALL['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY}; "
+            f"font-size: {TT.TITLE_SMALL['size']}px; font-weight: bold; color: {TC.TEXT_PRIMARY}; "
             f"background: transparent; margin-bottom: 8px;")
         layout.addWidget(lbl)
 
@@ -373,7 +359,7 @@ class SettingsPage(PageBase):
         lbl = QLabel(label_text)
         lbl.setFixedWidth(140)
         lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY['size']px; background: transparent;")
+            f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY['size']}px; background: transparent;")
         row.addWidget(lbl)
         layout.addLayout(row)
         return row
@@ -493,7 +479,7 @@ class SettingsPage(PageBase):
         self._show_save_feedback()
 
     def _show_save_feedback(self):
-        self._status_lbl.setText("✓ Saved")
-        self._status_lbl.setStyleSheet(
-            f"color: {TC.STATUS_ONLINE}; font-size: TT.BODY_SMALL['size']px; font-weight: 600; background: transparent;")
-        QTimer.singleShot(2000, lambda: self._status_lbl.setText(""))
+        self._dirty_lbl.setText("✓ Saved")
+        self._dirty_lbl.setStyleSheet(
+            f"color: {TC.STATUS_ONLINE}; font-size: {TT.BODY_SMALL['size']}px; font-weight: 600; background: transparent;")
+        QTimer.singleShot(2000, lambda: self._dirty_lbl.setText(""))

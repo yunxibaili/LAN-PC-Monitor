@@ -64,6 +64,7 @@ def test_persist_frame():
     db, repo, svc = _make()
     count = svc.persist_frame("A", _full_frame())
     check("写入记录数 > 0", count > 0, f"count={count}")
+    svc.flush()  # 批合并：手动 flush 落库
     check("repo.count == count", repo.count() == count)
     db.close()
 
@@ -88,6 +89,7 @@ def test_batch_insert():
     fake = FakeRepo()
     svc2 = MetricPersistenceService(fake)
     svc2.persist_frame("A", _full_frame())
+    svc2.flush()  # 批合并：flush 才触发 insert_batch
 
     check("insert_batch 调用 1 次", fake.insert_batch_calls == 1)
     check("insert 未调用", fake.insert_calls == 0)
@@ -101,6 +103,7 @@ def test_multi_node():
     db, repo, svc = _make()
     svc.persist_frame("A", _full_frame())
     svc.persist_frame("B", _full_frame())
+    svc.flush()
     check("total count", repo.count() > 0)
     check("nodes = 2", set(repo.nodes()) == {"A", "B"})
 
@@ -125,6 +128,7 @@ def test_field_mapping():
     print("\n--- 5. 字段映射 ---")
     db, repo, svc = _make()
     svc.persist_frame("A", _full_frame())
+    svc.flush()
 
     # 验证特定 metric 存在
     cpu_records = repo.query_range("A", "cpu.usage")
@@ -151,8 +155,9 @@ def test_failure_resilience():
         def insert_batch(self, records):
             raise RuntimeError("DB error")
     svc2 = MetricPersistenceService(FailRepo())
-    count = svc2.persist_frame("A", _full_frame())
-    check("失败返回 0", count == 0)
+    svc2.persist_frame("A", _full_frame())
+    flushed = svc2.flush()  # flush 触发 insert_batch 异常，被服务捕捉
+    check("flush 失败返回 0", flushed == 0)
     check("不崩溃", True)
 
 

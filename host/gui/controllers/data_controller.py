@@ -109,7 +109,7 @@ class DataController:
         """注册本机节点到 NodeStore（由 MainWindow 创建 LocalCollectorPack）。"""
         self.nodes[LOCAL_NODE_ID] = None
         self.node_store.add_node(LOCAL_NODE_ID, alias=alias or tr("node.local_alias"))
-        self.node_store.update_status(LOCAL_NODE_ID, tr("node.online"))
+        self.node_store.update_status(LOCAL_NODE_ID, "connected")
         self.node_store.update_rtt(LOCAL_NODE_ID, 0.0)
 
     def load_saved_nodes(self) -> None:
@@ -139,7 +139,8 @@ class DataController:
                                                 token, info.get("alias", ""))
                         self.add_node(node_id, ip, port, token,
                                       info.get("alias", ""))
-                except Exception:
+                except Exception as e:
+                    log.debug("自动发现加入节点失败 %s:%s: %s", ip, port, e)
                     continue
             log.info("后台自动发现完成，共发现 %d 个节点", len(found))
 

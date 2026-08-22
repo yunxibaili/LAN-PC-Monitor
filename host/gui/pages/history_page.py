@@ -1,94 +1,59 @@
 # -*- coding: utf-8 -*-
 """
-HistoryPage —— 历史趋势页（v5.3.3 History UX）。
+HistoryPage —— 历史趋势页（v5.5 白色高密度重设计）。
 
-布局：Header → TimeButtons → MetricCheckboxes → Chart → SummaryCards
-Signal 驱动，不访问 Store / Facade / Repository。
+节点选择 → 时间范围按钮 → 指标勾选 → 多曲线图 → 汇总卡。
+Signal 驱动（history_vm.data_changed）。
 """
 import logging
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QCheckBox, QFrame, QHBoxLayout, QLabel, QPushButton,
-    QSizePolicy, QVBoxLayout,
+    QCheckBox, QComboBox, QHBoxLayout, QLabel, QPushButton, QVBoxLayout,
 )
 
 from host.gui.theme.colors import ThemeColors as TC
-from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.pages.base_page import PageBase
 from host.gui.widgets.chart_widget import ChartWidget
-from host.gui.widgets.chart_panel import SummaryCard
+from host.gui.widgets.glass_card import GlassCard
+from host.gui.widgets.stat_card import StatCard
 from host.viewmodels.history_vm import HistoryViewModel
 from common.i18n import tr
 
 log = logging.getLogger("host.gui.history_page")
 
-# 多曲线颜色
 METRIC_COLORS = {
-    "cpu.usage":     TC.CHART_PRIMARY,
-    "ram.usage":     TC.CHART_SECONDARY,
-    "gpu.usage":     TC.CHART_GREEN,
-    "net.upload":    TC.CHART_RED,
-    "net.download":  TC.CHART_PURPLE,
-    "fps.value":     TC.CHART_CYAN,
+    "cpu.usage": TC.CHART_PRIMARY,
+    "ram.usage": TC.CHART_GREEN,
+    "gpu.usage": TC.CHART_ORANGE,
+    "net.upload": TC.CHART_RED,
+    "net.download": TC.CHART_PURPLE,
+    "fps.value": TC.CHART_CYAN,
+}
+METRIC_LABELS = {
+    "cpu.usage": "CPU", "ram.usage": "RAM", "gpu.usage": "GPU",
+    "net.upload": "Upload", "net.download": "Download", "fps.value": "FPS",
 }
 
-METRIC_LABELS = {
-    "cpu.usage": "CPU",
-    "ram.usage": "RAM",
-    "gpu.usage": "GPU",
-    "net.upload": "Upload",
-    "net.download": "Download",
-    "fps.value": "FPS",
-}
+_TIME_RANGES = [("10m", "10 分钟"), ("1h", "1 小时"), ("6h", "6 小时"),
+                ("24h", "24 小时"), ("7d", "7 天")]
 
 
 def _btn_style(active=False):
-    bg = TC.ACCENT_PRIMARY if active else TC.BG_CARD
+    bg = TC.ACCENT_PRIMARY if active else TC.BG_HOVER
+    color = TC.TEXT_ON_COLOR if active else TC.TEXT_SECONDARY
     border = TC.ACCENT_PRIMARY if active else TC.BORDER_DEFAULT
-    color = TC.TEXT_ON_COLOR if active else TC.TEXT_PRIMARY
     return f"""
-        QPushButton {{
-            background: {bg};
-            color: {color};
-            border: 1px solid {border};
-            border-radius: 6px;
-            padding: 6px 14px;
-            font-size: TT.BODY_SMALL['size']px;
-            font-weight: 600;
-            min-width: 44px;
-        }}
-        QPushButton:hover {{
-            border: 1px solid {TC.ACCENT_PRIMARY};
-        }}
-    """
-
-
-def _check_style(color):
-    return f"""
-        QCheckBox {{
-            color: {color};
-            font-size: TT.BODY_SMALL['size']px;
-            font-weight: 600;
-            spacing: 6px;
-            background: transparent;
-        }}
-        QCheckBox::indicator {{
-            width: 14px; height: 14px;
-            border: 2px solid {color};
-            border-radius: 3px;
-            background: transparent;
-        }}
-        QCheckBox::indicator:checked {{
-            background: {color};
-        }}
+        QPushButton {{ background: {bg}; color: {color};
+            border: 1px solid {border}; border-radius: 8px;
+            padding: 7px 14px; font-size: 12px; font-weight: 500; }}
+        QPushButton:hover {{ border-color: {TC.ACCENT_PRIMARY}; }}
     """
 
 
 class HistoryPage(PageBase):
-    """历史趋势页（v5.3.3 History UX）。"""
-
     PAGE_ID = "history"
 
     def __init__(self, parent=None):
@@ -96,221 +61,191 @@ class HistoryPage(PageBase):
         self._vm = None
         self._time_btns = {}
         self._metric_checks = {}
+        self._current_range = "1h"
         self._setup_ui()
 
     def _setup_ui(self):
         root = QVBoxLayout(self)
-        root.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
-        root.setSpacing(S.SM)
+        root.setContentsMargins(S.XL, S.LG, S.XL, S.LG)
+        root.setSpacing(S.LG)
 
-        # ---- Header ----
-        header = QHBoxLayout()
-        title = QLabel(tr("history.title"))
-        title.setStyleSheet(
-            f"font-size: TT.TITLE_MEDIUM['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY};"
-            f" background: transparent;")
-        header.addWidget(title)
-        header.addStretch(1)
-        root.addLayout(header)
-
-        # ---- Time Range Buttons ----
-        time_row = QHBoxLayout()
-        time_row.setSpacing(S.SM)
-        time_lbl = QLabel(tr("history.time_range"))
-        time_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
-        time_row.addWidget(time_lbl)
-
-        self._time_btns = {}
-        for key, label in [("10m", "10 min"), ("1h", "1 hour"),
-                           ("6h", "6 hours"), ("24h", "24 hours"),
-                           ("7d", "7 days")]:
+        # 控制卡：节点 + 时间范围 + 指标
+        control = GlassCard()
+        c_l = QHBoxLayout()
+        c_l.setSpacing(S.MD)
+        c_l.addWidget(self._lbl("节点"))
+        self._node_combo = QComboBox()
+        self._node_combo.setStyleSheet(
+            f"QComboBox {{ background: {TC.BG_INPUT}; border: 1px solid {TC.BORDER_DEFAULT};"
+            f" border-radius: 8px; padding: 6px 12px; font-size: 12px; color: {TC.TEXT_PRIMARY}; }}")
+        self._node_combo.currentIndexChanged.connect(self._on_node_changed)
+        c_l.addWidget(self._node_combo)
+        c_l.addStretch(1)
+        c_l.addWidget(self._lbl("时间"))
+        for key, label in _TIME_RANGES:
             btn = QPushButton(label)
-            btn.setFixedHeight(30)
-            btn.clicked.connect(lambda checked, k=key: self._on_time_click(k))
+            btn.setCheckable(True)
+            btn.setStyleSheet(_btn_style(active=(key == "1h")))
+            btn.clicked.connect(lambda checked, k=key: self._on_time(k))
+            c_l.addWidget(btn)
             self._time_btns[key] = btn
-            time_row.addWidget(btn)
+        refresh = QPushButton("↻ 刷新")
+        refresh.setStyleSheet(
+            f"QPushButton {{ background: {TC.ACCENT_PRIMARY}; color: {TC.TEXT_ON_COLOR};"
+            f" border: none; border-radius: 8px; padding: 7px 14px; font-size: 12px; font-weight: 600; }}")
+        refresh.clicked.connect(self._on_refresh)
+        self._refresh_btn = refresh
+        c_l.addWidget(refresh)
+        control._layout.addLayout(c_l)
+        root.addWidget(control)
 
-        time_row.addStretch(1)
-
-        self._refresh_btn = QPushButton("↻ Refresh")
-        self._refresh_btn.setFixedHeight(30)
-        self._refresh_btn.setStyleSheet(_btn_style())
-        self._refresh_btn.clicked.connect(self._on_refresh)
-        time_row.addWidget(self._refresh_btn)
-
-        root.addLayout(time_row)
-
-        # ---- Metric Checkboxes ----
-        metric_row = QHBoxLayout()
-        metric_row.setSpacing(S.SM)
-        metric_lbl = QLabel(tr("history.metrics"))
-        metric_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
-        metric_row.addWidget(metric_lbl)
-
-        self._metric_checks = {}
+        # 指标勾选
+        chk = QHBoxLayout()
+        chk.setSpacing(S.MD)
+        chk.addWidget(self._lbl("指标"))
         for key in ["cpu.usage", "ram.usage", "gpu.usage", "net.upload", "net.download"]:
             cb = QCheckBox(METRIC_LABELS.get(key, key))
-            cb.setStyleSheet(_check_style(METRIC_COLORS.get(key, TC.TEXT_PRIMARY)))
-            cb.toggled.connect(lambda checked, k=key: self._on_metric_toggle(k, checked))
+            cb.setChecked(key in ("cpu.usage", "ram.usage", "gpu.usage"))
+            cb.setStyleSheet(
+                f"QCheckBox {{ color: {METRIC_COLORS.get(key, TC.TEXT_PRIMARY)};"
+                f" font-size: 12px; font-weight: 600; spacing: 6px; }}")
+            cb.toggled.connect(lambda checked, k=key: self._on_metric_toggle())
+            chk.addWidget(cb)
             self._metric_checks[key] = cb
-            metric_row.addWidget(cb)
+        chk.addStretch(1)
+        root.addLayout(chk)
 
-        # 默认选中 CPU
-        self._metric_checks["cpu.usage"].setChecked(True)
-
-        metric_row.addStretch(1)
-        root.addLayout(metric_row)
-
-        # ---- Chart + Summary ----
-        chart_area = QFrame()
-        chart_area.setStyleSheet(f"""
-            QFrame {{
-                background: {TC.BG_CARD};
-                border: 1px solid {TC.BORDER_DEFAULT};
-                border-radius: 12px;
-            }}
-        """)
-        chart_layout = QVBoxLayout(chart_area)
-        chart_layout.setContentsMargins(S.SM, S.SM, S.SM, S.SM)
-        chart_layout.setSpacing(S.SM)
-
+        # 图表面板
+        panel = GlassCard()
+        self._chart_title = QLabel("性能趋势")
+        self._chart_title.setStyleSheet(
+            f"font-size: {TT.TITLE_SMALL['size']}px; font-weight: 600;"
+            f" color: {TC.TEXT_PRIMARY}; background: transparent;")
+        panel._layout.addWidget(self._chart_title)
         self._chart = ChartWidget(title="", y_range=(0, 100))
         self._chart.setMinimumHeight(300)
-        self._chart.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        chart_layout.addWidget(self._chart, 1)
+        panel._layout.addWidget(self._chart, 1)
+        root.addWidget(panel, 1)
 
-        # Summary Cards
-        summary_row = QHBoxLayout()
-        summary_row.setSpacing(S.SM)
-        self._card_avg = SummaryCard("Average", "—", TC.CHART_PRIMARY, size=22)
-        self._card_peak = SummaryCard("Peak", "—", TC.BAR_DANGER, size=22)
-        self._card_count = SummaryCard("Samples", "—", size=22)
-        summary_row.addWidget(self._card_avg)
-        summary_row.addWidget(self._card_peak)
-        summary_row.addWidget(self._card_count)
-        chart_layout.addLayout(summary_row)
+        # 汇总卡
+        summary = QHBoxLayout()
+        summary.setSpacing(S.MD)
+        self._card_avg = StatCard("平均", "—", TC.ACCENT_PRIMARY, sub="均值")
+        self._card_peak = StatCard("峰值", "—", TC.STATUS_WARNING, sub="最大")
+        self._card_count = StatCard("样本数", "—", TC.TEXT_PRIMARY, sub="数据点")
+        for c in (self._card_avg, self._card_peak, self._card_count):
+            summary.addWidget(c, 1)
+        root.addLayout(summary)
 
-        root.addWidget(chart_area, 1)
-
-        # ---- Empty State ----
-        self._empty = QLabel(tr("history.no_data"))
+        self._empty = QLabel("暂无数据，请选择节点与时间范围")
         self._empty.setAlignment(Qt.AlignCenter)
         self._empty.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: TT.BODY['size']px; background: transparent;")
+            f"color: {TC.TEXT_DISABLED}; font-size: {TT.BODY['size']}px;"
+            f" background: transparent;")
+        self._empty.hide()
         root.addWidget(self._empty)
 
-    # ---- ViewModel ----
+    def _lbl(self, text):
+        lbl = QLabel(text)
+        lbl.setStyleSheet(
+            f"color: {TC.TEXT_DISABLED}; font-size: {TT.BODY_SMALL['size']}px;"
+            f" background: transparent;")
+        return lbl
 
     def set_view_model(self, vm):
         self._vm = vm
+        if vm:
+            vm.data_changed.connect(self._refresh)
+            vm.load_error.connect(lambda m: log.warning("history load error: %s", m))
 
-    def update_node_list(self, nodes):
-        """外部调用更新节点列表（保留接口兼容）。"""
-        pass
+    def on_show(self):
+        super().on_show()
+        self._refresh_node_combo()
+        self._load_metrics()
 
-    # ---- Time Button ----
+    def _refresh_node_combo(self):
+        if not self._vm:
+            return
+        self._node_combo.blockSignals(True)
+        self._node_combo.clear()
+        # 用 node_store 提供的节点（通过 set_stores）
+        node_store = self.get_store("node")
+        if node_store:
+            for nid in node_store.node_ids():
+                alias = node_store.get_alias(nid) or nid
+                self._node_combo.addItem(alias, nid)
+        self._node_combo.blockSignals(False)
 
-    def _on_time_click(self, key):
-        # 视觉反馈
+    def _on_node_changed(self, idx):
+        self._load_metrics()
+
+    def _on_time(self, key):
+        self._current_range = key
         for k, btn in self._time_btns.items():
+            btn.setChecked(k == key)
             btn.setStyleSheet(_btn_style(active=(k == key)))
-        # 自动加载
-        self._load_metrics(key)
+        self._load_metrics()
 
     def _on_refresh(self):
-        # 找当前激活的 time range
-        active = "1h"
-        for k, btn in self._time_btns.items():
-            if "border: 1px solid " + TC.ACCENT_PRIMARY in btn.styleSheet():
-                active = k
-                break
-        self._load_metrics(active)
+        self._load_metrics()
 
-    def _on_metric_toggle(self, key, checked):
-        pass  # 需要用户点击 Refresh 才刷新
-
-    # ---- 数据加载 ----
+    def _on_metric_toggle(self):
+        self._load_metrics()
 
     def _get_selected_metrics(self):
         return [k for k, cb in self._metric_checks.items() if cb.isChecked()]
 
-    def _load_metrics(self, range_key="1h"):
+    def _get_current_node(self):
+        idx = self._node_combo.currentIndex()
+        if idx < 0:
+            return None
+        return self._node_combo.itemData(idx)
+
+    def _load_metrics(self):
         if not self._vm:
+            return
+        node_id = self._get_current_node()
+        if not node_id:
+            self._show_empty(True)
             return
         metrics = self._get_selected_metrics()
         if not metrics:
             self._show_empty(True)
             return
-
-        # 需要 node_id — 从 VM 内部状态获取（如果有）
-        # 这里使用 "all" 或空串表示查询所有节点聚合
-        # 实际使用时 MainWindow 会设置当前 node_id
-        node_id = getattr(self._vm, '_current_node', '') or ""
-        if not node_id:
-            self._show_empty(True)
-            return
-
-        start, end = self._vm.get_range_preset(range_key)
-        self._vm.load_multi(node_id, metrics, start, end)
+        start, end = self._vm.get_range_preset(self._current_range)
+        self._vm.load_multi(node_id, metrics, start, end, limit=1000)
         self._refresh()
 
     def _show_empty(self, show):
         self._empty.setVisible(show)
         self._chart.setVisible(not show)
 
-    # ---- 刷新显示 ----
-
     def _refresh(self):
         if not self._vm:
             return
-
-        multi_records = self._vm.get_multi_records()
+        multi = self._vm.get_multi_records()
         multi_summary = self._vm.get_multi_summary()
-
-        if not any(multi_records.values()):
+        if not any(multi.values()):
             self._show_empty(True)
-            self._card_avg.set_value("—")
-            self._card_peak.set_value("—")
-            self._card_count.set_value("—")
+            for c in (self._card_avg, self._card_peak, self._card_count):
+                c.set_value("—")
             return
-
         self._show_empty(False)
-
-        # Chart: 多曲线叠加
         chart_series = {}
-        for metric, records in multi_records.items():
+        for metric, records in multi.items():
             if records:
-                color = METRIC_COLORS.get(metric, TC.CHART_PRIMARY)
-                label = METRIC_LABELS.get(metric, metric)
-                chart_series[label] = (records, color)
+                chart_series[METRIC_LABELS.get(metric, metric)] = (
+                    records, METRIC_COLORS.get(metric, TC.CHART_PRIMARY))
         self._chart.set_multi_series(chart_series)
-
-        # Summary: 聚合所有选中指标
-        all_values = []
-        peak_val = None
-        total_count = 0
+        # 汇总
+        all_avg, peak_val, total = [], None, 0
         for metric, summary in multi_summary.items():
-            if summary["avg"] is not None:
-                all_values.append(summary["avg"])
-            if summary["max"] is not None:
-                if peak_val is None or summary["max"] > peak_val:
-                    peak_val = summary["max"]
-            total_count += summary.get("count", 0)
-
-        avg_val = sum(all_values) / len(all_values) if all_values else None
+            if summary.get("avg") is not None:
+                all_avg.append(summary["avg"])
+            if summary.get("max") is not None:
+                peak_val = max(peak_val, summary["max"]) if peak_val is not None else summary["max"]
+            total += summary.get("count", 0)
+        avg_val = sum(all_avg) / len(all_avg) if all_avg else None
         self._card_avg.set_value(f"{avg_val:.1f}%" if avg_val is not None else "—")
-        self._card_peak.set_value(f"{peak_val:.1f}%" if peak_val is not None else "—")
-        self._card_count.set_value(f"{total_count:,}")
-
-    # ---- 生命周期 ----
-
-    def on_show(self):
-        super().on_show()
-        # 初始化 time button 样式
-        for k, btn in self._time_btns.items():
-            btn.setStyleSheet(_btn_style(active=(k == "1h")))
-
-    def on_hide(self):
-        super().on_hide()
+        self._card_peak.set_value(f"{peak_val:.1f}%" if peak_val is not None else "—", color=TC.STATUS_WARNING)
+        self._card_count.set_value(f"{total:,}")

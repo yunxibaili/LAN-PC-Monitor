@@ -26,9 +26,6 @@ _app = QApplication.instance() or QApplication(_sys.argv)
 from host.store.alert_store import AlertStore
 from host.viewmodels.alert_vm import AlertViewModel, AlertItem
 from host.gui.pages.alerts_page import AlertsPage
-from host.gui.widgets.alert_summary_card import AlertSummaryCard
-from host.gui.widgets.alert_card import AlertCard
-from host.gui.widgets.alert_toolbar import AlertToolbar
 from host.gui.widgets.alert_detail import AlertDetail
 from host.gui.theme.colors import ThemeColors as TC
 
@@ -44,49 +41,6 @@ def check(name, cond, detail=""):
     else:
         FAIL += 1
         print(f"  [FAIL] {name}  {detail}")
-
-
-# ---------- 1. AlertSummaryCard ----------
-
-def test_summary_card():
-    print("\n--- 1. AlertSummaryCard ---")
-    card = AlertSummaryCard("CRITICAL", TC.STATUS_ERROR)
-    card.set_value(5)
-    check("set_value", card._val.text() == "5")
-    card.set_value(0)
-    check("set_value 0", card._val.text() == "0")
-
-
-# ---------- 2. AlertCard ----------
-
-def test_alert_card():
-    print("\n--- 2. AlertCard ---")
-    card = AlertCard()
-    item = AlertItem({"name": "GPU High", "node_id": "A", "node_alias": "Gaming-PC",
-                      "level": "red", "value": 92, "threshold": 85, "path": "gpu.temp",
-                      "timestamp": time.time() - 60})
-    card.set_alert(item)
-    check("title set", card._title_lbl.text() == "GPU High")
-    check("node set", "Gaming-PC" in card._node_lbl.text())
-    check("severity CRITICAL", card._severity_lbl.text() == "CRITICAL")
-    check("value set", "92" in card._value_lbl.text())
-    check("item stored", card._item is item)
-
-
-# ---------- 3. AlertToolbar ----------
-
-def test_toolbar():
-    print("\n--- 3. AlertToolbar ---")
-    tb = AlertToolbar()
-    check("default level", tb.get_level_filter() is None)
-    check("default node", tb.get_node_filter() is None)
-    check("default search", tb.get_search_text() == "")
-
-    tb._level_combo.setCurrentIndex(1)  # Critical
-    check("level=red", tb.get_level_filter() == "red")
-
-    tb.update_node_list([("A", "NodeA"), ("B", "NodeB")])
-    check("node count", tb._node_combo.count() == 3)  # All + A + B
 
 
 # ---------- 4. AlertDetail ----------
@@ -212,7 +166,7 @@ def test_no_store_import():
     check("无 import QTimer", "import QTimer" not in source)
     check("有 set_view_model", "set_view_model" in source)
 
-    for wname in ["alert_card", "alert_summary_card", "alert_toolbar", "alert_detail"]:
+    for wname in ["alert_entry", "alert_detail"]:
         wp = os.path.join(ROOT, "host", "gui", "widgets", f"{wname}.py")
         with open(wp, "r", encoding="utf-8", errors="ignore") as f:
             wsource = f.read()
@@ -225,7 +179,7 @@ def test_no_store_import():
 def test_no_hardcoded_colors():
     print("\n--- 11. Theme 扫描 ---")
     import re
-    for wname in ["alert_card", "alert_summary_card", "alert_toolbar", "alert_detail", "alerts_page"]:
+    for wname in ["alert_entry", "alert_detail", "alerts_page"]:
         if wname == "alerts_page":
             wp = os.path.join(ROOT, "host", "gui", "pages", f"{wname}.py")
         else:
@@ -250,9 +204,6 @@ def main():
     print("  AlertsPage v5.2 Phase 4-5 重构测试")
     print("=" * 55)
 
-    test_summary_card()
-    test_alert_card()
-    test_toolbar()
     test_detail()
     test_vm_injection()
     test_empty_state()

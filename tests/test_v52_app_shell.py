@@ -32,15 +32,7 @@ def check(name, cond, detail=""):
 
 # ---------- 1. HeaderBar ----------
 
-def test_header_bar():
-    print("\n--- 1. HeaderBar ---")
-    from host.gui.widgets.header_bar import HeaderBar
-    hb = HeaderBar()
-    check("HeaderBar 创建", hb is not None)
-    check("高度=56", hb.height() == 56 or hb.minimumHeight() <= 56)
-    check("set_title", hasattr(hb, 'set_title'))
-    check("set_connection", hasattr(hb, 'set_connection'))
-    check("settings_clicked 信号", hasattr(hb, 'settings_clicked'))
+# HeaderBar 已在 v5.5 UI 重做中删除（无顶栏），此处不再测试。
 
 
 # ---------- 2. SideNav ----------
@@ -119,7 +111,6 @@ def main():
     print("  App Shell 验证测试 (Phase 4-2A)")
     print("=" * 50)
 
-    test_header_bar()
     test_sidenav()
     test_no_store_import()
     test_page_routing()

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAN-PC-Monitor · 设置页原型（浅色）</title>
+<style>
+  :root{
+    --bg:#F5F7FB; --card:#FFFFFF;
+    --border:#E6E7EB;
+    --text:#1E2633; --text2:#626D7D; --text3:#9CA3AF;
+    --green:#2FB344; --orange:#F59F00; --red:#D63939; --blue:#3B82F6;
+    --radius:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;font-size:13px;}
+  .sidebar{width:220px;background:#1A2332;color:#B3BCCB;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;flex-shrink:0;}
+  .logo{height:56px;display:flex;align-items:center;gap:11px;padding:0 18px;border-bottom:1px solid rgba(255,255,255,.06);}
+  .logo-badge{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#3B82F6,#2563EB);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;}
+  .logo-txt{font-size:15px;font-weight:600;color:#fff;}
+  .nav-sec{padding:16px 12px 4px 20px;font-size:10px;font-weight:600;letter-spacing:.5px;color:#7B8FA3;text-transform:uppercase;}
+  .nav-sec.mt{margin-top:8px;}
+  .nav-item{display:flex;align-items:center;gap:10px;margin:2px 8px;padding:9px 12px;border-radius:8px;color:#B3BCCB;cursor:pointer;font-weight:500;}
+  .nav-item:hover{background:rgba(255,255,255,.05);color:#CBD5E1;}
+  .nav-item.active{background:rgba(59,130,246,.16);color:#fff;position:relative;}
+  .nav-item.active::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:#3B82F6;}
+  .nav-item i{font-style:normal;width:18px;text-align:center;font-size:14px;}
+  .nodes-wrap{flex:1;overflow:auto;padding:4px 0;}
+  .nodes-title{padding:14px 20px 6px;font-size:10px;font-weight:600;letter-spacing:.5px;color:#7B8FA3;}
+  .node-row{display:flex;align-items:center;gap:8px;padding:6px 20px;color:#B3BCCB;cursor:pointer;}
+  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .dot.g{background:#2FB344;box-shadow:0 0 0 0 rgba(47,179,68,.5);animation:pulse 2s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,179,68,.5)}70%{box-shadow:0 0 0 6px rgba(47,179,68,0)}100%{box-shadow:0 0 0 0 rgba(47,179,68,0)}}
+  .node-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .node-score{font-size:11px;color:#7B8FA3;}
+  .user-area{padding:10px 14px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px;}
+  .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#169F85);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#fff;}
+  .user-meta .n{font-size:12px;font-weight:500;color:#fff;}
+  .user-meta .r{font-size:11px;color:#7B8FA3;}
+  .content{flex:1;display:flex;flex-direction:column;overflow:auto;padding:22px 26px;gap:16px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 2px 8px rgba(16,24,40,.04);}
+  .settings{display:flex;gap:16px;}
+  .s-side{width:180px;flex-shrink:0;padding:10px;display:flex;flex-direction:column;gap:4px;}
+  .s-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;font-weight:500;}
+  .s-item:hover{background:#F5F7FB;}
+  .s-item.on{background:rgba(59,130,246,.08);color:var(--blue);font-weight:600;}
+  .s-item i{font-style:normal;width:16px;text-align:center;}
+  .s-main{flex:1;display:flex;flex-direction:column;gap:14px;padding:16px;}
+  .form-group{padding:14px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+  .form-group:last-child{border-bottom:none;}
+  .fg-label{font-size:12px;font-weight:600;color:var(--text);}
+  .fg-desc{font-size:10px;color:var(--text3);}
+  .fg-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;}
+  .fg-row .rl .t{font-size:12px;color:var(--text);}
+  .fg-row .rl .d{font-size:10px;color:var(--text3);margin-top:2px;}
+  input[type=text],input[type=number],select{background:#F3F4F6;border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text);min-width:140px;outline:none;}
+  input:focus{border-color:var(--blue);}
+  .toggle{width:40px;height:24px;border-radius:12px;background:#D8DCE3;position:relative;cursor:pointer;flex-shrink:0;transition:.2s;}
+  .toggle.on{background:var(--blue);}
+  .toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .toggle.on::after{left:18px;}
+  .footer{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--border);}
+  .save{font-size:12px;padding:9px 20px;border-radius:8px;background:var(--blue);color:#fff;border:none;cursor:pointer;font-weight:600;}
+  .cancel{font-size:12px;padding:9px 20px;border-radius:8px;background:#F3F4F6;color:var(--text2);border:1px solid var(--border);cursor:pointer;}
+  .dirty{font-size:11px;color:var(--orange);}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="logo"><div class="logo-badge">PC</div><div class="logo-txt">PC 监控</div></div>
+    <div class="nav-sec">监控</div>
+    <div class="nav-item"><i>▣</i> 总览</div>
+    <div class="nav-item"><i>▣</i> 设备</div>
+    <div class="nav-item"><i>▤</i> 监控</div>
+    <div class="nav-item"><i>⚠</i> 告警</div>
+    <div class="nav-sec mt">系统</div>
+    <div class="nav-item"><i>📈</i> 历史</div>
+    <div class="nav-item active"><i>⚙</i> 设置</div>
+    <div class="nodes-wrap">
+      <div class="nodes-title">已连接设备</div>
+      <div class="node-row"><span class="dot g"></span><span class="node-name">本机 (localhost)</span><span class="node-score">98</span></div>
+    </div>
+    <div class="user-area">
+      <div class="avatar">A</div>
+      <div class="user-meta"><div class="n">LAN-PC-Monitor</div><div class="r">v5.5</div></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="card settings">
+      <div class="s-side">
+        <div class="s-item on"><i>⚙</i> 通用</div>
+        <div class="s-item"><i>🔗</i> 连接</div>
+        <div class="s-item"><i>📊</i> 监控</div>
+        <div class="s-item"><i>🎨</i> 外观</div>
+        <div class="s-item"><i>⚠</i> 告警</div>
+      </div>
+
+      <div class="s-main">
+        <div class="form-group">
+          <div class="fg-label">常规</div>
+          <div class="fg-desc">监测与界面基本设置</div>
+          <div class="fg-row">
+            <div class="rl"><div class="t">语言</div><div class="d">界面显示语言</div></div>
+            <select><option>简体中文</option><option>English</option></select>
+          </div>
+          <div class="fg-row">
+            <div class="rl"><div class="t">采样间隔</div><div class="d">数据采集与刷新频率</div></div>
+            <select><option>1 秒（推荐）</option><option>2 秒</option><option>5 秒</option></select>
+          </div>
+          <div class="fg-row">
+            <div class="rl"><div class="t">开机自启动</div><div class="d">程序随系统启动运行</div></div>
+            <div class="toggle on"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="fg-label">阈值设置</div>
+          <div class="fg-desc">告警触发阈值（超标时通知）</div>
+          <div class="grid-2">
+            <div class="fg-row"><div class="rl"><div class="t">CPU 使用率警告</div></div><input type="number" value="80"></div>
+            <div class="fg-row"><div class="rl"><div class="t">CPU 使用率严重</div></div><input type="number" value="95"></div>
+            <div class="fg-row"><div class="rl"><div class="t">GPU 温度严重</div></div><input type="number" value="90">°C</div>
+            <div class="fg-row"><div class="rl"><div class="t">内存使用率红色</div></div><input type="number" value="90"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="fg-label">数据保留</div>
+          <div class="fg-desc">历史数据保留时长，超期自动清理</div>
+          <div class="fg-row"><div class="rl"><div class="t">指标历史</div></div><select><option>30 天</option><option>7 天</option><option>90 天</option></select></div>
+          <div class="fg-row"><div class="rl"><div class="t">告警记录</div></div><select><option>90 天</option><option>30 天</option></select></div>
+        </div>
+
+        <div class="footer">
+          <div class="dirty">⚠ 有未保存的更改</div>
+          <div style="flex:1"></div>
+          <div class="cancel">取消</div>
+          <div class="save">保存设置</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

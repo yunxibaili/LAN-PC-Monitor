@@ -20,9 +20,6 @@ from host.store.history_store import HistoryStore
 from host.store.node_store import NodeStore
 from host.viewmodels.monitor_vm import MonitorViewModel
 from host.gui.pages.monitor_page import MonitorPage
-from host.gui.widgets.monitor_header import MonitorHeader
-from host.gui.widgets.metric_selector import MetricSelector
-from host.gui.widgets.chart_panel import ChartPanel, SummaryCard
 
 PASS = 0
 FAIL = 0
@@ -58,52 +55,6 @@ def _populate(hs, ns):
         hs.push("A", "net_up", 12.0 + i, now + i)
         hs.push("A", "net_down", 45.0 + i * 2, now + i)
         hs.push("B", "cpu", 20.0 + i, now + i)
-
-
-# ---------- 1. MonitorHeader ----------
-
-def test_monitor_header():
-    print("\n--- 1. MonitorHeader ---")
-    h = MonitorHeader()
-    h.set_node("A", alias="主机A", status="connected")
-    check("node label", h._node_lbl.text() == "主机A")
-    check("status badge", h._status_badge.text() == "ONLINE")
-    h.set_stats({"POINTS": "100", "METRIC": "CPU"})
-    check("stats keys", len(h._stats_widgets) == 2)
-    h.clear()
-    check("clear", h._node_lbl.text() == "未选择节点")
-
-
-# ---------- 2. MetricSelector ----------
-
-def test_metric_selector():
-    print("\n--- 2. MetricSelector ---")
-    s = MetricSelector()
-    check("default cpu", s.get_current() == "cpu")
-    check("5 tabs", len(s._tabs) == 5)
-    s.set_current("gpu")
-    check("set gpu", s.get_current() == "gpu")
-    # signal from click
-    signals = []
-    s.metric_changed.connect(lambda m: signals.append(m))
-    s._on_tab_clicked("ram")
-    check("signal emitted", len(signals) == 1 and signals[0] == "ram")
-
-
-# ---------- 3. ChartPanel ----------
-
-def test_chart_panel():
-    print("\n--- 3. ChartPanel ---")
-    p = ChartPanel()
-    check("chart exists", p._chart is not None)
-    p.update_summary(current=45.2, average=42.1, peak=68.0,
-                     status_text="NORMAL", status_color="#22C55E", unit="%")
-    check("current card", p._current_card._value_lbl.text() == "45.2%")
-    check("avg card", p._avg_card._value_lbl.text() == "42.1%")
-    check("peak card", p._peak_card._value_lbl.text() == "68.0%")
-    check("status card", p._status_card._value_lbl.text() == "NORMAL")
-    p.clear_summary()
-    check("clear", p._current_card._value_lbl.text() == "—")
 
 
 # ---------- 4. MonitorPage 结构 ----------
@@ -236,9 +187,6 @@ def main():
     print("  MonitorPage Redesign (Phase 4-4)")
     print("=" * 50)
 
-    test_monitor_header()
-    test_metric_selector()
-    test_chart_panel()
     test_page_structure()
     test_node_switch()
     test_metric_switch()

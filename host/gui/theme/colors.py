@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ThemeColors —— 统一颜色系统（v5.4 Gentelella 亮色模式）。
+ThemeColors —— 统一颜色系统（v5.5 暗色玻璃拟态）。
 """
 import common.theme_tokens as ThemeTokens
 
@@ -9,52 +9,53 @@ class ThemeColors:
     """颜色常量。所有 GUI 颜色从此处引用。"""
 
     # ---- 基础 token ----
-    BACKGROUND_PRIMARY = ThemeTokens.COLOR_BG_DARK       # #F5F7FB
-    BACKGROUND_SECONDARY = ThemeTokens.COLOR_BG_SURFACE   # #FFFFFF
-    BACKGROUND_CARD = ThemeTokens.COLOR_BG_CARD           # #FFFFFF
+    BACKGROUND_PRIMARY = ThemeTokens.COLOR_BG_DARK       # #0A0F1E
+    BACKGROUND_SECONDARY = ThemeTokens.COLOR_BG_SURFACE   # #111827
+    BACKGROUND_CARD = ThemeTokens.COLOR_BG_CARD           # #141B2E
 
-    TEXT_PRIMARY = ThemeTokens.COLOR_TEXT_PRIMARY          # #1E2633
-    TEXT_SECONDARY = ThemeTokens.COLOR_TEXT_SECONDARY      # #626D7D
-    TEXT_DISABLED = ThemeTokens.COLOR_TEXT_DISABLED        # #7E8896
+    TEXT_PRIMARY = ThemeTokens.COLOR_TEXT_PRIMARY          # #F8FAFC
+    TEXT_SECONDARY = ThemeTokens.COLOR_TEXT_SECONDARY      # #94A3B8
+    TEXT_DISABLED = ThemeTokens.COLOR_TEXT_DISABLED        # #64748B
 
-    ACCENT_PRIMARY = ThemeTokens.COLOR_ACCENT             # #1ABB9C
-    ACCENT_DK = ThemeTokens.COLOR_ACCENT_DK               # #169F85
+    ACCENT_PRIMARY = ThemeTokens.COLOR_ACCENT             # #3B82F6
+    ACCENT_DK = ThemeTokens.COLOR_ACCENT_DK               # #2563EB
 
-    STATUS_ONLINE = ThemeTokens.COLOR_SUCCESS             # #2FB344
-    STATUS_OFFLINE = ThemeTokens.COLOR_OFFLINE            # #7E8896
+    STATUS_ONLINE = ThemeTokens.COLOR_SUCCESS             # #22C55E
+    STATUS_OFFLINE = ThemeTokens.COLOR_OFFLINE            # #475569
     STATUS_WARNING = ThemeTokens.COLOR_WARNING            # #F59F00
-    STATUS_ERROR = ThemeTokens.COLOR_DANGER               # #D63939
+    STATUS_ERROR = ThemeTokens.COLOR_DANGER               # #EF4444
 
     ALERT_INFO = ThemeTokens.COLOR_INFO
     ALERT_WARN = ThemeTokens.COLOR_WARNING
     ALERT_DANGER = ThemeTokens.COLOR_DANGER
 
-    BORDER_DEFAULT = ThemeTokens.COLOR_BORDER             # #E6E7EB
+    BORDER_DEFAULT = ThemeTokens.COLOR_BORDER             # rgba(255,255,255,0.08)
 
-    # ---- 语义 token ----
-    BACKGROUND_ELEVATED = "#FFFFFF"
-    BACKGROUND_HOVER = "#F5F7FB"
-    BACKGROUND_INPUT = "#F5F7FB"
+    # ---- 语义 token（白色）----
+    BACKGROUND_ELEVATED = "#FFFFFF"        # hover 升阶卡片
+    BACKGROUND_HOVER = "#F5F7FB"           # hover 背景
+    BACKGROUND_INPUT = "#F9FAFB"           # 输入框底
 
-    TEXT_INVERSE = "#FFFFFF"
-    TEXT_ON_COLOR = "#FFFFFF"
+    TEXT_INVERSE = "#FFFFFF"               # 反色文字（用在深色块上）
+    TEXT_ON_COLOR = "#FFFFFF"              # 状态色块上的文字
 
     BORDER_FOCUS = "#3B82F6"
     BORDER_SUBTLE = "#EFF0F3"
 
-    CHART_PRIMARY = "#066FD1"
-    CHART_SECONDARY = "#AE3EC9"
-    CHART_GREEN = "#2FB344"
-    CHART_RED = "#D63939"
-    CHART_PURPLE = "#AE3EC9"
-    CHART_ORANGE = "#F76707"
-    CHART_CYAN = "#17A2B8"
-    CHART_AREA = "rgba(6,111,209,0.08)"
-    CHART_GRID = "rgba(0,0,0,0.06)"
+    # ---- 图表色（浅色背景高区分度）----
+    CHART_PRIMARY = "#3B82F6"              # 蓝
+    CHART_SECONDARY = "#AE3EC9"            # 紫
+    CHART_GREEN = "#22C55E"                # 绿
+    CHART_RED = "#D63939"                  # 红
+    CHART_PURPLE = "#8B5CF6"               # 紫
+    CHART_ORANGE = "#F76707"               # 橙
+    CHART_CYAN = "#0891B2"                 # 青
+    CHART_AREA = "rgba(59,130,246,0.08)"
+    CHART_GRID = "rgba(30,38,51,0.06)"
     CHART_THRESHOLD_WARN = "#F59F00"
     CHART_THRESHOLD_DANGER = "#D63939"
 
-    BAR_BG = "#E6E7EB"
+    BAR_BG = "#E6E7EB"                # 进度条/环形背景（需能被 QColor 解析）
     BAR_SUCCESS = "#2FB344"
     BAR_WARNING = "#F59F00"
     BAR_DANGER = "#D63939"

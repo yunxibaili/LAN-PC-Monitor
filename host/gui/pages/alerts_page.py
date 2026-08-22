@@ -1,217 +1,259 @@
 # -*- coding: utf-8 -*-
 """
-AlertsPage —— 告警中心页（v5.2 Phase 4-5 / 4-5.1 修复）。
+AlertsPage —— 告警中心页（v5.5 白色高密度重设计）。
 
-数据流：
-  AlertViewModel.alerts_changed → _on_alerts_changed → _refresh
-  AlertViewModel.count_changed  → _on_count_changed → 更新统计
-
-约束：
-  - 不直接访问 AlertStore / AlertEngine / FrameStore
-  - 不 QTimer
-  - 纯 Signal 驱动
-
-布局：
-  PageHeader → AlertSummaryRow → AlertToolbar → AlertTimeline → AlertDetail
+Stats(4 StatCard) → Toolbar(等级/节点过滤/搜索/清除) → 告警列表(AlertEntry) → 详情。
+Signal 驱动（alert_vm.alerts_changed / count_changed）。
 """
 import logging
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget,
+    QHBoxLayout, QLabel, QLineEdit, QPushButton, QComboBox,
+    QScrollArea, QVBoxLayout, QWidget,
 )
 
 from host.gui.theme.colors import ThemeColors as TC
-from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.spacing import ThemeSpacing as S
+from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.pages.base_page import PageBase
-from host.gui.widgets.alert_summary_card import AlertSummaryCard
-from common.i18n import tr
-from host.gui.widgets.alert_card import AlertCard
-from host.gui.widgets.alert_toolbar import AlertToolbar
+from host.gui.widgets.glass_card import GlassCard
+from host.gui.widgets.alert_entry import AlertEntry
+from host.gui.widgets.stat_card import StatCard
 from host.gui.widgets.alert_detail import AlertDetail
 
 log = logging.getLogger("host.gui.alerts_page")
 
 
-class AlertsPage(PageBase):
-    """告警中心页：统计 + 过滤 + 告警卡片列表 + 详情。"""
+def _chip_style(active=False):
+    bg = TC.ACCENT_PRIMARY if active else TC.BG_HOVER
+    color = TC.TEXT_ON_COLOR if active else TC.TEXT_SECONDARY
+    border = TC.ACCENT_PRIMARY if active else TC.BORDER_DEFAULT
+    return f"""
+        QPushButton {{
+            background: {bg}; color: {color};
+            border: 1px solid {border}; border-radius: 8px;
+            padding: 6px 14px; font-size: 12px; font-weight: 500;
+        }}
+        QPushButton:hover {{ border-color: {TC.ACCENT_PRIMARY}; }}
+    """
 
+
+class AlertsPage(PageBase):
     PAGE_ID = "alerts"
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._vm = None
+        self._level_filters = {}
+        self._current_level = None
+        self._empty_label = None
         self._setup_ui()
 
     def _setup_ui(self):
         root = QVBoxLayout(self)
-        root.setContentsMargins(S.LG, S.SM, S.LG, S.SM)
-        root.setSpacing(S.SM)
+        root.setContentsMargins(S.XL, S.LG, S.XL, S.LG)
+        root.setSpacing(S.LG)
 
-        # ---- Page Header ----
-        header = QHBoxLayout()
-        header.setSpacing(S.SM)
-        title = QLabel(tr("alerts.title"))
-        title.setStyleSheet(
-            f"font-size: TT.TITLE_MEDIUM['size']px; font-weight: bold; color: {TC.TEXT_PRIMARY}; background: transparent;")
-        header.addWidget(title)
-        header.addStretch(1)
-        self._status_lbl = QLabel("")
-        self._status_lbl.setStyleSheet(
-            f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px; background: transparent;")
-        header.addWidget(self._status_lbl)
-        root.addLayout(header)
+        # 统计行
+        stats = QHBoxLayout()
+        stats.setSpacing(S.MD)
+        self._card_critical = StatCard("严重", "0", TC.DANGER, sub="Critical")
+        self._card_warning = StatCard("警告", "0", TC.WARNING, sub="Warning")
+        self._card_active = StatCard("活动", "0", TC.ACCENT_PRIMARY, sub="当前")
+        self._card_total = StatCard("总数", "0", TC.TEXT_PRIMARY, sub="全部")
+        for c in (self._card_critical, self._card_warning,
+                  self._card_active, self._card_total):
+            stats.addWidget(c, 1)
+        root.addLayout(stats)
 
-        # ---- Summary Row (4 cards: Critical / Warning / Active / Total) ----
-        summary_row = QHBoxLayout()
-        summary_row.setSpacing(S.SM)
-        self._card_critical = AlertSummaryCard("CRITICAL", TC.STATUS_ERROR)
-        self._card_warning = AlertSummaryCard("WARNING", TC.STATUS_WARNING)
-        self._card_active = AlertSummaryCard("ACTIVE", TC.ACCENT_PRIMARY)
-        self._card_total = AlertSummaryCard("TOTAL", TC.TEXT_PRIMARY)
-        summary_row.addWidget(self._card_critical)
-        summary_row.addWidget(self._card_warning)
-        summary_row.addWidget(self._card_active)
-        summary_row.addWidget(self._card_total)
-        root.addLayout(summary_row)
+        # 工具栏
+        toolbar = GlassCard()
+        bar_l = QHBoxLayout()
+        bar_l.setSpacing(S.SM)
+        self._level_btns = {}
+        for level, label in [(None, "全部"), ("red", "严重"), ("warn", "警告")]:
+            btn = QPushButton(label)
+            btn.setCheckable(True)
+            btn.setStyleSheet(_chip_style(active=(level is None)))
+            btn.clicked.connect(lambda checked, lv=level: self._set_level(lv))
+            bar_l.addWidget(btn)
+            self._level_btns[level] = btn
 
-        # ---- Toolbar ----
-        self._toolbar = AlertToolbar()
-        self._toolbar.filter_changed.connect(self._on_filter_changed)
-        self._toolbar.clear_clicked.connect(self._on_clear_all)
-        root.addWidget(self._toolbar)
+        self._node_combo = QComboBox()
+        self._node_combo.setStyleSheet(
+            f"QComboBox {{ background: {TC.BG_INPUT}; border: 1px solid {TC.BORDER_DEFAULT};"
+            f" border-radius: 8px; padding: 6px 12px; font-size: 12px; color: {TC.TEXT_PRIMARY}; }}")
+        self._node_combo.currentIndexChanged.connect(self._on_node_changed)
+        bar_l.addWidget(self._node_combo)
 
-        # ---- Alert List (scrollable) ----
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setStyleSheet("background: transparent; border: none;")
-        self._list_container = QWidget()
-        self._list_layout = QVBoxLayout(self._list_container)
-        self._list_layout.setContentsMargins(0, 0, 0, 0)
+        self._search = QLineEdit()
+        self._search.setPlaceholderText("搜索告警关键词…")
+        self._search.setStyleSheet(
+            f"QLineEdit {{ background: {TC.BG_INPUT}; border: 1px solid {TC.BORDER_DEFAULT};"
+            f" border-radius: 8px; padding: 6px 12px; font-size: 12px; color: {TC.TEXT_PRIMARY}; }}")
+        self._search.textChanged.connect(self._on_search)
+        bar_l.addWidget(self._search, 1)
+
+        clear_btn = QPushButton("清除告警")
+        clear_btn.setStyleSheet(
+            f"QPushButton {{ background: rgba(214,57,57,0.10); color: {TC.DANGER};"
+            f" border: 1px solid rgba(214,57,57,0.3); border-radius: 8px;"
+            f" padding: 6px 14px; font-size: 12px; }}")
+        clear_btn.clicked.connect(self._on_clear_all)
+        bar_l.addWidget(clear_btn)
+        toolbar._layout.addLayout(bar_l)
+        root.addWidget(toolbar)
+
+        # 列表 + 详情 双栏
+        body = QHBoxLayout()
+        body.setSpacing(S.MD)
+
+        # 列表
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QScrollArea.NoFrame)
+        self._scroll.setStyleSheet("background: transparent; border: none;")
+        self._list_holder = QWidget()
+        self._list_holder.setStyleSheet("background: transparent;")
+        self._list_layout = QVBoxLayout(self._list_holder)
         self._list_layout.setSpacing(S.SM)
         self._list_layout.addStretch(1)
-        scroll.setWidget(self._list_container)
-        root.addWidget(scroll, 1)
+        self._scroll.setWidget(self._list_holder)
+        body.addWidget(self._scroll, 3)
 
-        # ---- Empty state ----
-        self._empty_label = QLabel("暂无告警")
-        self._empty_label.setAlignment(Qt.AlignCenter)
-        self._empty_label.setStyleSheet(
-            f"color: {TC.TEXT_DISABLED}; font-size: TT.TITLE_SMALL['size']px; padding: 40px 0; background: transparent;")
-        root.addWidget(self._empty_label)
-
-        # ---- Detail Panel ----
+        # 详情
         self._detail = AlertDetail()
-        root.addWidget(self._detail)
+        body.addWidget(self._detail, 2)
+        root.addLayout(body, 1)
 
-    # ---------- ViewModel 注入 ----------
+        # 兼容旧接口：_toolbar 提供 _level_combo/_node_combo 引用
+        from types import SimpleNamespace
+        self._level_combo = QComboBox()
+        self._level_combo.addItems(["All", "Critical", "Warning"])
+        self._level_combo.currentIndexChanged.connect(
+            lambda idx: self._set_level([None, "red", "warn"][min(idx, 2)]))
+        self._toolbar = SimpleNamespace(
+            _level_combo=self._level_combo, _node_combo=self._node_combo)
 
-    def set_view_model(self, vm) -> None:
+    # ---- VM ----
+    def set_view_model(self, vm):
         self._vm = vm
-        vm.alerts_changed.connect(self._on_alerts_changed)
-        vm.count_changed.connect(self._on_count_changed)
+        if vm:
+            vm.alerts_changed.connect(self._refresh_list)
+            vm.count_changed.connect(self._refresh_summary)
+            self._refresh_summary()
+            self._refresh_list()
 
-    # ---------- 生命周期 ----------
-
-    def on_show(self) -> None:
+    def on_show(self):
         super().on_show()
-        self._refresh()
-
-    def on_hide(self) -> None:
-        super().on_hide()
-
-    def cleanup(self) -> None:
-        if self._vm:
-            try:
-                self._vm.alerts_changed.disconnect(self._on_alerts_changed)
-                self._vm.count_changed.disconnect(self._on_count_changed)
-            except (TypeError, RuntimeError):
-                pass
-
-    # ---------- 信号回调 ----------
-
-    def _on_alerts_changed(self) -> None:
-        self._refresh()
-
-    def _on_count_changed(self, count: int) -> None:
         self._refresh_summary()
-
-    # ---------- 过滤 ----------
-
-    def _on_filter_changed(self) -> None:
-        if not self._vm:
-            return
-        self._vm.set_filter_level(self._toolbar.get_level_filter())
-        self._vm.set_filter_node(self._toolbar.get_node_filter())
-        self._vm.set_search(self._toolbar.get_search_text())
         self._refresh_list()
+        self._refresh_node_combo()
 
-    def _on_clear_all(self) -> None:
+    # ---- 兼容旧接口 ----
+    def _on_filter_changed(self):
+        """兼容旧接口：应用当前过滤。"""
+        if self._vm:
+            level = self._current_level
+            self._vm.set_filter_level(level)
+            nid = self._node_combo.itemData(self._node_combo.currentIndex())
+            self._vm.set_filter_node(nid)
+            self._vm.set_search(self._search.text())
+            self._refresh_list()
+
+    def update_node_list(self, nodes):
+        """外部填充节点下拉（兼容旧接口）。"""
+        self._node_combo.blockSignals(True)
+        self._node_combo.clear()
+        self._node_combo.addItem("全部节点", None)
+        for nid, alias in nodes:
+            self._node_combo.addItem(alias or nid, nid)
+        self._node_combo.blockSignals(False)
+
+    def _card_count(self):
+        """当前列表卡片数（统计 AlertEntry）。"""
+        cnt = 0
+        for i in range(self._list_layout.count()):
+            w = self._list_layout.itemAt(i).widget()
+            if isinstance(w, AlertEntry):
+                cnt += 1
+        return cnt
+
+    # ---- 过滤 ----
+    def _set_level(self, level):
+        self._current_level = level
+        for lv, btn in self._level_btns.items():
+            btn.setChecked(lv == level)
+            btn.setStyleSheet(_chip_style(active=(lv == level)))
+        if self._vm:
+            self._vm.set_filter_level(level)
+            self._refresh_list()
+
+    def _on_node_changed(self, idx):
+        if self._vm:
+            nid = self._node_combo.itemData(idx)
+            self._vm.set_filter_node(nid)
+            self._refresh_list()
+
+    def _on_search(self, text):
+        if self._vm:
+            self._vm.set_search(text)
+            self._refresh_list()
+
+    def _on_clear_all(self):
         if self._vm:
             self._vm.clear_all()
 
-    # ---------- 刷新 ----------
+    def _refresh_node_combo(self):
+        if not self._vm or not self._vm.get_items():
+            pass
+        self._node_combo.blockSignals(True)
+        self._node_combo.clear()
+        self._node_combo.addItem("全部节点", None)
+        seen = set()
+        for item in self._vm.get_items():
+            nid = getattr(item, "node_id", None)
+            if nid and nid not in seen:
+                seen.add(nid)
+                alias = getattr(item, "node_alias", "") or nid
+                self._node_combo.addItem(alias, nid)
+        self._node_combo.blockSignals(False)
 
-    def _refresh(self) -> None:
-        self._refresh_summary()
-        self._refresh_list()
-
-    def _refresh_summary(self) -> None:
+    # ---- 刷新 ----
+    def _refresh_summary(self):
         if not self._vm:
             return
-        self._card_critical.set_value(self._vm.get_red_count())
-        self._card_warning.set_value(self._vm.get_warn_count())
+        self._card_critical.set_value(self._vm.get_red_count(), color=TC.DANGER)
+        self._card_warning.set_value(self._vm.get_warn_count(), color=TC.WARNING)
         self._card_active.set_value(self._vm.get_count())
-        summary = self._vm.get_summary()
-        self._card_total.set_value(summary.get("total", 0))
-        self._status_lbl.setText(f"{self._vm.get_count()} active alerts")
+        s = self._vm.get_summary()
+        self._card_total.set_value(s.get("total", 0))
 
-    def _refresh_list(self) -> None:
+    def _refresh_list(self):
         if not self._vm:
             return
-
-        # 清除旧卡片
         while self._list_layout.count():
             item = self._list_layout.takeAt(0)
             w = item.widget()
             if w:
                 w.deleteLater()
-
         items = self._vm.get_items()
-
         if not items:
-            self._empty_label.show()
-            self._detail.clear()
+            lbl = QLabel("暂无告警")
+            lbl.setAlignment(Qt.AlignCenter)
+            lbl.setStyleSheet(
+                f"color: {TC.TEXT_DISABLED}; font-size: {TT.BODY_SMALL['size']}px;"
+                f" padding: 40px 0; background: transparent;")
+            self._empty_label = lbl
+            self._list_layout.addWidget(lbl)
+            self._list_layout.addStretch(1)
             return
-
-        self._empty_label.hide()
-
-        for alert_item in items:
-            card = AlertCard()
-            card.set_alert(alert_item)
-            card.clicked.connect(self._on_card_clicked)
-            self._list_layout.addWidget(card)
-
+        elif self._empty_label is not None:
+            self._empty_label.hide()
+        for item in items:
+            entry = AlertEntry()
+            entry.set_alert(item)
+            entry.clicked.connect(self._detail.set_alert)
+            self._list_layout.addWidget(entry)
         self._list_layout.addStretch(1)
-
-    def _on_card_clicked(self, alert_item) -> None:
-        """卡片被点击 → 显示详情。"""
-        if alert_item is None:
-            return
-        self._detail.set_alert(alert_item)
-
-    # ---------- 向后兼容 ----------
-
-    def update_node_list(self, nodes: list) -> None:
-        self._toolbar.update_node_list(nodes)
-
-    def _card_count(self) -> int:
-        """返回当前显示的卡片数量。"""
-        count = 0
-        for i in range(self._list_layout.count()):
-            w = self._list_layout.itemAt(i).widget()
-            if isinstance(w, AlertCard):
-                count += 1
-        return count

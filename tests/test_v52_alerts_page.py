@@ -28,7 +28,6 @@ _app = QApplication.instance() or QApplication(_sys.argv)
 from host.store.alert_store import AlertStore
 from host.viewmodels.alert_vm import AlertViewModel, AlertItem
 from host.gui.pages.alerts_page import AlertsPage
-from host.gui.widgets.alert_card import AlertCard
 
 PASS = 0
 FAIL = 0
@@ -137,16 +136,13 @@ def test_level_filter():
     ])
     check("全部: 3 卡片", page._card_count() == 3)
 
-    page._toolbar._level_combo.setCurrentIndex(1)  # Critical
-    page._on_filter_changed()
+    page._set_level("red")  # Critical
     check("仅红线: 2 卡片", page._card_count() == 2)
 
-    page._toolbar._level_combo.setCurrentIndex(2)  # Warning
-    page._on_filter_changed()
+    page._set_level("warn")  # Warning
     check("仅预警: 1 卡片", page._card_count() == 1)
 
-    page._toolbar._level_combo.setCurrentIndex(0)  # All
-    page._on_filter_changed()
+    page._set_level(None)  # All
     check("全部: 3 卡片", page._card_count() == 3)
 
 
@@ -168,16 +164,16 @@ def test_node_filter():
     check("全部: 3 卡片", page._card_count() == 3)
 
     page.update_node_list([("A", "NA"), ("B", "NB")])
-    page._toolbar._node_combo.setCurrentIndex(1)  # A
-    page._on_filter_changed()
+    page._node_combo.setCurrentIndex(1)  # A
+    page._on_node_changed(1)
     check("节点A: 2 卡片", page._card_count() == 2)
 
-    page._toolbar._node_combo.setCurrentIndex(2)  # B
-    page._on_filter_changed()
+    page._node_combo.setCurrentIndex(2)  # B
+    page._on_node_changed(2)
     check("节点B: 1 卡片", page._card_count() == 1)
 
-    page._toolbar._node_combo.setCurrentIndex(0)  # All
-    page._on_filter_changed()
+    page._node_combo.setCurrentIndex(0)  # All
+    page._on_node_changed(0)
     check("全部: 3 卡片", page._card_count() == 3)
 
 

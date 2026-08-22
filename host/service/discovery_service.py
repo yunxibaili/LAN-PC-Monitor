@@ -58,12 +58,12 @@ class DiscoveryService:
             self._thread = None
         try:
             self._listener.stop()
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug("UDP 监听停止忽略异常: %s", e)
         try:
             self._mdns.stop()
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug("mDNS 停止忽略异常: %s", e)
 
     # ---------- 发现视图 ----------
 

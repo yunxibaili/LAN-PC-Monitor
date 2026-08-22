@@ -28,10 +28,6 @@ _app = QApplication.instance() or QApplication(_sys.argv)
 from host.gui.theme.colors import ThemeColors as TC
 from host.gui.theme.metrics import ThemeMetrics as TM
 from host.gui.theme.style import dark_qss
-from host.gui.widgets.node_card import NodeCard
-from host.gui.widgets.status_badge import StatusBadge
-from host.gui.widgets.quality_badge import QualityBadge
-from host.gui.widgets.metric_bar import MetricBar
 from host.viewmodels.dashboard_vm import DashboardViewModel
 from host.store.frame_store import FrameStore
 from host.store.node_store import NodeStore
@@ -84,35 +80,6 @@ def test_style():
     check("含 Segoe UI", "Segoe UI" in qss)
 
 
-# ---------- 3. NodeCard ----------
-
-def test_node_card():
-    print("\n--- 3. NodeCard ---")
-    card = NodeCard("test", alias="测试机")
-    check("NodeCard 创建", card is not None)
-
-    from host.viewmodels.dashboard_vm import DashboardNodeData
-    data = DashboardNodeData()
-    data.node_id = "test"
-    data.alias = "测试机"
-    data.status = "connected"
-    data.cpu_usage = 45.2
-    data.gpu_usage = 62.1
-    data.memory_usage = 49.8
-    data.network_rx = 45.6
-    data.network_tx = 12.3
-    data.quality_score = 95
-    data.quality_grade = "优秀"
-
-    card.update_data(data)
-    check("alias 更新", card._alias_lbl.text() == "测试机")
-    check("status=online", card._status_badge.text() == "ONLINE")
-    check("CPU=45%", "45" in card._ring_values["cpu"].text())
-    check("GPU=62%", "62" in card._ring_values["gpu"].text())
-
-
-# ---------- 4. Dashboard 布局 ----------
-
 def test_dashboard_layout():
     print("\n--- 4. Dashboard 布局 ---")
     from host.gui.pages.dashboard_page import DashboardPage
@@ -120,8 +87,8 @@ def test_dashboard_layout():
     check("DashboardPage 创建", page is not None)
     check("有 summary cards", hasattr(page, '_card_total'))
     check("有实时折线图", hasattr(page, '_chart'))
-    check("有指标条 cpu", hasattr(page, '_bar_cpu'))
-    check("有指标条 gpu", hasattr(page, '_bar_gpu'))
+    check("有指标块 cpu", hasattr(page, '_tile_cpu'))
+    check("有指标块 gpu", hasattr(page, '_tile_gpu'))
 
 
 # ---------- 5. SideNav 状态 ----------
@@ -194,7 +161,6 @@ def main():
 
     test_colors()
     test_style()
-    test_node_card()
     test_dashboard_layout()
     test_sidenav()
     test_alert_colors()

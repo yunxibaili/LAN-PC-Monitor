@@ -72,109 +72,103 @@ if _HAS_PG:
             super().__init__(parent)
             self._title = title
             self._y_range = y_range
-            self._curves = []
-            self._series_data = {}   # name -> [(x, y), ...]
+            self._curves = []            # [PlotDataItem]
+            self._curve_map = {}         # name -> PlotDataItem
+            self._series_data = {}       # name -> [(x, y), ...]
             self._warn_line = None
             self._danger_line = None
+            self._window_sec = None      # None=显示全部；N=滚动最近N秒
+            self._show_x_values = True
             self._setup()
-            self._setup_crosshair()
+            self._lock_interaction()
+
+        def set_window_seconds(self, seconds) -> None:
+            """设置滚动窗口秒数；None/0 表示显示全部数据。"""
+            if seconds is None:
+                self._window_sec = None
+            else:
+                self._window_sec = max(1, int(seconds))
+
+        def set_show_x_values(self, show: bool) -> None:
+            """是否显示 X 轴刻度数值。"""
+            self._show_x_values = bool(show)
+            self.getAxis("bottom").setStyle(showValues=self._show_x_values)
+
+        # ---- 锁定交互：只读展示，禁用一切用户操作 ----
+
+        def _lock_interaction(self):
+            """折线图仅作展示，不允许用户缩放/平移/选择/右键菜单/滚轮等。"""
+            self.setMouseEnabled(x=False, y=False)
+            self.setMenuEnabled(False)
+            self.hideButtons()
+            self.setFocusPolicy(Qt.NoFocus)
+            vb = self.getViewBox()
+            if vb is not None:
+                vb.setMouseEnabled(x=False, y=False)
+                vb.setCursor(Qt.ForbiddenCursor)
+
+        def wheelEvent(self, ev):
+            ev.ignore()
+
+        def keyPressEvent(self, ev):
+            ev.ignore()
+
+        def mousePressEvent(self, ev):
+            ev.ignore()
+
+        def mouseMoveEvent(self, ev):
+            ev.ignore()
+
+        def mouseReleaseEvent(self, ev):
+            ev.ignore()
+
+        def mouseDoubleClickEvent(self, ev):
+            ev.ignore()
+
+        def contextMenuEvent(self, ev):
+            ev.ignore()
+
+        def leaveEvent(self, ev):
+            ev.ignore()
 
         def _setup(self):
             self.setBackground(TC.BG_BASE)
             self.showGrid(x=True, y=True, alpha=0.3)
             self.setLabel("left", self._title, color=TC.TEXT_PRIMARY)
             self.setLabel("bottom", "时间", color=TC.TEXT_DISABLED)
+            self.getAxis("bottom").setStyle(showValues=self._show_x_values)
             self.getAxis("bottom").setPen(pg.mkPen(color=TC.TEXT_DISABLED))
             self.getAxis("left").setPen(pg.mkPen(color=TC.TEXT_DISABLED))
             if self._y_range:
                 self.setYRange(self._y_range[0], self._y_range[1], padding=0)
 
-        # ---- 十字准线 + Tooltip ----
-
-        def _setup_crosshair(self):
-            self._vLine = pg.InfiniteLine(
-                angle=90, movable=False,
-                pen=pg.mkPen(color=TC.TEXT_DISABLED, style=Qt.DashLine, width=1))
-            self._hLine = pg.InfiniteLine(
-                angle=0, movable=False,
-                pen=pg.mkPen(color=TC.TEXT_DISABLED, style=Qt.DashLine, width=1))
-            self._vLine.setVisible(False)
-            self._hLine.setVisible(False)
-            self.addItem(self._vLine, ignoreBounds=True)
-            self.addItem(self._hLine, ignoreBounds=True)
-
-            self._tooltip = QGraphicsSimpleTextItem()
-            self._tooltip.setBrush(pg.mkBrush(30, 30, 30, 220))
-            self._tooltip.setPen(pg.mkPen(color=TC.TEXT_DISABLED))
-            self._tooltip.setVisible(False)
-            self._tooltip.setZValue(100)
-            self.addItem(self._tooltip)
-
-        def mouseMoveEvent(self, ev):
-            super().mouseMoveEvent(ev)
-            pos = ev.pos()
-            mouse_point = self.getViewBox().mapToView(pos)
-            x = mouse_point.x()
-            y = mouse_point.y()
-
-            self._vLine.setVisible(True)
-            self._hLine.setVisible(True)
-            self._vLine.setPos(x)
-            self._hLine.setPos(y)
-
-            # 查找最近数据点
-            lines = []
-            for name, data in self._series_data.items():
-                if not data:
-                    continue
-                # 二分查找最近 x
-                lo, hi = 0, len(data) - 1
-                while lo < hi:
-                    mid = (lo + hi) // 2
-                    if data[mid][0] < x:
-                        lo = mid + 1
-                    else:
-                        hi = mid
-                idx = lo
-                if idx > 0 and abs(data[idx - 1][0] - x) < abs(data[idx][0] - x):
-                    idx -= 1
-                ts, val = data[idx]
-                lines.append(f"{name}: {_fmt_value(val)}%")
-
-            time_str = _fmt_time(x) if x > 0 else ""
-            tooltip_text = f"{time_str}\n" + "\n".join(lines) if lines else time_str
-            self._tooltip.setText(tooltip_text)
-            self._tooltip.setPos(pos.x() + 15, pos.y() - 10)
-            self._tooltip.setVisible(True)
-
-        def leaveEvent(self, ev):
-            super().leaveEvent(ev)
-            self._vLine.setVisible(False)
-            self._hLine.setVisible(False)
-            self._tooltip.setVisible(False)
-
         # ---- 数据接口 ----
 
         def set_series(self, points, color=TC.CHART_PRIMARY) -> None:
             """单曲线（向后兼容）。"""
-            self.clear()
+            self.reset()
             if not points:
                 return
             self.set_multi_series({"Data": (points, color)})
 
         def set_multi_series(self, series: dict) -> None:
             """
-            多曲线叠加。
+            多曲线叠加（增量更新）。
             series: {name: (points, color)}
-              points: MetricRecord 列表（有 .timestamp, .value）
+              points: 有 .timestamp / .value
+            复用已存在的曲线对象，仅用 setData() 更新点，避免重复重建对象。
             """
-            # 清除旧曲线
-            for c in self._curves:
-                self.removeItem(c)
-            self._curves.clear()
-            self._series_data.clear()
+            # 移除本次未出现的旧曲线
+            active = set(series.keys())
+            for name in list(self._curve_map.keys()):
+                if name not in active:
+                    c = self._curve_map.pop(name)
+                    if c in self._curves:
+                        self._curves.remove(c)
+                    self.removeItem(c)
 
             if not series:
+                self._series_data.clear()
                 return
 
             all_x = []
@@ -186,18 +180,20 @@ if _HAS_PG:
                 all_x.extend(x_vals)
                 self._series_data[name] = list(zip(x_vals, y_vals))
 
-                pen = pg.mkPen(color=color, width=2)
-                curve = self.plot(x_vals, y_vals, pen=pen)
-                self._curves.append(curve)
-
-            # X 轴自适应格式
-            if all_x:
-                span = max(all_x) - min(all_x)
-                if span < 600:
-                    self.setLabel("bottom", "时间 (秒)", color=TC.TEXT_DISABLED)
+                curve = self._curve_map.get(name)
+                if curve is None:
+                    pen = pg.mkPen(color=color, width=2)
+                    curve = self.plot(x_vals, y_vals, pen=pen)
+                    self._curve_map[name] = curve
+                    self._curves.append(curve)
                 else:
-                    self.setLabel("bottom", "", color=TC.TEXT_DISABLED)
-                    self.getAxis("bottom").setTickValues(all_x)
+                    curve.setData(x=x_vals, y=y_vals)
+
+            # 滚动窗口：window_sec 为 None 时显示全部，否则固定最近 N 秒
+            window_sec = self._window_sec
+            if all_x and window_sec:
+                now = max(all_x)
+                self.setXRange(now - window_sec, now, padding=0)
 
         def set_thresholds(self, warn=None, danger=None) -> None:
             """设置阈值参考线。"""
@@ -220,11 +216,12 @@ if _HAS_PG:
                         style=Qt.DashLine, width=1))
                 self.addItem(self._danger_line)
 
-        def clear(self) -> None:
-            """清空图表。"""
+        def reset(self) -> None:
+            """清空图表（避免与 pyqtgraph PlotItem.clear 重名冲突）。"""
             for c in self._curves:
                 self.removeItem(c)
             self._curves.clear()
+            self._curve_map.clear()
             self._series_data.clear()
 
 else:
@@ -238,7 +235,7 @@ else:
             layout = QVBoxLayout(self)
             layout.setContentsMargins(8, 8, 8, 8)
             lbl = QLabel(f"[{title}] pyqtgraph 未安装，图表不可用")
-            lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: TT.BODY_SMALL['size']px;")
+            lbl.setStyleSheet(f"color: {TC.TEXT_SECONDARY}; font-size: {TT.BODY_SMALL['size']}px;")
             lbl.setAlignment(Qt.AlignCenter)
             layout.addWidget(lbl)
 
@@ -251,5 +248,11 @@ else:
         def set_thresholds(self, warn=None, danger=None):
             pass
 
-        def clear(self):
+        def set_window_seconds(self, seconds):
+            pass
+
+        def set_show_x_values(self, show):
+            pass
+
+        def reset(self):
             pass

@@ -10,6 +10,7 @@ from host.gui.theme.typography import ThemeTypography as TT
 from host.gui.theme.icons import ThemeIcons
 from host.gui.widgets.nav_item import NavItem
 from common.i18n import tr
+from common.version import VERSION_LABEL
 
 
 class SideNav(QWidget):
@@ -129,7 +130,7 @@ class SideNav(QWidget):
         name_lbl = QLabel("LAN-PC-Monitor")
         name_lbl.setStyleSheet(f"color: {TC.SIDEBAR_TEXT_ACTIVE}; font-size: 12px; font-weight: 500; background: transparent;")
         user_info.addWidget(name_lbl)
-        role_lbl = QLabel("v5.3.4")
+        role_lbl = QLabel(VERSION_LABEL)
         role_lbl.setStyleSheet(f"color: {TC.SIDEBAR_TEXT_MUTED}; font-size: 11px; background: transparent;")
         user_info.addWidget(role_lbl)
         user_layout.addLayout(user_info, 1)

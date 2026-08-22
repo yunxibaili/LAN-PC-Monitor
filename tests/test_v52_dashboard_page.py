@@ -65,10 +65,10 @@ def test_vm_injection():
 def test_components_exist():
     print("\n--- 2. 组件存在 ---")
     page = DashboardPage()
-    check("有 _bar_cpu", hasattr(page, '_bar_cpu'))
-    check("有 _bar_gpu", hasattr(page, '_bar_gpu'))
-    check("有 _bar_ram", hasattr(page, '_bar_ram'))
-    check("有 _bar_net", hasattr(page, '_bar_net'))
+    check("有 _tile_cpu", hasattr(page, '_tile_cpu'))
+    check("有 _tile_gpu", hasattr(page, '_tile_gpu'))
+    check("有 _tile_ram", hasattr(page, '_tile_ram'))
+    check("有 _tile_net", hasattr(page, '_tile_net'))
     check("有 _chart 折线图", hasattr(page, '_chart'))
     check("有 _card_total", hasattr(page, '_card_total'))
     check("有 _series 数据缓冲", hasattr(page, '_series'))
@@ -85,8 +85,8 @@ def test_data_update_bars():
     ns.add_node("game-pc", alias="游戏主机")
     ns.update_status("game-pc", "connected")
     fs.push("game-pc", make_frame(cpu=73, gpu=88, ram=65))
-    # 触发一次刷新
-    page._flush_refresh()
+    # 触发一次数据更新
+    page.update_trends("game-pc", make_frame(cpu=73, gpu=88, ram=65))
 
     check("CPU 缓冲有数据", len(page._series["CPU"]) > 0)
     check("GPU 缓冲有数据", len(page._series["GPU"]) > 0)
@@ -104,13 +104,12 @@ def test_chart_buffer_limit():
     ns.add_node("a", alias="A")
     ns.update_status("a", "connected")
     for i in range(80):
-        fs.push("a", make_frame(cpu=i))
-        page._flush_refresh()
+        page.update_trends("a", make_frame(cpu=i))
         time.sleep(0.005)
 
-    # 缓冲应限制在 MAX_POINTS=60
-    check("CPU 缓冲 ≤60", len(page._series["CPU"]) <= 60)
-    check("NET 缓冲 ≤60", len(page._series["NET"]) <= 60)
+    # 缓冲应限制在 MAX_POINTS=30（30秒窗口）
+    check("CPU 缓冲 ≤30", len(page._series["CPU"]) <= 30)
+    check("NET 缓冲 ≤30", len(page._series["NET"]) <= 30)
 
 
 def test_summary_update():
@@ -129,6 +128,34 @@ def test_summary_update():
     check("total=1", page._card_total._value_lbl.text() == "1")
 
 
+def test_agent_cards():
+    print("\n--- 6. 已接入副机卡片 ---")
+    ns = NodeStore(); fs = FrameStore()
+    vm = DashboardViewModel(ns, fs)
+    page = DashboardPage()
+    page.set_view_model(vm)
+    page.show()
+
+    # 无在线副机 -> 不显示
+    page._refresh_agents()
+    check("无副机时隐藏", not page._agents_scroll.isVisible())
+
+    # 上线一台副机
+    ns.add_node("agent1", alias="副机1")
+    ns.update_status("agent1", "connected")
+    fs.push("agent1", make_frame(cpu=66, gpu=72, ram=55))
+    page._refresh_agents()
+    check("上线后显示区", page._agents_scroll.isVisible())
+    check("在线副机卡片=1", len(page._agent_cards) == 1)
+    check("副机卡片数据更新", page._agent_cards["agent1"]._rings["cpu"]._gauge._value == 66)
+
+    # 下线 -> 移除卡片
+    ns.update_status("agent1", "offline")
+    page._refresh_agents()
+    check("下线后隐藏", not page._agents_scroll.isVisible())
+    check("下线后无卡片", len(page._agent_cards) == 0)
+
+
 def main():
     global PASS, FAIL
     print("=" * 55)
@@ -140,6 +167,7 @@ def main():
     test_data_update_bars()
     test_chart_buffer_limit()
     test_summary_update()
+    test_agent_cards()
 
     print()
     print(f"结果: {PASS} 通过, {FAIL} 失败")

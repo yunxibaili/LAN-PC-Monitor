@@ -1,8 +1,23 @@
 # -*- coding: utf-8 -*-
-"""ThemeStyle —— Gentelella v4 Light Mode QSS。"""
+"""ThemeStyle —— 白色高密度 QSS。"""
 from host.gui.theme.colors import ThemeColors as C
 from host.gui.theme.spacing import ThemeSpacing as S
 from host.gui.theme.typography import ThemeTypography as TT
+
+
+def glass_background_qss() -> str:
+    """浅色背景：极淡蓝紫微光渐变（供主窗口/对话框应用，保持层次不抢眼）。"""
+    return f"""
+    QWidget#glassBg {{
+        background:
+            qradialgradient(cx:0.08, cy:0.02, radius:0.55, fx:0.08, fy:0.02,
+                stop:0 rgba(59,130,246,0.08), stop:1 rgba(59,130,246,0.0)),
+            qradialgradient(cx:0.95, cy:0.90, radius:0.70, fx:0.95, fy:0.90,
+                stop:0 rgba(168,85,247,0.05), stop:1 rgba(168,85,247,0.0)),
+            qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                stop:0 rgba(245,247,251,1), stop:1 rgba(239,243,248,1));
+    }}
+    """
 
 
 def light_qss():
